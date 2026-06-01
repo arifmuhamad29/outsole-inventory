@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+}
+
+enum TransactionType {
+  INBOUND
+  OUTBOUND
+  ADJUSTMENT
+  STOCK_OPNAME
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STOCK_IN
+  STOCK_OUT
+  STOCK_ADJUSTMENT
+  STOCK_OPNAME
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions Transaction[]
+  auditLogs    AuditLog[]
+  stockOpnameSessions StockOpnameSession[]
+
+  @@index([role])
+}
+
+model Outsole {
+  id             String   @id @default(uuid())
+
+  qrCode         String   @unique
+
+  model          String
+  article        String   @default("-")
+  color          String
+  size           String
+
+  stock          Int      @default(0)
+
+  minimumStock   Int      @default(5)
+
+  isActive       Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transactions   Transaction[]
+
+  stockOpnameItems StockOpnameItem[]
+
+  @@unique([model, color, size])
+
+  @@index([model])
+  @@index([color])
+  @@index([size])
+  @@index([stock])
+}
+
+model Transaction {
+  id          String @id @default(uuid())
+
+  outsoleId   String
+  outsole     Outsole @relation(fields: [outsoleId], references: [id])
+
+  userId      String
+  user        User @relation(fields: [userId], references: [id])
+
+  type        TransactionType
+
+  qty         Int
+
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([outsoleId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id            String @id @default(uuid())
+
+  userId        String
+  user          User @relation(fields: [userId], references: [id])
+
+  action        AuditAction
+
+  entityName    String
+
+  entityId      String
+
+  beforeData    Json?
+
+  afterData     Json?
+
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityName])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
+model StockOpnameSession {
+  id              String @id @default(uuid())
+
+  sessionName     String
+
+  createdById     String
+  createdBy       User @relation(fields: [createdById], references: [id])
+
+  startedAt       DateTime @default(now())
+
+  finishedAt      DateTime?
+
+  items           StockOpnameItem[]
+
+  createdAt       DateTime @default(now())
+
+  @@index([startedAt])
+}
+
+model StockOpnameItem {
+  id                 String @id @default(uuid())
+
+  sessionId          String
+  session            StockOpnameSession @relation(fields: [sessionId], references: [id])
+
+  outsoleId          String
+  outsole            Outsole @relation(fields: [outsoleId], references: [id])
+
+  systemStock        Int
+
+  physicalStock      Int
+
+  difference         Int
+
+  createdAt          DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([outsoleId])
+}

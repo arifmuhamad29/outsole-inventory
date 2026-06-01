@@ -1,0 +1,132 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { CheckCircle2, XCircle } from "lucide-react"
+
+type ScanResult = {
+  qrCode: string
+  status: "success" | "error"
+  message: string
+  timestamp: Date
+}
+
+export default function OutboundPage() {
+  const [inputValue, setInputValue] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [history, setHistory] = useState<ScanResult[]>([])
+  
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Keep input focused for barcode scanner
+  useEffect(() => {
+    const focusInput = () => {
+      if (!isProcessing && inputRef.current) {
+        inputRef.current.focus()
+      }
+    }
+    
+    focusInput()
+    window.addEventListener("click", focusInput)
+    return () => window.removeEventListener("click", focusInput)
+  }, [isProcessing])
+
+  async function handleScan(e: React.FormEvent) {
+    e.preventDefault()
+    if (!inputValue.trim() || isProcessing) return
+
+    const qrCode = inputValue.trim()
+    setIsProcessing(true)
+    
+    try {
+      const res = await fetch("/api/scanner/outbound", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrCode })
+      })
+      
+      const data = await res.json()
+      
+      setHistory(prev => [{
+        qrCode,
+        status: (data.success ? "success" : "error") as "success" | "error",
+        message: data.message,
+        timestamp: new Date()
+      }, ...prev].slice(0, 10)) // Keep last 10 scans
+
+    } catch {
+      setHistory(prev => [{
+        qrCode,
+        status: "error" as "success" | "error",
+        message: "Network error occurred",
+        timestamp: new Date()
+      }, ...prev].slice(0, 10))
+    } finally {
+      setInputValue("")
+      setIsProcessing(false)
+      // Focus will be restored by useEffect
+    }
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Outbound Scanner</h1>
+        <p className="text-muted-foreground mt-2">
+          Scan QR codes to deduct stock. The input is always active.
+        </p>
+      </div>
+
+      <Card className="border-2 border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle>Scanner Ready</CardTitle>
+          <CardDescription>Use your barcode scanner or type the QR code manually and press Enter.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleScan}>
+            <Input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={isProcessing}
+              placeholder="Waiting for scan..."
+              className="text-center text-2xl h-16 font-mono tracking-widest border-primary/50 shadow-sm"
+              autoComplete="off"
+            />
+          </form>
+        </CardContent>
+      </Card>
+
+      {history.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Recent Scans</h3>
+          <div className="space-y-3">
+            {history.map((scan, i) => (
+              <Card key={i} className={`border-l-4 ${scan.status === "success" ? "border-l-green-500" : "border-l-red-500"}`}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center space-x-4">
+                    {scan.status === "success" ? (
+                      <CheckCircle2 className="w-6 h-6 text-green-500" />
+                    ) : (
+                      <XCircle className="w-6 h-6 text-red-500" />
+                    )}
+                    <div>
+                      <p className="font-medium font-mono">{scan.qrCode}</p>
+                      <p className={`text-sm ${scan.status === "success" ? "text-green-600" : "text-red-600"}`}>
+                        {scan.message}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    {scan.timestamp.toLocaleTimeString()}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

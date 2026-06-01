@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Outsole" ALTER COLUMN "size" SET DATA TYPE TEXT;
