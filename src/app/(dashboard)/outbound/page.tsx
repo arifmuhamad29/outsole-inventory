@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, XCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { CheckCircle2, XCircle, Camera } from "lucide-react"
+import { CameraScanner } from "@/components/features/camera-scanner"
 
 type ScanResult = {
   qrCode: string
@@ -16,13 +19,14 @@ export default function OutboundPage() {
   const [inputValue, setInputValue] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [history, setHistory] = useState<ScanResult[]>([])
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
   
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Keep input focused for barcode scanner
   useEffect(() => {
     const focusInput = () => {
-      if (!isProcessing && inputRef.current) {
+      if (!isProcessing && !isCameraOpen && inputRef.current) {
         inputRef.current.focus()
       }
     }
@@ -30,7 +34,7 @@ export default function OutboundPage() {
     focusInput()
     window.addEventListener("click", focusInput)
     return () => window.removeEventListener("click", focusInput)
-  }, [isProcessing])
+  }, [isProcessing, isCameraOpen])
 
   async function handleScan(e: React.FormEvent) {
     e.preventDefault()
@@ -69,6 +73,21 @@ export default function OutboundPage() {
     }
   }
 
+  const handleCameraScanSuccess = (decodedText: string) => {
+    setIsCameraOpen(false)
+    setInputValue(decodedText)
+    
+    // Simulate Enter press submission
+    setTimeout(() => {
+      if (inputRef.current) {
+        const form = inputRef.current.closest("form")
+        if (form) {
+          form.requestSubmit()
+        }
+      }
+    }, 100)
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -84,19 +103,47 @@ export default function OutboundPage() {
           <CardDescription>Use your barcode scanner or type the QR code manually and press Enter.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleScan}>
+          <form onSubmit={handleScan} className="flex gap-2">
             <Input
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={isProcessing}
               placeholder="Waiting for scan..."
-              className="text-center text-2xl h-16 font-mono tracking-widest border-primary/50 shadow-sm"
+              className="text-center text-2xl h-16 font-mono tracking-widest border-primary/50 shadow-sm flex-1"
               autoComplete="off"
             />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-16 w-16 shrink-0"
+              onClick={() => setIsCameraOpen(true)}
+              title="Scan with Camera"
+            >
+              <Camera className="h-8 w-8 text-primary" />
+            </Button>
           </form>
         </CardContent>
       </Card>
+
+      <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Scan QR Code</DialogTitle>
+            <DialogDescription>
+              Point your camera at the QR code. Make sure you grant camera permissions if prompted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center p-4">
+            {isCameraOpen && (
+              <CameraScanner
+                onScanSuccess={handleCameraScanSuccess}
+                onScanError={(err) => console.log(err)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {history.length > 0 && (
         <div className="space-y-4">
