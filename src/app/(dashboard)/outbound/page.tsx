@@ -36,11 +36,10 @@ export default function OutboundPage() {
     return () => window.removeEventListener("click", focusInput)
   }, [isProcessing, isCameraOpen])
 
-  async function handleScan(e: React.FormEvent) {
-    e.preventDefault()
-    if (!inputValue.trim() || isProcessing) return
+  async function processScan(qrCodeString: string) {
+    if (!qrCodeString.trim() || isProcessing) return
 
-    const qrCode = inputValue.trim()
+    const qrCode = qrCodeString.trim()
     setIsProcessing(true)
     
     try {
@@ -73,19 +72,15 @@ export default function OutboundPage() {
     }
   }
 
-  const handleCameraScanSuccess = (decodedText: string) => {
+  async function handleScan(e: React.FormEvent) {
+    e.preventDefault()
+    await processScan(inputValue)
+  }
+
+  const handleCameraScanSuccess = async (decodedText: string) => {
     setIsCameraOpen(false)
     setInputValue(decodedText)
-    
-    // Simulate Enter press submission
-    setTimeout(() => {
-      if (inputRef.current) {
-        const form = inputRef.current.closest("form")
-        if (form) {
-          form.requestSubmit()
-        }
-      }
-    }, 100)
+    await processScan(decodedText)
   }
 
   return (
