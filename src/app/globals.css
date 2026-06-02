@@ -135,23 +135,32 @@
     size: auto;
   }
   
-  /* Hide everything in the body by default but collapse height to prevent extra blank pages */
-  html, body {
-    visibility: hidden;
-    height: 100vh !important;
-    overflow: hidden !important;
+  /* Completely hide the Next.js app root to kill its document height and prevent extra pages */
+  body > *:not(.print-container) {
+    display: none !important;
   }
   
-  /* Only make the printable label and its children visible */
-  #printable-label, #printable-label * {
-    visibility: visible;
+  /* Reset background and text for the body */
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   
-  /* Position the label perfectly at the top-left of the physical paper */
+  /* The portal container becomes the only element in flow */
+  .print-container {
+    display: flex !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+  }
+  
+  /* Format the label itself to take up exactly the space it needs */
   #printable-label {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: relative !important;
     width: 100% !important;
     max-width: 400px !important;
     padding: 20px !important;

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { hardDeleteOutsoleAction } from "@/app/actions/inventory"
@@ -35,6 +36,11 @@ export function DashboardActions({ item, isAdmin }: {
   const [message, setMessage] = useState<{ text: string, type: "success" | "error" } | null>(null)
   
   const [isPrintOpen, setIsPrintOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleOpenChange = (open: boolean) => {
     if (!isDeleting) {
@@ -151,9 +157,9 @@ export function DashboardActions({ item, isAdmin }: {
       )}
       </div>
 
-      {/* Actual printable content rendered outside the Dialog to avoid Portal bugs */}
-      {isPrintOpen && (
-        <div className="hidden print:block">
+      {/* Actual printable content rendered via Portal directly into body to prevent any layout interference */}
+      {isPrintOpen && mounted && createPortal(
+        <div className="print-container hidden print:flex flex-col items-center justify-start w-full absolute top-0 left-0 bg-white z-[9999]">
           <PrintableLabel 
             qrCode={item.qrCode} 
             model={item.model} 
@@ -161,7 +167,8 @@ export function DashboardActions({ item, isAdmin }: {
             color={item.color} 
             size={item.size} 
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
