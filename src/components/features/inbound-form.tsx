@@ -6,7 +6,6 @@ import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { format } from "date-fns"
 
 export function InboundForm() {
   const [isPending, setIsPending] = useState(false)
@@ -136,7 +135,7 @@ export function InboundForm() {
               article={String(outsoleData.article)} 
               color={String(outsoleData.color)} 
               size={String(outsoleData.size)} 
-              incomingDate={outsoleData.createdAt ? format(new Date(outsoleData.createdAt as string), "dd MMM yyyy, HH:mm") : format(new Date(), "dd MMM yyyy, HH:mm")}
+              createdAt={outsoleData.createdAt as string}
               notes={outsoleData.notes ? String(outsoleData.notes) : undefined}
             />
             <Button variant="outline" onClick={() => window.print()} className="no-print">

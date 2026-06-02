@@ -27,7 +27,7 @@ import {
 import { Printer } from "lucide-react"
 
 export function DashboardActions({ item, isAdmin }: { 
-  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string }, 
+  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, createdAt?: Date | string }, 
   isAdmin: boolean 
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -100,6 +100,7 @@ export function DashboardActions({ item, isAdmin }: {
               article={item.article} 
               color={item.color} 
               size={item.size} 
+              createdAt={item.createdAt}
             />
           </div>
           <div className="flex justify-end">
@@ -166,6 +167,7 @@ export function DashboardActions({ item, isAdmin }: {
             article={item.article} 
             color={item.color} 
             size={item.size} 
+            createdAt={item.createdAt}
           />
         </div>,
         document.body
