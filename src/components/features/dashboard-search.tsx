@@ -1,13 +1,14 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { useState, useTransition, useEffect } from "react"
 import { Search } from "lucide-react"
 
 export function DashboardSearch() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   
   const [value, setValue] = useState(searchParams.get("q")?.toString() || "")
@@ -30,7 +31,7 @@ export function DashboardSearch() {
     }
 
     startTransition(() => {
-      router.replace(`/?${params.toString()}`)
+      router.replace(`${pathname}?${params.toString()}`)
     })
   }
 

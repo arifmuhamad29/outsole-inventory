@@ -18,7 +18,7 @@ import { DashboardActions } from "@/components/features/dashboard-actions"
 export default async function InventoryPage(props: { searchParams?: Promise<{ q?: string }> }) {
   const session = await auth()
   const isAdmin = session?.user?.role === "ADMIN"
-  const searchParams = await props.searchParams
+  const searchParams = props.searchParams ? await props.searchParams : undefined
   const query = searchParams?.q || ""
 
   const whereClause = {
