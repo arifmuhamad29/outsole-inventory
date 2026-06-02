@@ -27,7 +27,7 @@ import {
 import { Printer, Trash2 } from "lucide-react"
 
 export function DashboardActions({ item, isAdmin }: { 
-  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, createdAt?: Date | string }, 
+  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, createdAt?: Date | string }, 
   isAdmin: boolean 
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -100,6 +100,8 @@ export function DashboardActions({ item, isAdmin }: {
               article={item.article} 
               color={item.color} 
               size={item.size} 
+              poNumber={item.poNumber ? String(item.poNumber) : undefined}
+              bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
               createdAt={item.createdAt}
             />
           </div>
@@ -167,6 +169,8 @@ export function DashboardActions({ item, isAdmin }: {
             article={item.article} 
             color={item.color} 
             size={item.size} 
+            poNumber={item.poNumber ? String(item.poNumber) : undefined}
+            bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
             createdAt={item.createdAt}
           />
         </div>,
