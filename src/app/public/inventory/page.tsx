@@ -18,7 +18,8 @@ export default async function PublicInventoryPage(props: { searchParams?: Promis
   }
 
   if (query) {
-    const terms = query.trim().split(/\s+/)
+    const normalizedQuery = query.replace(/([a-zA-Z])(\d)/g, '$1 $2').replace(/(\d)([a-zA-Z])/g, '$1 $2')
+    const terms = normalizedQuery.trim().split(/\s+/)
     whereClause.AND = terms.map(term => ({
       OR: [
         { model: { contains: term, mode: "insensitive" } },
