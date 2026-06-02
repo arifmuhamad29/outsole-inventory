@@ -5,12 +5,17 @@ const { auth } = NextAuth(authConfig)
 import { NextResponse } from "next/server"
 
 const publicRoutes = ["/login"]
+const openRoutes = ["/public"]
 const operatorRoutes = ["/", "/outbound", "/inventory"]
 
 export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
+
+  if (openRoutes.some(route => nextUrl.pathname.startsWith(route))) {
+    return NextResponse.next()
+  }
 
   if (isPublicRoute) {
     if (isLoggedIn) {
