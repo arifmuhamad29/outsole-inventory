@@ -91,12 +91,14 @@ export function InboundForm() {
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger 
                     type="button"
-                    className={buttonVariants({ variant: "outline", className: `w-full justify-between font-normal border-input bg-background hover:bg-background hover:text-foreground ${!modelValue ? "text-muted-foreground" : ""}` })} 
+                    className={buttonVariants({ variant: "outline", className: `w-full justify-between font-normal bg-transparent hover:bg-transparent border-input ${!modelValue ? "text-muted-foreground" : ""}` })} 
                     role="combobox" 
                     aria-expanded={open}
                   >
+                    <span className="truncate">
                       {modelValue ? modelValue : "Search or type model..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
