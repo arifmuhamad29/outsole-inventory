@@ -13,6 +13,7 @@ export type InboundData = z.infer<typeof inboundSchema>
 
 export const outboundSchema = z.object({
   qrCode: z.string().min(1, "QR Code is required"),
+  quantity: z.coerce.number().int().positive("Quantity must be greater than zero").default(1),
   notes: z.string().optional()
 })
 

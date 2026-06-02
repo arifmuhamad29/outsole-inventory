@@ -17,6 +17,7 @@ type ScanResult = {
 
 export default function OutboundPage() {
   const [inputValue, setInputValue] = useState("")
+  const [scanQty, setScanQty] = useState<number>(1)
   const [isProcessing, setIsProcessing] = useState(false)
   const [history, setHistory] = useState<ScanResult[]>([])
   const [isCameraOpen, setIsCameraOpen] = useState(false)
@@ -36,7 +37,7 @@ export default function OutboundPage() {
     return () => window.removeEventListener("click", focusInput)
   }, [isProcessing, isCameraOpen])
 
-  async function processScan(qrCodeString: string) {
+  async function processScan(qrCodeString: string, quantity: number) {
     if (!qrCodeString.trim() || isProcessing) return
 
     const qrCode = qrCodeString.trim()
@@ -46,7 +47,7 @@ export default function OutboundPage() {
       const res = await fetch("/api/scanner/outbound", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrCode })
+        body: JSON.stringify({ qrCode, quantity })
       })
       
       const data = await res.json()
@@ -67,6 +68,7 @@ export default function OutboundPage() {
       }, ...prev].slice(0, 10))
     } finally {
       setInputValue("")
+      setScanQty(1)
       setIsProcessing(false)
       // Focus will be restored by useEffect
     }
@@ -74,13 +76,13 @@ export default function OutboundPage() {
 
   async function handleScan(e: React.FormEvent) {
     e.preventDefault()
-    await processScan(inputValue)
+    await processScan(inputValue, scanQty)
   }
 
   const handleCameraScanSuccess = async (decodedText: string) => {
     setIsCameraOpen(false)
     setInputValue(decodedText)
-    await processScan(decodedText)
+    await processScan(decodedText, scanQty)
   }
 
   return (
@@ -99,24 +101,41 @@ export default function OutboundPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleScan} className="flex gap-2">
-            <Input
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              disabled={isProcessing}
-              placeholder="Waiting for scan..."
-              className="text-center text-2xl h-16 font-mono tracking-widest border-primary/50 shadow-sm flex-1"
-              autoComplete="off"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              className="h-16 w-16 shrink-0"
-              onClick={() => setIsCameraOpen(true)}
-              title="Scan with Camera"
-            >
-              <Camera className="h-8 w-8 text-primary" />
-            </Button>
+            <div className="w-24 shrink-0 flex flex-col">
+              <span className="text-xs text-muted-foreground mb-1">Qty Multiplier</span>
+              <Input
+                type="number"
+                min="1"
+                value={scanQty}
+                onChange={(e) => setScanQty(parseInt(e.target.value) || 1)}
+                disabled={isProcessing}
+                title="Quantity Multiplier"
+                className="text-center text-xl h-16 shadow-sm border-primary/50"
+              />
+            </div>
+            <div className="flex-1 flex flex-col">
+              <span className="text-xs text-muted-foreground mb-1">QR Code</span>
+              <Input
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isProcessing}
+                placeholder="Waiting for scan..."
+                className="text-center text-2xl h-16 font-mono tracking-widest border-primary/50 shadow-sm"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-16 w-16 shrink-0"
+                onClick={() => setIsCameraOpen(true)}
+                title="Scan with Camera"
+              >
+                <Camera className="h-8 w-8 text-primary" />
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

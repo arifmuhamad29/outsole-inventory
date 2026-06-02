@@ -85,15 +85,17 @@ export const InventoryService = {
         throw new Error("Outsole not found for given QR Code")
       }
 
-      if (outsole.stock < 1) {
-        throw new Error("Insufficient stock for outbound")
+      const qtyToDeduct = data.quantity ?? 1
+
+      if (outsole.stock < qtyToDeduct) {
+        throw new Error(`Insufficient stock. Available: ${outsole.stock}, Requested: ${qtyToDeduct}`)
       }
 
       const beforeData = { stock: outsole.stock }
 
       const updatedOutsole = await tx.outsole.update({
         where: { id: outsole.id },
-        data: { stock: { decrement: 1 } }
+        data: { stock: { decrement: qtyToDeduct } }
       })
 
       await tx.transaction.create({
@@ -101,7 +103,7 @@ export const InventoryService = {
           outsoleId: outsole.id,
           userId,
           type: TransactionType.OUTBOUND,
-          qty: 1,
+          qty: qtyToDeduct,
           notes: data.notes || "Outbound via scanner",
         }
       })
