@@ -25,12 +25,12 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
   return (
     <div className="rounded-md border bg-white dark:bg-gray-800 overflow-x-auto">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-slate-50 dark:bg-slate-900/50">
           <TableRow>
             <TableHead>QR Code</TableHead>
+            <TableHead>PO Number</TableHead>
             <TableHead>Model</TableHead>
             <TableHead>Article</TableHead>
-            <TableHead>PO Number</TableHead>
             <TableHead>Color</TableHead>
             <TableHead>Bottom</TableHead>
             <TableHead>Size</TableHead>
@@ -51,9 +51,9 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
             outsoles.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.qrCode}</TableCell>
+                <TableCell>{item.poNumber || "-"}</TableCell>
                 <TableCell>{item.model}</TableCell>
                 <TableCell>{item.article}</TableCell>
-                <TableCell>{item.poNumber || "-"}</TableCell>
                 <TableCell>{item.color}</TableCell>
                 <TableCell>{item.bottomTreatment && item.bottomTreatment !== "None" ? item.bottomTreatment : "-"}</TableCell>
                 <TableCell>{item.size}</TableCell>
