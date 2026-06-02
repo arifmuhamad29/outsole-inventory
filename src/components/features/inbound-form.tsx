@@ -223,7 +223,6 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                   </optgroup>
                 </select>
             </div>
-            </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="qty">Quantity</label>
