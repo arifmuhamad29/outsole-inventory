@@ -4,6 +4,8 @@ export const inboundSchema = z.object({
   model: z.string().min(1, "Model is required").toUpperCase(),
   article: z.string().min(1, "Article is required").toUpperCase(),
   color: z.string().min(1, "Color is required").toUpperCase(),
+  poNumber: z.string().optional().default("-"),
+  bottomTreatment: z.enum(["Spray", "Spackle", "Marble", "None"]).default("None"),
   size: z.string().min(1, "Size is required"),
   qty: z.coerce.number().int().positive("Quantity must be greater than zero"),
   notes: z.string().optional()

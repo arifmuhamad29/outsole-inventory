@@ -94,6 +94,11 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="poNumber">PO Number</label>
+              <Input id="poNumber" name="poNumber" placeholder="e.g. PO-12345" className="uppercase" />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="model">Model Name</label>
               <input type="hidden" name="model" value={modelValue} />
               <div className="flex items-center gap-2">
@@ -176,7 +181,23 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                 <Input id="color" name="color" required placeholder="e.g. Red/White" className="uppercase" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="size">Size</label>
+                <label className="text-sm font-medium" htmlFor="bottomTreatment">Bottom Treatment</label>
+                <select
+                  id="bottomTreatment"
+                  name="bottomTreatment"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  defaultValue="None"
+                >
+                  <option value="None">None</option>
+                  <option value="Spray">Spray</option>
+                  <option value="Spackle">Spackle</option>
+                  <option value="Marble">Marble</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="size">Size</label>
                 <select
                   id="size"
                   name="size"
@@ -201,7 +222,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                     ))}
                   </optgroup>
                 </select>
-              </div>
+            </div>
             </div>
 
             <div className="space-y-2">
@@ -240,6 +261,8 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
               article={String(outsoleData.article)} 
               color={String(outsoleData.color)} 
               size={String(outsoleData.size)} 
+              poNumber={outsoleData.poNumber ? String(outsoleData.poNumber) : undefined}
+              bottomTreatment={outsoleData.bottomTreatment ? String(outsoleData.bottomTreatment) : undefined}
               createdAt={outsoleData.createdAt as Date}
               notes={outsoleData.notes as string}
             />
@@ -259,6 +282,8 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
             article={String(outsoleData.article)} 
             color={String(outsoleData.color)} 
             size={String(outsoleData.size)} 
+            poNumber={outsoleData.poNumber ? String(outsoleData.poNumber) : undefined}
+            bottomTreatment={outsoleData.bottomTreatment ? String(outsoleData.bottomTreatment) : undefined}
             createdAt={outsoleData.createdAt as Date}
             notes={outsoleData.notes as string}
           />

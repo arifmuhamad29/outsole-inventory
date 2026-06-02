@@ -18,6 +18,8 @@ export const InventoryService = {
           article: data.article,
           color: data.color,
           size: data.size,
+          poNumber: data.poNumber || "-",
+          bottomTreatment: data.bottomTreatment || "None",
         }
       })
 
@@ -34,6 +36,8 @@ export const InventoryService = {
             article: data.article,
             color: data.color,
             size: data.size,
+            poNumber: data.poNumber || "-",
+            bottomTreatment: data.bottomTreatment || "None",
             stock: data.qty,
           }
         })

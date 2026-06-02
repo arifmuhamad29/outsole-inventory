@@ -19,6 +19,8 @@ export async function processInboundAction(formData: FormData) {
       model: formData.get("model") as string,
       article: formData.get("article") as string,
       color: formData.get("color") as string,
+      poNumber: formData.get("poNumber") as string || "-",
+      bottomTreatment: formData.get("bottomTreatment") as string || "None",
       size: formData.get("size") as string,
       qty: Number(formData.get("qty")),
       notes: formData.get("notes") as string | undefined,

@@ -30,7 +30,9 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
             <TableHead>QR Code</TableHead>
             <TableHead>Model</TableHead>
             <TableHead>Article</TableHead>
+            <TableHead>PO Number</TableHead>
             <TableHead>Color</TableHead>
+            <TableHead>Bottom</TableHead>
             <TableHead>Size</TableHead>
             <TableHead>Last Outbound</TableHead>
             <TableHead className="text-right">Stock</TableHead>
@@ -41,7 +43,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
         <TableBody>
           {outsoles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={readOnly ? 8 : 9} className="text-center h-24 text-muted-foreground">
+              <TableCell colSpan={readOnly ? 10 : 11} className="text-center h-24 text-muted-foreground">
                 No inventory found matching your criteria.
               </TableCell>
             </TableRow>
@@ -51,7 +53,9 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                 <TableCell className="font-medium">{item.qrCode}</TableCell>
                 <TableCell>{item.model}</TableCell>
                 <TableCell>{item.article}</TableCell>
+                <TableCell>{item.poNumber || "-"}</TableCell>
                 <TableCell>{item.color}</TableCell>
+                <TableCell>{item.bottomTreatment && item.bottomTreatment !== "None" ? item.bottomTreatment : "-"}</TableCell>
                 <TableCell>{item.size}</TableCell>
                 <TableCell>
                   {item.transactions && item.transactions.length > 0

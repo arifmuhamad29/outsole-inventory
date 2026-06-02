@@ -7,6 +7,8 @@ export function PrintableLabel({
   article,
   color,
   size,
+  poNumber,
+  bottomTreatment,
   createdAt,
   notes,
 }: {
@@ -15,6 +17,8 @@ export function PrintableLabel({
   article: string
   color: string
   size: string
+  poNumber?: string
+  bottomTreatment?: string
   createdAt?: Date | string
   notes?: string
 }) {
@@ -35,7 +39,9 @@ export function PrintableLabel({
         <p>Model: <strong>{model}</strong></p>
         <p>Article: <strong>{article}</strong></p>
         <p>Color: <strong>{color}</strong></p>
+        {bottomTreatment && bottomTreatment !== "None" && <p>Bottom: <strong>{bottomTreatment}</strong></p>}
         <p>Size: <strong>{size}</strong></p>
+        {poNumber && poNumber !== "-" && <p>PO Number: <strong>{poNumber}</strong></p>}
         <p>Incoming: <strong>{incomingDate}</strong></p>
         {notes && <p>Notes: <strong>{notes}</strong></p>}
       </div>

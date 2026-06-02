@@ -57,6 +57,9 @@ model Outsole {
   color          String
   size           String
 
+  poNumber       String   @default("-")
+  bottomTreatment String  @default("None")
+  
   stock          Int      @default(0)
 
   minimumStock   Int      @default(5)
@@ -70,7 +73,7 @@ model Outsole {
 
   stockOpnameItems StockOpnameItem[]
 
-  @@unique([model, article, color, size])
+  @@unique([model, article, color, size, poNumber, bottomTreatment])
 
   @@index([model])
   @@index([color])
