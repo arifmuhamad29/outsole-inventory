@@ -59,6 +59,7 @@ model Outsole {
 
   poNumber       String   @default("-")
   bottomTreatment String  @default("None")
+  notes          String?
   
   stock          Int      @default(0)
 

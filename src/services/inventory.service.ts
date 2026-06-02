@@ -38,6 +38,7 @@ export const InventoryService = {
             size: data.size,
             poNumber: data.poNumber || "-",
             bottomTreatment: data.bottomTreatment || "None",
+            notes: data.notes || null,
             stock: data.qty,
           }
         })
@@ -47,7 +48,8 @@ export const InventoryService = {
         outsole = await tx.outsole.update({
           where: { id: outsole.id },
           data: {
-            stock: { increment: data.qty }
+            stock: { increment: data.qty },
+            ...(data.notes && { notes: data.notes })
           }
         })
       }

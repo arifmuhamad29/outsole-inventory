@@ -34,6 +34,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
             <TableHead>Color</TableHead>
             <TableHead>Bottom</TableHead>
             <TableHead>Size</TableHead>
+            <TableHead>Remarks</TableHead>
             <TableHead>Last Outbound</TableHead>
             <TableHead className="text-right">Stock</TableHead>
             <TableHead>Status</TableHead>
@@ -43,7 +44,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
         <TableBody>
           {outsoles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={readOnly ? 10 : 11} className="text-center h-24 text-muted-foreground">
+              <TableCell colSpan={readOnly ? 11 : 12} className="text-center h-24 text-muted-foreground">
                 No inventory found matching your criteria.
               </TableCell>
             </TableRow>
@@ -57,6 +58,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                 <TableCell>{item.color}</TableCell>
                 <TableCell>{item.bottomTreatment && item.bottomTreatment !== "None" ? item.bottomTreatment : "-"}</TableCell>
                 <TableCell>{item.size}</TableCell>
+                <TableCell className="max-w-[150px] truncate" title={item.notes || "-"}>{item.notes || "-"}</TableCell>
                 <TableCell>
                   {item.transactions && item.transactions.length > 0
                     ? format(new Date(item.transactions[0].createdAt), "dd MMM yyyy, HH:mm")
