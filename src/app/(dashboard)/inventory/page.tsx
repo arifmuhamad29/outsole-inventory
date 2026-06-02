@@ -44,8 +44,7 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
           take: 1 
         } 
       },
-      orderBy: { updatedAt: 'desc' },
-      take: 10
+      orderBy: { updatedAt: 'desc' }
     }),
     prisma.outsole.count({
       where: {
