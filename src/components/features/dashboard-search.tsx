@@ -35,22 +35,37 @@ export function DashboardSearch() {
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
+    let hasChanges = false
     
     if (debouncedSearch) {
-      params.set("q", debouncedSearch)
+      if (params.get("q") !== debouncedSearch) {
+        params.set("q", debouncedSearch)
+        hasChanges = true
+      }
     } else {
-      params.delete("q")
+      if (params.has("q")) {
+        params.delete("q")
+        hasChanges = true
+      }
     }
 
     if (status && status !== "all") {
-      params.set("status", status)
+      if (params.get("status") !== status) {
+        params.set("status", status)
+        hasChanges = true
+      }
     } else {
-      params.delete("status")
+      if (params.has("status")) {
+        params.delete("status")
+        hasChanges = true
+      }
     }
 
-    startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`)
-    })
+    if (hasChanges) {
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`)
+      })
+    }
   }, [debouncedSearch, status, pathname, router, searchParams])
 
   return (
