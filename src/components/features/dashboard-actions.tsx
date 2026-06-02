@@ -27,7 +27,7 @@ import {
 import { Printer, Trash2 } from "lucide-react"
 
 export function DashboardActions({ item, isAdmin }: { 
-  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, createdAt?: Date | string }, 
+  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, notes?: string | null, createdAt?: Date | string }, 
   isAdmin: boolean 
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -103,6 +103,7 @@ export function DashboardActions({ item, isAdmin }: {
               poNumber={item.poNumber ? String(item.poNumber) : undefined}
               bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
               createdAt={item.createdAt}
+              notes={item.notes ? String(item.notes) : undefined}
             />
           </div>
           <div className="flex justify-end">
@@ -172,6 +173,7 @@ export function DashboardActions({ item, isAdmin }: {
             poNumber={item.poNumber ? String(item.poNumber) : undefined}
             bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
             createdAt={item.createdAt}
+            notes={item.notes ? String(item.notes) : undefined}
           />
         </div>,
         document.body
