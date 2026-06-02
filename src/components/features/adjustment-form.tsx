@@ -87,9 +87,9 @@ export function AdjustmentForm({ outsoles }: { outsoles: Outsole[] }) {
                       variant="outline"
                       role="combobox"
                       aria-expanded={comboboxOpen}
-                      className={`flex-1 justify-between font-normal bg-transparent hover:bg-transparent border-input ${!selectedOutsoleId ? "text-muted-foreground" : ""}`}
+                      className={`flex-1 min-w-0 justify-between font-normal bg-transparent hover:bg-transparent border-input ${!selectedOutsoleId ? "text-muted-foreground" : ""}`}
                     >
-                      <span className="truncate">
+                      <span className="truncate min-w-0">
                         {selectedOutsole
                           ? `[${selectedOutsole.qrCode}] - ${selectedOutsole.model} (${selectedOutsole.article}, ${selectedOutsole.color}, Size: ${selectedOutsole.size})`
                           : "-- Select an item --"}
