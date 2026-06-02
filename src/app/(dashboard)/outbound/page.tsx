@@ -26,7 +26,13 @@ export default function OutboundPage() {
 
   // Keep input focused for barcode scanner
   useEffect(() => {
-    const focusInput = () => {
+    const focusInput = (e?: Event) => {
+      // If the user is actively tapping on an input or button, don't steal their focus
+      const target = e?.target as HTMLElement | undefined;
+      if (target && (target.tagName === "INPUT" || target.tagName === "BUTTON")) {
+        return;
+      }
+
       if (!isProcessing && !isCameraOpen && inputRef.current) {
         inputRef.current.focus()
       }
@@ -34,7 +40,11 @@ export default function OutboundPage() {
     
     focusInput()
     window.addEventListener("click", focusInput)
-    return () => window.removeEventListener("click", focusInput)
+    window.addEventListener("touchend", focusInput)
+    return () => {
+      window.removeEventListener("click", focusInput)
+      window.removeEventListener("touchend", focusInput)
+    }
   }, [isProcessing, isCameraOpen])
 
   async function processScan(qrCodeString: string, quantity: number) {
