@@ -71,9 +71,10 @@ export function DashboardSearch() {
     executeSearch(search, status)
   }
 
-  const onStatusChange = (val: string) => {
-    setStatus(val)
-    executeSearch(search, val)
+  const onStatusChange = (val: string | null) => {
+    const newVal = val || "all"
+    setStatus(newVal)
+    executeSearch(search, newVal)
   }
 
   return (
