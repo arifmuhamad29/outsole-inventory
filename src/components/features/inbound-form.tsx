@@ -125,7 +125,12 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                               type="button"
                               variant="ghost" 
                               className="w-full justify-start text-left px-2 py-1.5 h-auto font-normal"
-                              onPointerDown={(e) => e.preventDefault()}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onTouchEnd={(e) => {
+                                e.preventDefault();
+                                setModelValue(searchValue.toUpperCase());
+                                setOpen(false);
+                              }}
                               onClick={() => {
                                 setModelValue(searchValue.toUpperCase())
                                 setOpen(false)
@@ -142,7 +147,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                             <CommandItem
                               key={model}
                               value={model}
-                              onPointerDown={(e) => e.preventDefault()}
+                              onMouseDown={(e) => e.preventDefault()}
                               onSelect={() => {
                                 setModelValue(model)
                                 setOpen(false)
