@@ -28,13 +28,13 @@ export function PrintableLabel({
           {qrCode}
         </Badge>
       </div>
-      <div className="text-sm text-black space-y-1 mt-4">
-        <p>Model: <strong>{model}</strong></p>
-        <p>Article: <strong>{article}</strong></p>
-        <p>Color: <strong>{color}</strong></p>
-        <p>Size: <strong>{size}</strong></p>
-        {incomingDate && <p>Incoming Date: <strong>{incomingDate}</strong></p>}
-        {notes && <p>Notes: <strong>{notes}</strong></p>}
+      <div className="text-base text-black space-y-1 mt-4">
+        <p className="font-bold">{model}</p>
+        <p className="font-bold">{article}</p>
+        <p className="font-bold">{color}</p>
+        <p className="font-bold text-2xl mt-2">{size}</p>
+        {incomingDate && <p className="text-sm font-normal">Incoming Date: <strong>{incomingDate}</strong></p>}
+        {notes && <p className="text-sm font-normal">Notes: <strong>{notes}</strong></p>}
       </div>
     </div>
   )
