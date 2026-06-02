@@ -130,6 +130,11 @@
 }
 
 @media print {
+  @page {
+    margin: 0 !important;
+    size: auto;
+  }
+  
   /* Hide everything in the body by default */
   body * {
     visibility: hidden;
