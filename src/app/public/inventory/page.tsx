@@ -18,14 +18,17 @@ export default async function PublicInventoryPage(props: { searchParams?: Promis
   }
 
   if (query) {
-    whereClause.OR = [
-      { model: { contains: query, mode: "insensitive" } },
-      { article: { contains: query, mode: "insensitive" } },
-      { qrCode: { contains: query, mode: "insensitive" } },
-      { color: { contains: query, mode: "insensitive" } },
-      { poNumber: { contains: query, mode: "insensitive" } },
-      { size: { contains: query, mode: "insensitive" } }
-    ]
+    const terms = query.trim().split(/\s+/)
+    whereClause.AND = terms.map(term => ({
+      OR: [
+        { model: { contains: term, mode: "insensitive" } },
+        { article: { contains: term, mode: "insensitive" } },
+        { qrCode: { contains: term, mode: "insensitive" } },
+        { color: { contains: term, mode: "insensitive" } },
+        { poNumber: { contains: term, mode: "insensitive" } },
+        { size: { contains: term, mode: "insensitive" } }
+      ]
+    }))
   }
 
   if (statusFilter === "lowstock") {
