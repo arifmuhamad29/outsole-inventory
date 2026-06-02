@@ -6,14 +6,20 @@ import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, X } from "lucide-react"
+import { Check, ChevronsUpDown } from "lucide-react"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 const PREDEFINED_MODELS = [
   "VL COURT 3.0 M", "VL COURT 3.0 W", "VL COURT 3.0 INF",
@@ -31,8 +37,9 @@ export function InboundForm() {
   const [message, setMessage] = useState<{ type: "error" | "success", text: string } | null>(null)
   const [generatedQR, setGeneratedQR] = useState<string | null>(null)
   const [outsoleData, setOutsoleData] = useState<Record<string, unknown> | null>(null)
-  const [isCustomModel, setIsCustomModel] = useState(false)
   const [modelValue, setModelValue] = useState("")
+  const [open, setOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState("")
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -81,51 +88,60 @@ export function InboundForm() {
               <label className="text-sm font-medium" htmlFor="model">Model Name</label>
               <input type="hidden" name="model" value={modelValue} />
               <div className="flex items-center gap-2">
-                {!isCustomModel ? (
-                  <>
-                    <Select value={modelValue} onValueChange={(val) => setModelValue(val || "")} required>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a predefined model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PREDEFINED_MODELS.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
                     <Button 
-                      type="button" 
-                      size="icon" 
                       variant="outline" 
-                      onClick={() => { setIsCustomModel(true); setModelValue("") }} 
-                      title="Add custom model"
-                      className="shrink-0"
+                      role="combobox" 
+                      aria-expanded={open} 
+                      className="w-full justify-between"
                     >
-                      <Plus className="w-4 h-4" />
+                      {modelValue ? modelValue : "Search or type model..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
-                  </>
-                ) : (
-                  <>
-                    <Input 
-                      id="model" 
-                      value={modelValue}
-                      onChange={(e) => setModelValue(e.target.value.toUpperCase())}
-                      required 
-                      placeholder="e.g. CUSTOM MODEL" 
-                      className="uppercase flex-1" 
-                    />
-                    <Button 
-                      type="button" 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => { setIsCustomModel(false); setModelValue("") }} 
-                      title="Select from list"
-                      className="shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search model..." 
+                        onValueChange={setSearchValue} 
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {searchValue.length > 0 ? (
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start text-left px-2 py-1.5 h-auto font-normal"
+                              onClick={() => {
+                                setModelValue(searchValue.toUpperCase())
+                                setOpen(false)
+                              }}
+                            >
+                              Use &quot;{searchValue.toUpperCase()}&quot; as new model
+                            </Button>
+                          ) : (
+                            "No model found."
+                          )}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {PREDEFINED_MODELS.map((model) => (
+                            <CommandItem
+                              key={model}
+                              value={model}
+                              onSelect={() => {
+                                setModelValue(model)
+                                setOpen(false)
+                              }}
+                            >
+                              <Check className={`mr-2 h-4 w-4 ${modelValue === model ? "opacity-100" : "opacity-0"}`} />
+                              {model}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             
