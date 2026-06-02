@@ -2,11 +2,10 @@
 
 import { useState } from "react"
 import { processInboundAction } from "@/app/actions/inventory"
-import { QRCodeSVG } from "qrcode.react"
+import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 
 export function InboundForm() {
@@ -131,20 +130,15 @@ export function InboundForm() {
             <CardDescription>QR Code generated for {String(outsoleData.model)}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-6">
-            <div className="p-4 bg-white rounded-xl shadow-sm border mb-4">
-              <QRCodeSVG value={generatedQR} size={200} />
-            </div>
-            <div>
-              <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest border-black text-black">{generatedQR}</Badge>
-            </div>
-            <div className="text-sm text-black space-y-1">
-              <p>Model: <strong>{String(outsoleData.model)}</strong></p>
-              <p>Article: <strong>{String(outsoleData.article)}</strong></p>
-              <p>Color: <strong>{String(outsoleData.color)}</strong></p>
-              <p>Size: <strong>{String(outsoleData.size)}</strong></p>
-              <p>Incoming Date: <strong>{outsoleData.createdAt ? format(new Date(outsoleData.createdAt as string), "dd MMM yyyy, HH:mm") : format(new Date(), "dd MMM yyyy, HH:mm")}</strong></p>
-              {Boolean(outsoleData.notes) && <p>Notes: <strong>{String(outsoleData.notes)}</strong></p>}
-            </div>
+            <PrintableLabel 
+              qrCode={generatedQR} 
+              model={String(outsoleData.model)} 
+              article={String(outsoleData.article)} 
+              color={String(outsoleData.color)} 
+              size={String(outsoleData.size)} 
+              incomingDate={outsoleData.createdAt ? format(new Date(outsoleData.createdAt as string), "dd MMM yyyy, HH:mm") : format(new Date(), "dd MMM yyyy, HH:mm")}
+              notes={outsoleData.notes ? String(outsoleData.notes) : undefined}
+            />
             <Button variant="outline" onClick={() => window.print()} className="no-print">
               Print Label
             </Button>

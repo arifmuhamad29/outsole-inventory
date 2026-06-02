@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { hardDeleteOutsoleAction } from "@/app/actions/inventory"
+import { PrintableLabel } from "@/components/ui/printable-label"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,8 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { QRCodeSVG } from "qrcode.react"
-import { Badge } from "@/components/ui/badge"
 import { Printer } from "lucide-react"
 
 export function DashboardActions({ item, isAdmin }: { 
@@ -86,22 +85,13 @@ export function DashboardActions({ item, isAdmin }: {
           <DialogHeader className="no-print">
             <DialogTitle>Print QR Code</DialogTitle>
           </DialogHeader>
-          <div id="printable-label" className="flex flex-col items-center justify-center p-6 bg-white text-black border-dashed border-2 rounded-lg m-0">
-            <div className="p-4 bg-white rounded-xl shadow-sm border mb-6">
-              <QRCodeSVG value={item.qrCode} size={200} />
-            </div>
-            <div className="text-center space-y-2 w-full">
-              <div>
-                <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest border-black text-black">{item.qrCode}</Badge>
-              </div>
-              <div className="text-sm text-black space-y-1">
-                <p>Model: <strong>{item.model}</strong></p>
-                <p>Article: <strong>{item.article}</strong></p>
-                <p>Color: <strong>{item.color}</strong></p>
-                <p>Size: <strong>{item.size}</strong></p>
-              </div>
-            </div>
-          </div>
+          <PrintableLabel 
+            qrCode={item.qrCode} 
+            model={item.model} 
+            article={item.article} 
+            color={item.color} 
+            size={item.size} 
+          />
           <div className="flex justify-end no-print">
             <Button onClick={() => window.print()}>
               Print Label
