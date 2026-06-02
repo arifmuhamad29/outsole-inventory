@@ -12,48 +12,27 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { auth } from "@/lib/auth"
-import { DashboardSearch } from "@/components/features/dashboard-search"
-import { DashboardActions } from "@/components/features/dashboard-actions"
 
-export default async function DashboardPage(props: { searchParams?: Promise<{ q?: string }> }) {
+export default async function DashboardPage() {
   const session = await auth()
   const isAdmin = session?.user?.role === "ADMIN"
-  const searchParams = await props.searchParams
-  const query = searchParams?.q || ""
 
-  const whereClause = {
-    isActive: true,
-    ...(query ? {
-      OR: [
-        { model: { contains: query, mode: "insensitive" as const } },
-        { article: { contains: query, mode: "insensitive" as const } },
-        { qrCode: { contains: query, mode: "insensitive" as const } },
-        { color: { contains: query, mode: "insensitive" as const } }
-      ]
-    } : {})
-  }
-
-  const [totalSku, outsoles, lowStockCount, recentTransactions] = await Promise.all([
+  const [totalSku, lowStockCount, recentTransactions, latestActivity] = await Promise.all([
     prisma.outsole.count({ where: { isActive: true } }),
-    prisma.outsole.findMany({
-      where: whereClause,
-      include: { 
-        transactions: { 
-          where: { type: 'OUTBOUND' }, 
-          orderBy: { createdAt: 'desc' }, 
-          take: 1 
-        } 
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: 10
-    }),
     prisma.outsole.count({
       where: {
         isActive: true,
         stock: { lte: prisma.outsole.fields.minimumStock }
       }
     }),
-    prisma.transaction.count()
+    prisma.transaction.count(),
+    prisma.transaction.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: {
+        outsole: true,
+      }
+    })
   ])
 
   const stockAgg = await prisma.outsole.aggregate({
@@ -108,56 +87,59 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ q?
 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">Recent Inventory</h2>
-          <DashboardSearch />
+          <h2 className="text-xl font-semibold tracking-tight">Recent Activity</h2>
         </div>
         <div className="rounded-md border bg-white dark:bg-gray-800">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Date/Time</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>QR Code</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Article</TableHead>
-                <TableHead>Color</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Last Outbound</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Model/Color</TableHead>
+                <TableHead className="text-right">Qty Changed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {outsoles.length === 0 ? (
+              {latestActivity.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
-                    No inventory found.
+                  <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                    No recent activity found.
                   </TableCell>
                 </TableRow>
               ) : (
-                outsoles.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.qrCode}</TableCell>
-                    <TableCell>{item.model}</TableCell>
-                    <TableCell>{item.article}</TableCell>
-                    <TableCell>{item.color}</TableCell>
-                    <TableCell>{item.size}</TableCell>
-                    <TableCell>
-                      {item.transactions && item.transactions.length > 0
-                        ? format(new Date(item.transactions[0].createdAt), "dd MMM yyyy, HH:mm")
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">{item.stock}</TableCell>
-                    <TableCell>
-                      {item.stock <= item.minimumStock ? (
-                        <Badge variant="destructive">Low Stock</Badge>
-                      ) : (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100">
-                          In Stock
-                        </Badge>
-                      )}
+                latestActivity.map((activity) => (
+                  <TableRow key={activity.id}>
+                    <TableCell className="font-medium whitespace-nowrap">
+                      {format(new Date(activity.createdAt), "dd MMM yyyy, HH:mm")}
                     </TableCell>
                     <TableCell>
-                      <DashboardActions item={item} isAdmin={isAdmin} />
+                      <Badge 
+                        variant="secondary"
+                        className={
+                          activity.type === 'INBOUND' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' :
+                          activity.type === 'OUTBOUND' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100' :
+                          'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100'
+                        }
+                      >
+                        {activity.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{activity.outsole.qrCode}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{activity.outsole.model}</span>
+                        <span className="text-xs text-muted-foreground">{activity.outsole.color}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      <span className={
+                        activity.type === 'INBOUND' ? 'text-blue-600' :
+                        activity.type === 'OUTBOUND' ? 'text-orange-600' :
+                        'text-purple-600'
+                      }>
+                        {activity.type === 'OUTBOUND' ? '-' : '+'}{activity.qty}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))

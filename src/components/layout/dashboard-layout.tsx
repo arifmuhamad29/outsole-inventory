@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +14,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const adminNavItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Inventory", href: "/inventory", icon: List },
     { name: "Inbound", href: "/inbound", icon: PackagePlus },
     { name: "Outbound", href: "/outbound", icon: ScanBarcode },
     { name: "Adjustment", href: "/adjustment", icon: ArrowRightLeft },
