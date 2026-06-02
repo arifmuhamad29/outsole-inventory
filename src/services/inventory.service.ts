@@ -12,13 +12,12 @@ export const InventoryService = {
   async processInbound(data: InboundData, userId: string) {
     return await prisma.$transaction(async (tx) => {
       // Find existing
-      let outsole = await tx.outsole.findUnique({
+      let outsole = await tx.outsole.findFirst({
         where: {
-          model_color_size: {
-            model: data.model,
-            color: data.color,
-            size: data.size,
-          }
+          model: data.model,
+          article: data.article,
+          color: data.color,
+          size: data.size,
         }
       })
 

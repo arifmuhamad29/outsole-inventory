@@ -70,7 +70,7 @@ model Outsole {
 
   stockOpnameItems StockOpnameItem[]
 
-  @@unique([model, color, size])
+  @@unique([model, article, color, size])
 
   @@index([model])
   @@index([color])
