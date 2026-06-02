@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Check, ChevronsUpDown, Camera } from "lucide-react"
+import { Check, ChevronsUpDown, Camera, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { CameraScanner } from "@/components/features/camera-scanner"
@@ -141,6 +141,21 @@ export function AdjustmentForm({ outsoles }: { outsoles: Outsole[] }) {
                 >
                   <Camera className="h-5 w-5 text-primary" />
                 </Button>
+
+                {selectedOutsoleId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0 px-3 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      setSelectedOutsoleId("")
+                      setMessage(null)
+                    }}
+                    title="Clear Selection"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                )}
               </div>
             </div>
 
