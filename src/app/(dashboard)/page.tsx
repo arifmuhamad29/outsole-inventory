@@ -95,7 +95,7 @@ export default async function DashboardPage() {
                 <TableHead>Date/Time</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>QR Code</TableHead>
-                <TableHead>Model/Color</TableHead>
+                <TableHead>Model/Color/Size</TableHead>
                 <TableHead className="text-right">Qty Changed</TableHead>
               </TableRow>
             </TableHeader>
@@ -128,7 +128,9 @@ export default async function DashboardPage() {
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{activity.outsole.model}</span>
-                        <span className="text-xs text-muted-foreground">{activity.outsole.color}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {activity.outsole.color} • Size {activity.outsole.size}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-bold">
