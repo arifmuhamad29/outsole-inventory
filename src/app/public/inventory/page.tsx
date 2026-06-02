@@ -22,7 +22,9 @@ export default async function PublicInventoryPage(props: { searchParams?: Promis
       { model: { contains: query, mode: "insensitive" } },
       { article: { contains: query, mode: "insensitive" } },
       { qrCode: { contains: query, mode: "insensitive" } },
-      { color: { contains: query, mode: "insensitive" } }
+      { color: { contains: query, mode: "insensitive" } },
+      { poNumber: { contains: query, mode: "insensitive" } },
+      { size: { contains: query, mode: "insensitive" } }
     ]
   }
 
