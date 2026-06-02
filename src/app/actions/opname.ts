@@ -38,7 +38,7 @@ export async function getOutsoleByQrCodeAction(qrCode: string) {
     if (!outsole) return { success: false, message: "Outsole not found" }
 
     return { success: true, data: outsole }
-  } catch (error) {
+  } catch {
     return { success: false, message: "Failed to fetch item details" }
   }
 }
