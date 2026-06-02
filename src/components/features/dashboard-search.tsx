@@ -87,7 +87,13 @@ export function DashboardSearch() {
             placeholder="Search model, article, or QR..."
             className="pl-9 w-full bg-white dark:bg-gray-800"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              setSearch(val)
+              if (val === "") {
+                executeSearch("", status)
+              }
+            }}
           />
         </div>
         <Button type="submit" disabled={isPending} variant="secondary">
