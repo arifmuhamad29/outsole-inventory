@@ -29,7 +29,19 @@ export async function createOpnameSessionAction(formData: FormData) {
   }
 }
 
+export async function getOutsoleByQrCodeAction(qrCode: string) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, message: "Unauthorized" }
 
+    const outsole = await prisma.outsole.findUnique({ where: { qrCode } })
+    if (!outsole) return { success: false, message: "Outsole not found" }
+
+    return { success: true, data: outsole }
+  } catch (error) {
+    return { success: false, message: "Failed to fetch item details" }
+  }
+}
 
 export async function submitOpnameItemAction(sessionId: string, qrCode: string, physicalStock: number) {
   try {

@@ -4,8 +4,8 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { createOpnameSessionAction } from "@/app/actions/opname"
 import { OpnameSessionActions } from "@/components/features/opname-actions"
+import { OpnameCreateSessionForm } from "@/components/features/opname-create-session-form"
 
 export default async function OpnamePage() {
   const session = await auth()
@@ -32,22 +32,7 @@ export default async function OpnamePage() {
           </p>
         </div>
 
-        <form action={async (formData) => {
-          "use server"
-          const res = await createOpnameSessionAction(formData)
-          if (res.success && res.sessionId) {
-            redirect(`/opname/${res.sessionId}`)
-          }
-        }} className="flex items-center gap-2">
-          <input 
-            type="text" 
-            name="name" 
-            placeholder="Session Name (e.g. Q1 2026)" 
-            required 
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          />
-          <Button type="submit">Start New Session</Button>
-        </form>
+        <OpnameCreateSessionForm />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

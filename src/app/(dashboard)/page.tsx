@@ -15,7 +15,6 @@ import { auth } from "@/lib/auth"
 
 export default async function DashboardPage() {
   const session = await auth()
-  const isAdmin = session?.user?.role === "ADMIN"
 
   const [totalSku, lowStockCount, recentTransactions, latestActivity] = await Promise.all([
     prisma.outsole.count({ where: { isActive: true } }),
