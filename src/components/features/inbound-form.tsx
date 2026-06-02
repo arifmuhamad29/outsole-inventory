@@ -125,19 +125,19 @@ export function InboundForm() {
       </Card>
 
       {generatedQR && outsoleData && (
-        <Card className="flex flex-col items-center justify-center text-center p-6 bg-gray-50 border-dashed border-2 print:border-none print:shadow-none print:w-full print:m-0 print:p-0 print:absolute print:inset-0 print:flex print:flex-col print:items-center print:justify-center print:bg-white">
-          <CardHeader className="print:hidden">
+        <Card id="printable-label" className="flex flex-col items-center justify-center text-center p-6 bg-white text-black border-dashed border-2 m-0">
+          <CardHeader className="no-print">
             <CardTitle className="text-green-600">Success!</CardTitle>
             <CardDescription>QR Code generated for {String(outsoleData.model)}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center space-y-6 print:space-y-4 print:m-0 print:p-0">
-            <div className="p-4 bg-white rounded-xl shadow-sm border print:border-none print:shadow-none print:p-0">
+          <CardContent className="flex flex-col items-center space-y-6">
+            <div className="p-4 bg-white rounded-xl shadow-sm border mb-4">
               <QRCodeSVG value={generatedQR} size={200} />
             </div>
             <div>
-              <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest">{generatedQR}</Badge>
+              <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest border-black text-black">{generatedQR}</Badge>
             </div>
-            <div className="text-sm text-gray-500 space-y-1 print:text-black">
+            <div className="text-sm text-black space-y-1">
               <p>Model: <strong>{String(outsoleData.model)}</strong></p>
               <p>Article: <strong>{String(outsoleData.article)}</strong></p>
               <p>Color: <strong>{String(outsoleData.color)}</strong></p>
@@ -145,7 +145,7 @@ export function InboundForm() {
               <p>Incoming Date: <strong>{outsoleData.createdAt ? format(new Date(outsoleData.createdAt as string), "dd MMM yyyy, HH:mm") : format(new Date(), "dd MMM yyyy, HH:mm")}</strong></p>
               {Boolean(outsoleData.notes) && <p>Notes: <strong>{String(outsoleData.notes)}</strong></p>}
             </div>
-            <Button variant="outline" onClick={() => window.print()} className="print:hidden">
+            <Button variant="outline" onClick={() => window.print()} className="no-print">
               Print Label
             </Button>
           </CardContent>
