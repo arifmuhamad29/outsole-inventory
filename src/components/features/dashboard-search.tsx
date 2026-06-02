@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { useState, useTransition, useEffect } from "react"
 import { Search } from "lucide-react"
-import { useDebounce } from "use-debounce"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
@@ -23,8 +23,6 @@ export function DashboardSearch() {
   const initialStatus = searchParams.get("status")?.toString() || "all"
 
   const [search, setSearch] = useState(initialSearch)
-  const [debouncedSearch] = useDebounce(search, 500)
-  
   const [status, setStatus] = useState(initialStatus)
 
   // Sync state if URL changes externally
@@ -33,13 +31,13 @@ export function DashboardSearch() {
     setStatus(searchParams.get("status")?.toString() || "all")
   }, [searchParams])
 
-  useEffect(() => {
+  const executeSearch = (searchTerm: string, currentStatus: string) => {
     const params = new URLSearchParams(searchParams.toString())
     let hasChanges = false
     
-    if (debouncedSearch) {
-      if (params.get("q") !== debouncedSearch) {
-        params.set("q", debouncedSearch)
+    if (searchTerm) {
+      if (params.get("q") !== searchTerm) {
+        params.set("q", searchTerm)
         hasChanges = true
       }
     } else {
@@ -49,9 +47,9 @@ export function DashboardSearch() {
       }
     }
 
-    if (status && status !== "all") {
-      if (params.get("status") !== status) {
-        params.set("status", status)
+    if (currentStatus && currentStatus !== "all") {
+      if (params.get("status") !== currentStatus) {
+        params.set("status", currentStatus)
         hasChanges = true
       }
     } else {
@@ -66,22 +64,40 @@ export function DashboardSearch() {
         router.replace(`${pathname}?${params.toString()}`)
       })
     }
-  }, [debouncedSearch, status, pathname, router, searchParams])
+  }
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    executeSearch(search, status)
+  }
+
+  const onStatusChange = (val: string) => {
+    setStatus(val)
+    executeSearch(search, val)
+  }
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-lg mb-4">
-      <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search model, article, or QR..."
-          className="pl-9 w-full bg-white dark:bg-gray-800"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {isPending && <div className="absolute right-3 top-3 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />}
+    <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-3 w-full max-w-xl mb-4">
+      <div className="relative flex-1 flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search model, article, or QR..."
+            className="pl-9 w-full bg-white dark:bg-gray-800"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button type="submit" disabled={isPending} variant="secondary">
+          {isPending ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          ) : (
+            "Search"
+          )}
+        </Button>
       </div>
-      <Select value={status} onValueChange={(val) => setStatus(val || "all")}>
+      <Select value={status} onValueChange={onStatusChange}>
         <SelectTrigger className="w-full sm:w-[140px] bg-white dark:bg-gray-800">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
@@ -91,6 +107,6 @@ export function DashboardSearch() {
           <SelectItem value="lowstock">Low Stock</SelectItem>
         </SelectContent>
       </Select>
-    </div>
+    </form>
   )
 }
