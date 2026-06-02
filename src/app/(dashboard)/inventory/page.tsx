@@ -1,6 +1,11 @@
+import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, AlertCircle, ArrowDownUp, Hash } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { auth } from "@/lib/auth"
+import { DashboardSearch } from "@/components/features/dashboard-search"
+import { DashboardActions } from "@/components/features/dashboard-actions"
+import { Suspense } from "react"
 import {
   Table,
   TableBody,
@@ -9,31 +14,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
-import { auth } from "@/lib/auth"
-import { DashboardSearch } from "@/components/features/dashboard-search"
-import { DashboardActions } from "@/components/features/dashboard-actions"
 
-export default async function InventoryPage(props: { searchParams?: Promise<{ q?: string }> }) {
+export default async function InventoryPage(props: { searchParams?: Promise<{ q?: string | string[], status?: string | string[] }> }) {
   const session = await auth()
   const isAdmin = session?.user?.role === "ADMIN"
-  const searchParams = props.searchParams ? await props.searchParams : undefined
-  const query = searchParams?.q || ""
+  
+  const resolvedParams = props.searchParams ? await props.searchParams : {}
+  const rawQuery = resolvedParams.q
+  const query = typeof rawQuery === 'string' ? rawQuery : ""
+  
+  const rawStatus = resolvedParams.status
+  const statusFilter = typeof rawStatus === 'string' ? rawStatus : "all"
 
-  const whereClause = {
+  const whereClause: Prisma.OutsoleWhereInput = {
     isActive: true,
-    ...(query ? {
-      OR: [
-        { model: { contains: query, mode: "insensitive" as const } },
-        { article: { contains: query, mode: "insensitive" as const } },
-        { qrCode: { contains: query, mode: "insensitive" as const } },
-        { color: { contains: query, mode: "insensitive" as const } }
-      ]
-    } : {})
   }
 
-  const [totalSku, outsoles, lowStockCount, recentTransactions] = await Promise.all([
+  if (query) {
+    whereClause.OR = [
+      { model: { contains: query, mode: "insensitive" } },
+      { article: { contains: query, mode: "insensitive" } },
+      { qrCode: { contains: query, mode: "insensitive" } },
+      { color: { contains: query, mode: "insensitive" } }
+    ]
+  }
+
+  if (statusFilter === "lowstock") {
+    whereClause.stock = { lte: prisma.outsole.fields.minimumStock }
+  } else if (statusFilter === "instock") {
+    whereClause.stock = { gt: prisma.outsole.fields.minimumStock }
+  }
+
+  const [totalSku, outsoles] = await Promise.all([
     prisma.outsole.count({ where: { isActive: true } }),
     prisma.outsole.findMany({
       where: whereClause,
@@ -45,14 +57,7 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
         } 
       },
       orderBy: { updatedAt: 'desc' }
-    }),
-    prisma.outsole.count({
-      where: {
-        isActive: true,
-        stock: { lte: prisma.outsole.fields.minimumStock }
-      }
-    }),
-    prisma.transaction.count()
+    })
   ])
 
   const stockAgg = await prisma.outsole.aggregate({
@@ -71,11 +76,13 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
             Manage all outsole inventory. Total SKUs: {totalSku} | Total Stock: {realTotalStock}
           </p>
         </div>
-        <DashboardSearch />
+        <Suspense fallback={<div className="animate-pulse h-10 w-full max-w-sm bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
+          <DashboardSearch />
+        </Suspense>
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-md border bg-white dark:bg-gray-800">
+        <div className="rounded-md border bg-white dark:bg-gray-800 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -94,7 +101,7 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
               {outsoles.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
-                    No inventory found.
+                    No inventory found matching your criteria.
                   </TableCell>
                 </TableRow>
               ) : (
