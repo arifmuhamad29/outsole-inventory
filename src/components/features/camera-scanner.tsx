@@ -73,6 +73,34 @@ export function CameraScanner({ onScanSuccess, onScanError }: CameraScannerProps
 
   return (
     <div className="w-full mx-auto overflow-hidden rounded-lg">
+      <style dangerouslySetInnerHTML={{__html: `
+        #reader button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          background-color: hsl(var(--primary));
+          color: hsl(var(--primary-foreground));
+          padding: 0.5rem 1rem;
+          border: none;
+          cursor: pointer;
+          margin: 0.5rem 0;
+          transition: background-color 0.15s ease;
+        }
+        #reader button:hover {
+          background-color: hsl(var(--primary) / 0.9);
+        }
+        #reader a {
+          color: hsl(var(--primary));
+          text-decoration: underline;
+          font-size: 0.875rem;
+          cursor: pointer;
+          display: block;
+          margin-top: 0.5rem;
+        }
+      `}} />
       <div id="reader" className="w-full border-none"></div>
     </div>
   )
