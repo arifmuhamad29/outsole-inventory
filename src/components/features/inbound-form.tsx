@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { processInboundAction } from "@/app/actions/inventory"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check, ChevronsUpDown } from "lucide-react"
 import {
@@ -96,17 +96,20 @@ export function InboundForm() {
               <input type="hidden" name="model" value={modelValue} />
               <div className="flex items-center gap-2">
                 <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger 
-                    type="button"
-                    className={buttonVariants({ variant: "outline", className: `w-full justify-between font-normal bg-transparent hover:bg-transparent border-input ${!modelValue ? "text-muted-foreground" : ""}` })} 
-                    role="combobox" 
-                    aria-expanded={open}
-                  >
-                    <span className="truncate">
-                      {modelValue ? modelValue : "Search or type model..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </PopoverTrigger>
+                  <PopoverTrigger render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className={`w-full justify-between font-normal bg-transparent hover:bg-transparent border-input ${!modelValue ? "text-muted-foreground" : ""}`}
+                    >
+                      <span className="truncate">
+                        {modelValue ? modelValue : "Search or type model..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  } />
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
                       <CommandInput 
