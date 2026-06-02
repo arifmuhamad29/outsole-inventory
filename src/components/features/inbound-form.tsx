@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { processInboundAction } from "@/app/actions/inventory"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -40,6 +41,12 @@ export function InboundForm() {
   const [modelValue, setModelValue] = useState("")
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
+
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -209,7 +216,7 @@ export function InboundForm() {
       </Card>
 
       {generatedQR && outsoleData && (
-        <Card id="printable-label" className="flex flex-col items-center justify-center text-center p-6 bg-white text-black border-dashed border-2 m-0">
+        <Card className="flex flex-col items-center justify-center text-center p-6 bg-white text-black border-dashed border-2 m-0 print:border-none print:shadow-none">
           <CardHeader className="no-print">
             <CardTitle className="text-green-600">Success!</CardTitle>
             <CardDescription>QR Code generated for {String(outsoleData.model)}</CardDescription>
@@ -221,14 +228,30 @@ export function InboundForm() {
               article={String(outsoleData.article)} 
               color={String(outsoleData.color)} 
               size={String(outsoleData.size)} 
-              createdAt={outsoleData.createdAt as string}
-              notes={outsoleData.notes ? String(outsoleData.notes) : undefined}
+              createdAt={outsoleData.createdAt as Date}
+              notes={outsoleData.notes as string}
             />
-            <Button variant="outline" onClick={() => window.print()} className="no-print">
+            <Button type="button" variant="outline" onClick={() => window.print()} className="no-print">
               Print Label
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Actual printable content rendered via Portal directly into body to prevent any layout interference */}
+      {generatedQR && outsoleData && mounted && createPortal(
+        <div className="print-container hidden print:flex flex-col items-center justify-start w-full absolute top-0 left-0 bg-white z-[9999]">
+          <PrintableLabel 
+            qrCode={generatedQR} 
+            model={String(outsoleData.model)} 
+            article={String(outsoleData.article)} 
+            color={String(outsoleData.color)} 
+            size={String(outsoleData.size)} 
+            createdAt={outsoleData.createdAt as Date}
+            notes={outsoleData.notes as string}
+          />
+        </div>,
+        document.body
       )}
     </div>
   )
