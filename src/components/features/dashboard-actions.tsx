@@ -82,19 +82,19 @@ export function DashboardActions({ item, isAdmin }: {
             <Printer className="h-4 w-4" />
           </Button>
         } />
-        <DialogContent className="sm:max-w-[400px] print:w-full print:max-w-none print:h-screen print:border-none print:shadow-none print:m-0 print:p-0 print:absolute print:inset-0 print:flex print:flex-col print:items-center print:justify-center print:bg-white print:rounded-none">
-          <DialogHeader className="print:hidden">
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader className="no-print">
             <DialogTitle>Print QR Code</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6 bg-gray-50 border-dashed border-2 rounded-lg print:border-none print:bg-white print:m-0">
-            <div className="p-4 bg-white rounded-xl shadow-sm border print:border-none print:shadow-none print:p-0 mb-6 print:mb-4">
+          <div id="printable-label" className="flex flex-col items-center justify-center p-6 bg-white text-black border-dashed border-2 rounded-lg m-0">
+            <div className="p-4 bg-white rounded-xl shadow-sm border mb-6">
               <QRCodeSVG value={item.qrCode} size={200} />
             </div>
             <div className="text-center space-y-2 w-full">
               <div>
-                <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest print:border-black print:text-black">{item.qrCode}</Badge>
+                <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest border-black text-black">{item.qrCode}</Badge>
               </div>
-              <div className="text-sm text-gray-700 space-y-1 print:text-black">
+              <div className="text-sm text-black space-y-1">
                 <p>Model: <strong>{item.model}</strong></p>
                 <p>Article: <strong>{item.article}</strong></p>
                 <p>Color: <strong>{item.color}</strong></p>
@@ -102,7 +102,7 @@ export function DashboardActions({ item, isAdmin }: {
               </div>
             </div>
           </div>
-          <div className="flex justify-end print:hidden">
+          <div className="flex justify-end no-print">
             <Button onClick={() => window.print()}>
               Print Label
             </Button>

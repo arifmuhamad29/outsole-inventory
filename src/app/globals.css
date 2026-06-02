@@ -128,3 +128,32 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  /* Hide everything in the body by default */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Only make the printable label and its children visible */
+  #printable-label, #printable-label * {
+    visibility: visible;
+  }
+  
+  /* Position the label perfectly at the top-left of the paper */
+  #printable-label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    margin: 0;
+    border: none !important;
+  }
+  
+  /* Hide any print buttons inside the label */
+  .no-print, .no-print * {
+    display: none !important;
+  }
+}
