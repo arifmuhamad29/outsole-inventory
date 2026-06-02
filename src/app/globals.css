@@ -130,28 +130,6 @@
 }
 
 @media print {
-  /* Strip Shadcn Dialog formatting during print */
-  [role="dialog"], 
-  div[data-state="open"],
-  .fixed.inset-0 /* The dialog overlay/wrapper */ {
-    position: static !important;
-    transform: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    background: transparent !important;
-  }
-  
-  /* Ensure the dialog content doesn't force a flex/grid layout on the label */
-  [role="dialog"] > div {
-    display: block !important;
-    padding: 0 !important;
-  }
-
   /* Hide everything in the body by default */
   body * {
     visibility: hidden;

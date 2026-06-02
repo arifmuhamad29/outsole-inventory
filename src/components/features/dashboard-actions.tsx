@@ -67,7 +67,8 @@ export function DashboardActions({ item, isAdmin }: {
   }
 
   return (
-    <div className="flex items-center gap-2 print:hidden">
+    <>
+      <div className="flex items-center gap-2 print:hidden">
       {message && !isOpen && (
         <span className={`text-xs ${message.type === "error" ? "text-red-500" : "text-green-600"}`}>
           {message.text}
@@ -81,18 +82,21 @@ export function DashboardActions({ item, isAdmin }: {
             <Printer className="h-4 w-4" />
           </Button>
         } />
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader className="no-print">
+        <DialogContent className="sm:max-w-[400px] print:hidden">
+          <DialogHeader>
             <DialogTitle>Print QR Code</DialogTitle>
           </DialogHeader>
-          <PrintableLabel 
-            qrCode={item.qrCode} 
-            model={item.model} 
-            article={item.article} 
-            color={item.color} 
-            size={item.size} 
-          />
-          <div className="flex justify-end no-print">
+          {/* We keep a preview here but it won't be printed */}
+          <div className="p-4 border rounded-md">
+            <PrintableLabel 
+              qrCode={item.qrCode} 
+              model={item.model} 
+              article={item.article} 
+              color={item.color} 
+              size={item.size} 
+            />
+          </div>
+          <div className="flex justify-end">
             <Button onClick={() => window.print()}>
               Print Label
             </Button>
@@ -145,6 +149,20 @@ export function DashboardActions({ item, isAdmin }: {
           </AlertDialogContent>
         </AlertDialog>
       )}
-    </div>
+      </div>
+
+      {/* Actual printable content rendered outside the Dialog to avoid Portal bugs */}
+      {isPrintOpen && (
+        <div className="hidden print:block">
+          <PrintableLabel 
+            qrCode={item.qrCode} 
+            model={item.model} 
+            article={item.article} 
+            color={item.color} 
+            size={item.size} 
+          />
+        </div>
+      )}
+    </>
   )
 }
