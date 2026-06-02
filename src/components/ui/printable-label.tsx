@@ -26,16 +26,16 @@ export function PrintableLabel({
     ? new Date(createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
     : new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
   return (
-    <div className="printable-label flex flex-col items-center justify-center text-center p-6 bg-white text-black border-dashed border-2 m-0 w-full max-w-md mx-auto">
-      <div className="p-4 bg-white rounded-xl shadow-sm border mb-4">
-        <QRCodeSVG value={qrCode} size={200} />
+    <div className="printable-label flex flex-col items-center justify-center text-center p-3 bg-white text-black border-dashed border-2 m-0 w-full max-w-sm mx-auto">
+      <div className="p-2 bg-white rounded-xl shadow-sm border mb-2">
+        <QRCodeSVG value={qrCode} size={150} />
       </div>
       <div>
-        <Badge variant="outline" className="text-lg px-4 py-1 font-mono tracking-widest border-black text-black">
+        <Badge variant="outline" className="text-base px-3 py-0.5 font-mono tracking-widest border-black text-black">
           {qrCode}
         </Badge>
       </div>
-      <div className="text-sm text-black space-y-1 mt-4">
+      <div className="text-xs text-black space-y-1 mt-2">
         <p>Model: <strong>{model}</strong></p>
         <p>Article: <strong>{article}</strong></p>
         <p>Color: <strong>{color}</strong></p>

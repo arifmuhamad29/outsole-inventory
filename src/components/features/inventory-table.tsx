@@ -93,7 +93,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           {barcodePages.map((pageItems, pageIndex) => (
             <div 
               key={pageIndex} 
-              className="w-full min-h-screen p-4 grid grid-cols-3 gap-x-6 gap-y-8 content-start"
+              className="w-full min-h-screen p-2 grid grid-cols-3 gap-x-4 gap-y-4 content-start"
               style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
             >
               {pageItems.map((item) => (
