@@ -83,6 +83,7 @@ export function AdjustmentForm({ outsoles }: { outsoles: Outsole[] }) {
                 <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
                   <PopoverTrigger render={
                     <Button
+                      type="button"
                       variant="outline"
                       role="combobox"
                       aria-expanded={comboboxOpen}

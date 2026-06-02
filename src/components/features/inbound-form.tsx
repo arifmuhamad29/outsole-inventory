@@ -4,7 +4,7 @@ import { useState } from "react"
 import { processInboundAction } from "@/app/actions/inventory"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Check, ChevronsUpDown } from "lucide-react"
 import {
@@ -89,16 +89,14 @@ export function InboundForm() {
               <input type="hidden" name="model" value={modelValue} />
               <div className="flex items-center gap-2">
                 <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      role="combobox" 
-                      aria-expanded={open} 
-                      className="w-full justify-between"
-                    >
+                  <PopoverTrigger 
+                    type="button"
+                    className={buttonVariants({ variant: "outline", className: "w-full justify-between" })} 
+                    role="combobox" 
+                    aria-expanded={open}
+                  >
                       {modelValue ? modelValue : "Search or type model..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
@@ -110,6 +108,7 @@ export function InboundForm() {
                         <CommandEmpty>
                           {searchValue.length > 0 ? (
                             <Button 
+                              type="button"
                               variant="ghost" 
                               className="w-full justify-start text-left px-2 py-1.5 h-auto font-normal"
                               onClick={() => {
