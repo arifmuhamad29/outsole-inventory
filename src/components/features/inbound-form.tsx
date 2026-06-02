@@ -91,7 +91,7 @@ export function InboundForm() {
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger 
                     type="button"
-                    className={buttonVariants({ variant: "outline", className: "w-full justify-between" })} 
+                    className={buttonVariants({ variant: "outline", className: `w-full justify-between font-normal border-input bg-background hover:bg-background hover:text-foreground ${!modelValue ? "text-muted-foreground" : ""}` })} 
                     role="combobox" 
                     aria-expanded={open}
                   >
