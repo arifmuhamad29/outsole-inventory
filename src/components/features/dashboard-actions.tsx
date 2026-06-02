@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Printer } from "lucide-react"
+import { Printer, Trash2 } from "lucide-react"
 
 export function DashboardActions({ item, isAdmin }: { 
   item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, createdAt?: Date | string }, 
@@ -114,8 +114,8 @@ export function DashboardActions({ item, isAdmin }: {
       {/* Hard Delete (Admins only) */}
       {isAdmin && (
         <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-          <AlertDialogTrigger render={<Button variant="destructive" size="sm" disabled={isDeleting} />}>
-            {isDeleting ? "..." : "Delete"}
+          <AlertDialogTrigger render={<Button variant="destructive" size="icon" title="Delete Item" disabled={isDeleting} />}>
+            {isDeleting ? "..." : <Trash2 className="h-4 w-4" />}
           </AlertDialogTrigger>
           <AlertDialogContent>
             <form onSubmit={handleDelete}>
