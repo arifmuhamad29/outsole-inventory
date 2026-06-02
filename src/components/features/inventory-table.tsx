@@ -65,6 +65,15 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
 
   const allSelected = outsoles.length > 0 && selectedItems.length === outsoles.length
 
+  const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+    const chunks: T[][] = []
+    for (let i = 0; i < arr.length; i += size) {
+      chunks.push(arr.slice(i, i + size))
+    }
+    return chunks
+  }
+  const barcodePages = chunkArray(selectedItems, 6)
+
   return (
     <div className="space-y-4">
       {/* Bulk Actions */}
@@ -81,19 +90,27 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
       {/* Actual printable content rendered via Portal directly into body */}
       {isPrinting && mounted && createPortal(
         <div className="print-container hidden print:block w-full absolute top-0 left-0 bg-white z-[9999]">
-          {selectedItems.map((item) => (
-            <div key={item.id} className="print-label-wrapper flex flex-col items-center justify-start w-full" style={{ pageBreakAfter: 'always', breakAfter: 'page' }}>
-              <PrintableLabel 
-                qrCode={item.qrCode} 
-                model={item.model} 
-                article={item.article} 
-                color={item.color} 
-                size={item.size} 
-                poNumber={item.poNumber ? String(item.poNumber) : undefined}
-                bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
-                createdAt={item.createdAt}
-                notes={item.notes ? String(item.notes) : undefined}
-              />
+          {barcodePages.map((pageItems, pageIndex) => (
+            <div 
+              key={pageIndex} 
+              className="w-full min-h-screen p-4 grid grid-cols-3 gap-x-6 gap-y-8 content-start"
+              style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+            >
+              {pageItems.map((item) => (
+                <div key={item.id} className="border border-gray-200 p-2 rounded-md flex flex-col items-center justify-center bg-white text-black text-center estimation-box">
+                  <PrintableLabel 
+                    qrCode={item.qrCode} 
+                    model={item.model} 
+                    article={item.article} 
+                    color={item.color} 
+                    size={item.size} 
+                    poNumber={item.poNumber ? String(item.poNumber) : undefined}
+                    bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
+                    createdAt={item.createdAt}
+                    notes={item.notes ? String(item.notes) : undefined}
+                  />
+                </div>
+              ))}
             </div>
           ))}
         </div>,

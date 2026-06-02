@@ -151,7 +151,6 @@
   
   /* The portal container becomes the only element in flow */
   .print-container {
-    display: flex !important;
     position: relative !important;
     width: 100% !important;
     height: auto !important;
@@ -159,7 +158,7 @@
   }
   
   /* Format the label itself to take up exactly the space it needs */
-  #printable-label {
+  .printable-label {
     position: relative !important;
     width: 100% !important;
     max-width: 400px !important;
