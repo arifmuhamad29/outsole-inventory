@@ -1,6 +1,14 @@
 import { InboundForm } from "@/components/features/inbound-form"
+import prisma from "@/lib/prisma"
 
-export default function InboundPage() {
+export default async function InboundPage() {
+  const dbModels = await prisma.outsole.findMany({
+    distinct: ['model'],
+    select: { model: true },
+    where: { model: { not: '' } }
+  });
+  const dynamicModels = dbModels.map(m => m.model);
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,7 +18,7 @@ export default function InboundPage() {
         </p>
       </div>
       
-      <InboundForm />
+      <InboundForm dynamicModels={dynamicModels} />
     </div>
   )
 }

@@ -33,7 +33,9 @@ const PREDEFINED_MODELS = [
   "RUNFALCON 6.0 INF", "X-PLRPATH M", "X-PLRPATH W", "XPLRPATH KID"
 ]
 
-export function InboundForm() {
+export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }) {
+  const mergedModels = Array.from(new Set([...PREDEFINED_MODELS, ...dynamicModels])).sort();
+
   const [isPending, setIsPending] = useState(false)
   const [message, setMessage] = useState<{ type: "error" | "success", text: string } | null>(null)
   const [generatedQR, setGeneratedQR] = useState<string | null>(null)
@@ -123,6 +125,7 @@ export function InboundForm() {
                               type="button"
                               variant="ghost" 
                               className="w-full justify-start text-left px-2 py-1.5 h-auto font-normal"
+                              onPointerDown={(e) => e.preventDefault()}
                               onClick={() => {
                                 setModelValue(searchValue.toUpperCase())
                                 setOpen(false)
@@ -135,10 +138,11 @@ export function InboundForm() {
                           )}
                         </CommandEmpty>
                         <CommandGroup>
-                          {PREDEFINED_MODELS.map((model) => (
+                          {mergedModels.map((model) => (
                             <CommandItem
                               key={model}
                               value={model}
+                              onPointerDown={(e) => e.preventDefault()}
                               onSelect={() => {
                                 setModelValue(model)
                                 setOpen(false)
