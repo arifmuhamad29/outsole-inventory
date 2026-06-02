@@ -12,12 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { auth } from "@/lib/auth"
-import { InventoryTable } from "@/components/features/inventory-table"
 
 export default async function DashboardPage() {
   const session = await auth()
 
-  const [totalSku, lowStockCount, recentTransactions, latestActivity, outsoles] = await Promise.all([
+  const [totalSku, lowStockCount, recentTransactions, latestActivity] = await Promise.all([
     prisma.outsole.count({ where: { isActive: true } }),
     prisma.outsole.count({
       where: {
@@ -32,19 +31,6 @@ export default async function DashboardPage() {
       include: {
         outsole: true,
       }
-    }),
-    // Fetch inventory outsoles for the dashboard operator view, limited to 50 for performance
-    prisma.outsole.findMany({
-      where: { isActive: true },
-      take: 50,
-      include: { 
-        transactions: { 
-          where: { type: 'OUTBOUND' }, 
-          orderBy: { createdAt: 'desc' }, 
-          take: 1 
-        } 
-      },
-      orderBy: { updatedAt: 'desc' }
     })
   ])
 
@@ -161,15 +147,6 @@ export default async function DashboardPage() {
           </Table>
         </div>
       </div>
-
-      {session?.user?.role === "OPERATOR" && (
-        <div className="mt-8 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h2 className="text-xl font-semibold tracking-tight">Inventory Overview (Read-Only)</h2>
-          </div>
-          <InventoryTable outsoles={outsoles} readOnly={true} />
-        </div>
-      )}
     </div>
   )
 }

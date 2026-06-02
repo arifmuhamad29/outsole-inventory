@@ -72,7 +72,7 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
       </div>
 
       <div className="space-y-4">
-        <InventoryTable outsoles={outsoles} isAdmin={isAdmin} readOnly={false} />
+        <InventoryTable outsoles={outsoles} isAdmin={isAdmin} readOnly={!isAdmin} />
       </div>
     </div>
   )

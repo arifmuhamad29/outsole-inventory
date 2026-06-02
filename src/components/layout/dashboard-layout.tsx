@@ -24,6 +24,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const operatorNavItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Inventory", href: "/inventory", icon: List },
     { name: "Outbound", href: "/outbound", icon: ScanBarcode },
   ]
 
