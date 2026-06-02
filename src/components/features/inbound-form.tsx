@@ -6,12 +6,33 @@ import { PrintableLabel } from "@/components/ui/printable-label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Plus, X } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const PREDEFINED_MODELS = [
+  "VL COURT 3.0 M", "VL COURT 3.0 W", "VL COURT 3.0 INF",
+  "LITERACER 4.0 M", "LITERACER 4.0 W", "LITERACER ADAPT 7.0 M",
+  "LITERACER ADAPT 7.0 W", "LITERACER ADAPT 7.0 KID",
+  "LITERACER ADAPT 7.0 KID WIDE", "LITERACER ADAPT 7.0 INF",
+  "LITERACER ADAPT 8.0 KID", "LITERACER ADAPT 8.0 KID WIDE",
+  "LITERACER ADAPT 8.0 INF", "LITERACER NEXT", "RUNFALCON 5.0 M",
+  "RUNFALCON 5.0 W", "RUNFALCON 6.0 KID", "RUNFALCON 6.0 JR",
+  "RUNFALCON 6.0 INF", "X-PLRPATH M", "X-PLRPATH W", "XPLRPATH KID"
+]
 
 export function InboundForm() {
   const [isPending, setIsPending] = useState(false)
   const [message, setMessage] = useState<{ type: "error" | "success", text: string } | null>(null)
   const [generatedQR, setGeneratedQR] = useState<string | null>(null)
   const [outsoleData, setOutsoleData] = useState<Record<string, unknown> | null>(null)
+  const [isCustomModel, setIsCustomModel] = useState(false)
+  const [modelValue, setModelValue] = useState("")
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -27,6 +48,7 @@ export function InboundForm() {
         setMessage({ type: "success", text: response.message })
         setGeneratedQR(response.data.qrCode)
         setOutsoleData(response.data)
+        setModelValue("")
         ;(event.target as HTMLFormElement).reset()
       } else {
         if (response.errors) {
@@ -57,7 +79,54 @@ export function InboundForm() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="model">Model Name</label>
-              <Input id="model" name="model" required placeholder="e.g. Air Max 90" className="uppercase" />
+              <input type="hidden" name="model" value={modelValue} />
+              <div className="flex items-center gap-2">
+                {!isCustomModel ? (
+                  <>
+                    <Select value={modelValue} onValueChange={(val) => setModelValue(val || "")} required>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a predefined model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_MODELS.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={() => { setIsCustomModel(true); setModelValue("") }} 
+                      title="Add custom model"
+                      className="shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Input 
+                      id="model" 
+                      value={modelValue}
+                      onChange={(e) => setModelValue(e.target.value.toUpperCase())}
+                      required 
+                      placeholder="e.g. CUSTOM MODEL" 
+                      className="uppercase flex-1" 
+                    />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => { setIsCustomModel(false); setModelValue("") }} 
+                      title="Select from list"
+                      className="shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             
             <div className="space-y-2">
