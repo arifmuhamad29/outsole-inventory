@@ -168,3 +168,36 @@ model StockOpnameItem {
   @@index([sessionId])
   @@index([outsoleId])
 }
+
+model ShoeModel {
+  id          String        @id @default(cuid())
+  name        String        @unique // e.g., "LITE RACER ADAPT 8.0 I WIDE"
+  lastUpdated DateTime      @default(now())
+  toolingItems ToolingItem[]
+}
+
+model ToolingItem {
+  id          String        @id @default(cuid())
+  modelId     String
+  model       ShoeModel     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  category    String        // "BOTTOM TOOLING" or "ASSEMBLY TOOLING"
+  name        String        // e.g., "Gauge top net", "3D Gauge"
+  remark      String?       // e.g., "DRAWING PROCESS"
+  phases      ToolingPhase[]
+
+  @@index([modelId])
+}
+
+model ToolingPhase {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        ToolingItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  phaseType   String        // "SAMPLE", "EXTREME", or "FSR"
+  qty         String?       // e.g., "1 SET", "3 PRS"
+  orderDate   DateTime?
+  targetETA   DateTime?
+  actualETA   DateTime?
+  status      String        // "VERIFIED", "EXISTING", "ON PROCESS", "NOT USE"
+
+  @@index([itemId])
+}

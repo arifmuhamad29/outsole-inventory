@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +19,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Outbound", href: "/outbound", icon: ScanBarcode },
     { name: "Adjustment", href: "/adjustment", icon: ArrowRightLeft },
     { name: "Stock Opname", href: "/opname", icon: ClipboardList },
+    { name: "Tooling (MES)", href: "/tooling", icon: Wrench },
     { name: "Reports", href: "/reports", icon: FileSpreadsheet },
   ]
 
@@ -26,6 +27,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Inventory", href: "/inventory", icon: List },
     { name: "Outbound", href: "/outbound", icon: ScanBarcode },
+    { name: "Tooling (MES)", href: "/tooling", icon: Wrench },
   ]
 
   const navItems = role === "ADMIN" ? adminNavItems : operatorNavItems

@@ -10,10 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { auth } from "@/lib/auth"
-
 export default async function DashboardPage() {
-  const session = await auth()
 
   const [totalSku, lowStockCount, recentTransactions, latestActivity] = await Promise.all([
     prisma.outsole.count({ where: { isActive: true } }),
