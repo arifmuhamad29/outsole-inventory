@@ -183,11 +183,13 @@ export default function ToolingPage() {
                       {isExpanded && (
                         <TableRow className="bg-slate-50/30">
                           <TableCell colSpan={5} className="p-0 border-b">
-                            <ToolingDrawer 
-                              model={selectedModel} 
-                              isOpen={true} 
-                              onClose={handleCloseDrawer} 
-                            />
+                            <div className="animate-in fade-in slide-in-from-top-4 duration-300 ease-out">
+                              <ToolingDrawer 
+                                model={selectedModel} 
+                                isOpen={true} 
+                                onClose={handleCloseDrawer} 
+                              />
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}

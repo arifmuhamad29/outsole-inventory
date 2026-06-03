@@ -44,7 +44,7 @@ export async function updateToolingPhaseStatus(phaseId: string, newStatus: strin
 
 export async function updateModelToolingAction(modelId: string, payload: { 
   phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[],
-  items: { id: string, remark: string | null }[]
+  items: { id: string, name: string, remark: string | null }[]
 }) {
   try {
     const session = await auth()
@@ -80,11 +80,12 @@ export async function updateModelToolingAction(modelId: string, payload: {
         })
       }
 
-      // 2. Update Tooling Items (Remarks)
+      // 2. Update Tooling Items (Name & Remarks)
       for (const item of payload.items) {
         await tx.toolingItem.update({
           where: { id: item.id },
           data: {
+            name: item.name,
             remark: item.remark
           }
         })

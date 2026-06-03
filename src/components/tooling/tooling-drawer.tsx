@@ -84,15 +84,18 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
   // Form State
   const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }>>({})
   const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({})
+  const [itemNames, setItemNames] = useState<Record<string, string>>({})
 
   // Initialize state when model changes
   useEffect(() => {
     if (model) {
       const newPhaseData: typeof phaseData = {}
       const newItemRemarks: typeof itemRemarks = {}
+      const newItemNames: typeof itemNames = {}
       
       model.toolingItems.forEach(item => {
         newItemRemarks[item.id] = item.remark || ""
+        newItemNames[item.id] = item.name || ""
         item.phases.forEach(phase => {
           newPhaseData[phase.id] = {
             qty: phase.qty || "",
@@ -106,6 +109,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
       
       setPhaseData(newPhaseData)
       setItemRemarks(newItemRemarks)
+      setItemNames(newItemNames)
     }
   }, [model])
 
@@ -128,6 +132,13 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
     }))
   }
 
+  const handleItemNameChange = (itemId: string, value: string) => {
+    setItemNames(prev => ({
+      ...prev,
+      [itemId]: value
+    }))
+  }
+
   const handleSave = () => {
     if (!model) return
 
@@ -142,6 +153,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
       })),
       items: Object.entries(itemRemarks).map(([id, remark]) => ({
         id,
+        name: itemNames[id] || "",
         remark: remark || null,
       }))
     }
@@ -166,10 +178,10 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
       <div className="mb-6">
         <h3 className="font-semibold text-base mb-2">{category}</h3>
         <div className="rounded-md border bg-white overflow-hidden shadow-sm">
-          <Table>
+          <Table className="text-xs sm:text-sm">
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead>Tooling Name</TableHead>
+                <TableHead className="w-[200px]">Tooling Name</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Order Date</TableHead>
                 <TableHead>Target ETA</TableHead>
@@ -187,6 +199,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                 if (!currentPhase) return null // still initializing
 
                 const currentRemark = itemRemarks[item.id] ?? ""
+                const currentName = itemNames[item.id] ?? item.name
 
                 // Check overdue logic using the current form state or fallback to original
                 const isOverdue =
@@ -196,7 +209,14 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
 
                 return (
                   <TableRow key={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
-                    <TableCell className="font-medium min-w-[150px]">{item.name}</TableCell>
+                    <TableCell className="font-medium min-w-[200px]">
+                      <Input 
+                        value={currentName}
+                        onChange={(e) => handleItemNameChange(item.id, e.target.value)}
+                        className="w-full h-8 text-xs sm:text-sm font-medium"
+                        placeholder="Tooling Name..."
+                      />
+                    </TableCell>
                     <TableCell>
                       <Input 
                         value={currentPhase.qty} 
