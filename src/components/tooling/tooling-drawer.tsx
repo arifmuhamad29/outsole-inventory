@@ -3,14 +3,6 @@
 import { useState, useTransition, useEffect } from "react"
 import { format, isBefore, startOfDay } from "date-fns"
 import { updateModelToolingAction } from "@/app/actions/tooling"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -30,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save } from "lucide-react"
+import { Loader2, Save, X } from "lucide-react"
 
 // Types
 type Phase = {
@@ -117,7 +109,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
     }
   }, [model])
 
-  if (!model) return null
+  if (!model || !isOpen) return null
 
   const handlePhaseChange = (phaseId: string, field: string, value: string) => {
     setPhaseData(prev => ({
@@ -171,9 +163,9 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
     const today = startOfDay(new Date())
 
     return (
-      <div className="mb-8">
-        <h3 className="font-semibold text-lg mb-3">{category}</h3>
-        <div className="rounded-md border bg-white overflow-hidden">
+      <div className="mb-6">
+        <h3 className="font-semibold text-base mb-2">{category}</h3>
+        <div className="rounded-md border bg-white overflow-hidden shadow-sm">
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
@@ -272,52 +264,53 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-7xl overflow-y-auto flex flex-col p-0">
-        <div className="p-6 pb-2 border-b">
-          <SheetHeader>
-            <SheetTitle className="text-2xl flex items-center gap-2">
-              {model.name}
-              {isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-            </SheetTitle>
-            <SheetDescription>
-              Tooling checklist batch editor. Last updated: {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
-            </SheetDescription>
-          </SheetHeader>
+    <div className="w-full bg-slate-50 shadow-inner p-6 flex flex-col border-b border-gray-200">
+      <div className="flex items-center justify-between mb-6 pb-2 border-b">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            Kelola Checklist: {model.name}
+            {isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Last updated: {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
+          </p>
         </div>
+        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <X className="w-5 h-5 text-slate-500" />
+        </Button>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="SAMPLE">Sample Size</TabsTrigger>
-              <TabsTrigger value="EXTREME">Extreme Size</TabsTrigger>
-              <TabsTrigger value="FSR">FSR Size</TabsTrigger>
-            </TabsList>
+      <div className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
+            <TabsTrigger value="SAMPLE">Sample</TabsTrigger>
+            <TabsTrigger value="EXTREME">Extreme</TabsTrigger>
+            <TabsTrigger value="FSR">FSR</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="SAMPLE" className="mt-0">
-              {renderTable("BOTTOM TOOLING", "SAMPLE")}
-              {renderTable("ASSEMBLY TOOLING", "SAMPLE")}
-            </TabsContent>
+          <TabsContent value="SAMPLE" className="mt-0">
+            {renderTable("BOTTOM TOOLING", "SAMPLE")}
+            {renderTable("ASSEMBLY TOOLING", "SAMPLE")}
+          </TabsContent>
 
-            <TabsContent value="EXTREME" className="mt-0">
-              {renderTable("BOTTOM TOOLING", "EXTREME")}
-              {renderTable("ASSEMBLY TOOLING", "EXTREME")}
-            </TabsContent>
+          <TabsContent value="EXTREME" className="mt-0">
+            {renderTable("BOTTOM TOOLING", "EXTREME")}
+            {renderTable("ASSEMBLY TOOLING", "EXTREME")}
+          </TabsContent>
 
-            <TabsContent value="FSR" className="mt-0">
-              {renderTable("BOTTOM TOOLING", "FSR")}
-              {renderTable("ASSEMBLY TOOLING", "FSR")}
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="FSR" className="mt-0">
+            {renderTable("BOTTOM TOOLING", "FSR")}
+            {renderTable("ASSEMBLY TOOLING", "FSR")}
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        <SheetFooter className="p-6 bg-slate-50 border-t mt-auto sticky bottom-0 z-10">
-          <Button onClick={handleSave} disabled={isPending} className="w-full sm:w-auto gap-2 h-12 text-base shadow-sm">
-            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Simpan Semua Perubahan
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      <div className="pt-6 mt-4 border-t flex justify-end">
+        <Button onClick={handleSave} disabled={isPending} className="w-full sm:w-auto gap-2">
+          {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          Simpan Semua Perubahan
+        </Button>
+      </div>
+    </div>
   )
 }

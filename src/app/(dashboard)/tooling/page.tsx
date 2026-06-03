@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Fragment } from "react"
 import { getToolingModels } from "@/app/actions/tooling-fetch"
 import { ShoeModel, ToolingItem, ToolingPhase } from "@prisma/client"
 import { format } from "date-fns"
@@ -59,6 +59,7 @@ export default function ToolingPage() {
 
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false)
+    setSelectedModel(null)
     fetchData() // Refresh after saving
   }
 
@@ -146,34 +147,51 @@ export default function ToolingPage() {
                   else if (progress > 50) badgeVariant = "outline"
                   else if (totalPhases > 0) badgeVariant = "destructive"
 
+                  const isExpanded = isDrawerOpen && selectedModel?.id === model.id
+
                   return (
-                    <TableRow key={model.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-medium text-base text-slate-900">
-                        {model.name}
-                      </TableCell>
-                      <TableCell className="text-slate-600">
-                        {model.toolingItems.length} Items <span className="text-xs text-slate-400">({totalPhases} Active Phases)</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={badgeVariant} className="px-2 py-1">
-                          {progress}% Ready
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-600">
-                        {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openDrawer(model)}
-                          className="gap-2 border-slate-300 text-slate-700 hover:bg-slate-100"
-                        >
-                          <ListChecks className="w-4 h-4" />
-                          Kelola Checklist
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    <Fragment key={model.id}>
+                      <TableRow className={`transition-colors ${isExpanded ? "bg-slate-50/80" : "hover:bg-slate-50/50"}`}>
+                        <TableCell className="font-medium text-base text-slate-900">
+                          {model.name}
+                        </TableCell>
+                        <TableCell className="text-slate-600">
+                          {model.toolingItems.length} Items <span className="text-xs text-slate-400">({totalPhases} Active Phases)</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={badgeVariant} className="px-2 py-1">
+                            {progress}% Ready
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-600">
+                          {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => isExpanded ? handleCloseDrawer() : openDrawer(model)}
+                            className={`gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 ${isExpanded ? "bg-slate-200" : ""}`}
+                          >
+                            <ListChecks className="w-4 h-4" />
+                            {isExpanded ? "Tutup Checklist" : "Kelola Checklist"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Accordion Row */}
+                      {isExpanded && (
+                        <TableRow className="bg-slate-50/30">
+                          <TableCell colSpan={5} className="p-0 border-b">
+                            <ToolingDrawer 
+                              model={selectedModel} 
+                              isOpen={true} 
+                              onClose={handleCloseDrawer} 
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
                   )
                 })
               )}
@@ -181,12 +199,6 @@ export default function ToolingPage() {
           </Table>
         </div>
       </div>
-
-      <ToolingDrawer 
-        model={selectedModel} 
-        isOpen={isDrawerOpen} 
-        onClose={handleCloseDrawer} 
-      />
     </div>
   )
 }
