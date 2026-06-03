@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import Papa from "papaparse"
 import { processBulkInboundAction } from "@/app/actions/inventory"
+import { bulkInboundSchema } from "@/schemas/inventory"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Upload, Download, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
+import { Upload, Download, FileSpreadsheet, CheckCircle2, AlertTriangle, ShieldAlert } from "lucide-react"
 
 interface CsvRow {
   Model: string
@@ -39,11 +40,13 @@ const CSV_HEADERS = ["Model", "Article", "Color", "Size", "Stock", "PONumber", "
 export function BulkInbound() {
   const [isOpen, setIsOpen] = useState(false)
   const [parsedData, setParsedData] = useState<CsvRow[]>([])
-  const [parseErrors, setParseErrors] = useState<string[]>([])
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [isValid, setIsValid] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [result, setResult] = useState<{
     message: string
+    success: boolean
     details?: { successCount: number; errorCount: number; errors: string[] }
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -67,42 +70,86 @@ export function BulkInbound() {
     if (!file) return
 
     setResult(null)
-    setParseErrors([])
+    setValidationErrors([])
+    setIsValid(false)
 
     Papa.parse<CsvRow>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const validationErrors: string[] = []
+        const errors: string[] = []
 
-        // Validate headers
-        const fileHeaders = results.meta.fields || []
-        const missingHeaders = CSV_HEADERS.filter(
-          h => !["PONumber", "BottomTreatment", "Notes"].includes(h) && !fileHeaders.includes(h)
-        )
-        if (missingHeaders.length > 0) {
-          validationErrors.push(`Missing required columns: ${missingHeaders.join(", ")}`)
-        }
-
+        // Check for PapaParse-level errors
         if (results.errors.length > 0) {
           results.errors.forEach(err => {
-            validationErrors.push(`Row ${(err.row || 0) + 2}: ${err.message}`)
+            errors.push(`Row ${(err.row || 0) + 2}: CSV parse error — ${err.message}`)
           })
         }
 
-        setParseErrors(validationErrors)
+        // Validate header presence
+        const fileHeaders = results.meta.fields || []
+        const requiredHeaders = ["Model", "Article", "Color", "Size", "Stock"]
+        const missingHeaders = requiredHeaders.filter(h => !fileHeaders.includes(h))
+        if (missingHeaders.length > 0) {
+          errors.push(`❌ Upload Rejected: Missing required columns: ${missingHeaders.join(", ")}`)
+          setValidationErrors(errors)
+          setParsedData([])
+          setFileName(file.name)
+          return
+        }
+
+        if (results.data.length === 0) {
+          errors.push("❌ Upload Rejected: CSV file contains no data rows.")
+          setValidationErrors(errors)
+          setParsedData([])
+          setFileName(file.name)
+          return
+        }
+
+        if (results.data.length > 500) {
+          errors.push(`❌ Upload Rejected: Maximum 500 rows per import. Your file has ${results.data.length} rows.`)
+          setValidationErrors(errors)
+          setParsedData([])
+          setFileName(file.name)
+          return
+        }
+
+        // STRICT Zod validation — ALL rows must pass or entire file is rejected
+        const validation = bulkInboundSchema.safeParse(results.data)
+
+        if (!validation.success) {
+          validation.error.issues.forEach(issue => {
+            const path = issue.path
+            // path[0] = array index, path[1] = field name
+            const rowIndex = typeof path[0] === "number" ? path[0] : null
+            const field = path[1] || "unknown"
+            const rowLabel = rowIndex !== null ? `Row ${rowIndex + 2}` : "Unknown row"
+            errors.push(`❌ ${rowLabel}: '${String(field)}' — ${issue.message}`)
+          })
+
+          setValidationErrors(errors)
+          setParsedData(results.data as CsvRow[])
+          setIsValid(false)
+          setFileName(file.name)
+          return
+        }
+
+        // All rows passed strict validation
+        setValidationErrors([])
         setParsedData(results.data as CsvRow[])
+        setIsValid(true)
         setFileName(file.name)
       },
       error: (err) => {
-        setParseErrors([`Failed to parse CSV: ${err.message}`])
+        setValidationErrors([`Failed to parse CSV: ${err.message}`])
         setParsedData([])
+        setIsValid(false)
       }
     })
   }
 
   const handleImport = async () => {
-    if (parsedData.length === 0) return
+    if (parsedData.length === 0 || !isValid) return
 
     setIsImporting(true)
     setResult(null)
@@ -111,16 +158,18 @@ export function BulkInbound() {
       const res = await processBulkInboundAction(parsedData)
       setResult({
         message: res.message,
+        success: res.success,
         details: res.details as { successCount: number; errorCount: number; errors: string[] } | undefined,
       })
 
-      if (res.success && res.details && res.details.errorCount === 0) {
+      if (res.success) {
         setParsedData([])
         setFileName(null)
+        setIsValid(false)
         if (fileInputRef.current) fileInputRef.current.value = ""
       }
     } catch {
-      setResult({ message: "An unexpected error occurred during import." })
+      setResult({ message: "An unexpected error occurred during import.", success: false })
     } finally {
       setIsImporting(false)
     }
@@ -128,7 +177,8 @@ export function BulkInbound() {
 
   const handleClear = () => {
     setParsedData([])
-    setParseErrors([])
+    setValidationErrors([])
+    setIsValid(false)
     setFileName(null)
     setResult(null)
     if (fileInputRef.current) fileInputRef.current.value = ""
@@ -189,30 +239,35 @@ export function BulkInbound() {
                 className="cursor-pointer"
               />
 
-              {parseErrors.length > 0 && (
-                <div className="p-3 rounded-md bg-red-50 text-red-700 text-xs space-y-1">
-                  <div className="flex items-center gap-1 font-medium">
-                    <XCircle className="h-4 w-4" /> Parse Errors:
+              {/* Strict Validation Errors — File Rejected */}
+              {validationErrors.length > 0 && (
+                <div className="p-4 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs space-y-1">
+                  <div className="flex items-center gap-2 font-semibold text-sm text-red-800 mb-2">
+                    <ShieldAlert className="h-5 w-5" />
+                    Upload Rejected — Fix all errors below and re-upload.
                   </div>
-                  {parseErrors.map((err, i) => (
-                    <p key={i}>• {err}</p>
-                  ))}
+                  <div className="max-h-[150px] overflow-y-auto space-y-1">
+                    {validationErrors.map((err, i) => (
+                      <p key={i}>• {err}</p>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {fileName && parsedData.length > 0 && (
-                <div className="p-3 rounded-md bg-green-50 text-green-700 text-sm flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" />
+              {/* Valid file */}
+              {fileName && isValid && parsedData.length > 0 && (
+                <div className="p-3 rounded-md bg-green-50 border border-green-200 text-green-700 text-sm flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
                   <span>
-                    <strong>{fileName}</strong> — Ready to import <strong>{parsedData.length}</strong> rows.
+                    <strong>{fileName}</strong> — All <strong>{parsedData.length}</strong> rows passed strict validation. Ready to import.
                   </span>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Step 3: Preview */}
-          {parsedData.length > 0 && (
+          {/* Step 3: Preview (only when valid) */}
+          {isValid && parsedData.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">Step 3: Preview Data ({parsedData.length} rows)</CardTitle>
@@ -263,14 +318,12 @@ export function BulkInbound() {
           {/* Result */}
           {result && (
             <div className={`p-4 rounded-md text-sm ${
-              result.details?.errorCount === 0
-                ? "bg-green-50 text-green-700"
-                : result.details && result.details.successCount > 0
-                  ? "bg-yellow-50 text-yellow-700"
-                  : "bg-red-50 text-red-700"
+              result.success
+                ? "bg-green-50 border border-green-200 text-green-700"
+                : "bg-red-50 border border-red-200 text-red-700"
             }`}>
               <div className="flex items-center gap-2 font-medium mb-1">
-                {result.details?.errorCount === 0 ? (
+                {result.success ? (
                   <CheckCircle2 className="h-4 w-4" />
                 ) : (
                   <AlertTriangle className="h-4 w-4" />
@@ -294,7 +347,7 @@ export function BulkInbound() {
             </Button>
             <Button
               onClick={handleImport}
-              disabled={parsedData.length === 0 || isImporting || parseErrors.some(e => e.includes("Missing required columns"))}
+              disabled={!isValid || parsedData.length === 0 || isImporting}
               className="gap-2"
             >
               <Upload className="h-4 w-4" />

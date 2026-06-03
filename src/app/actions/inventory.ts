@@ -1,9 +1,16 @@
 "use server"
 
 import { auth } from "@/lib/auth"
-import { inboundSchema, adjustmentSchema } from "@/schemas/inventory"
+import { inboundSchema, adjustmentSchema, bulkInboundSchema } from "@/schemas/inventory"
 import { InventoryService } from "@/services/inventory.service"
 import { revalidatePath } from "next/cache"
+import prisma from "@/lib/prisma"
+import { Prisma, TransactionType } from "@prisma/client"
+import crypto from "crypto"
+
+function generateShortId() {
+  return crypto.randomBytes(4).toString("hex").toUpperCase()
+}
 
 export async function processInboundAction(formData: FormData) {
   try {
@@ -92,18 +99,7 @@ export async function hardDeleteOutsoleAction(id: string, password?: string) {
   }
 }
 
-interface BulkInboundRow {
-  Model: string
-  Article: string
-  Color: string
-  Size: string
-  Stock: string
-  PONumber?: string
-  BottomTreatment?: string
-  Notes?: string
-}
-
-export async function processBulkInboundAction(rows: BulkInboundRow[]) {
+export async function processBulkInboundAction(rows: unknown[]) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -113,61 +109,101 @@ export async function processBulkInboundAction(rows: BulkInboundRow[]) {
       return { success: false, message: "Forbidden: Only ADMIN can perform bulk inbound" }
     }
 
-    if (!rows || rows.length === 0) {
-      return { success: false, message: "No data to import" }
+    // STRICT server-side Zod re-validation — reject entire payload if any row is invalid
+    const validation = bulkInboundSchema.safeParse(rows)
+    if (!validation.success) {
+      const errors = validation.error.issues.map(issue => {
+        const rowIndex = typeof issue.path[0] === "number" ? issue.path[0] : null
+        const field = issue.path[1] || "unknown"
+        const rowLabel = rowIndex !== null ? `Row ${rowIndex + 2}` : "Unknown row"
+        return `${rowLabel}: '${String(field)}' — ${issue.message}`
+      })
+      return {
+        success: false,
+        message: `Upload rejected: ${validation.error.issues.length} validation error(s) found. Entire file blocked.`,
+        details: { successCount: 0, errorCount: validation.error.issues.length, errors: errors.slice(0, 20) },
+      }
     }
 
-    if (rows.length > 500) {
+    const validatedRows = validation.data
+
+    if (validatedRows.length > 500) {
       return { success: false, message: "Maximum 500 rows per import" }
     }
 
-    let successCount = 0
-    let errorCount = 0
-    const errors: string[] = []
+    // Atomic transaction — all rows succeed or entire batch rolls back
+    const userId = session.user.id
+    await prisma.$transaction(async (tx) => {
+      for (let i = 0; i < validatedRows.length; i++) {
+        const row = validatedRows[i]
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      const rowNum = i + 2 // +2 because row 1 is header
-
-      if (!row.Model || !row.Article || !row.Color || !row.Size || !row.Stock) {
-        errors.push(`Row ${rowNum}: Missing required fields (Model, Article, Color, Size, Stock)`)
-        errorCount++
-        continue
-      }
-
-      const qty = parseInt(row.Stock)
-      if (isNaN(qty) || qty <= 0) {
-        errors.push(`Row ${rowNum}: Invalid stock value "${row.Stock}"`)
-        errorCount++
-        continue
-      }
-
-      try {
-        const validBottomTreatments = ["Spray", "Spackle", "Marble", "None"] as const
-        const rawBt = row.BottomTreatment?.trim() || "None"
-        const bottomTreatment = validBottomTreatments.includes(rawBt as typeof validBottomTreatments[number])
-          ? (rawBt as typeof validBottomTreatments[number])
-          : "None"
-
-        await InventoryService.processInbound(
-          {
+        // Find existing SKU
+        let outsole = await tx.outsole.findFirst({
+          where: {
             model: row.Model.trim().toUpperCase(),
             article: row.Article.trim().toUpperCase(),
             color: row.Color.trim().toUpperCase(),
             size: row.Size.trim().toUpperCase(),
-            qty,
-            poNumber: row.PONumber?.trim() || "-",
-            bottomTreatment,
-            notes: row.Notes?.trim() || `Bulk import row ${rowNum}`,
-          },
-          session.user.id
-        )
-        successCount++
-      } catch (err) {
-        errors.push(`Row ${rowNum}: ${err instanceof Error ? err.message : "Unknown error"}`)
-        errorCount++
+            poNumber: row.PONumber || "-",
+            bottomTreatment: row.BottomTreatment || "None",
+          }
+        })
+
+        const beforeData = outsole ? { stock: outsole.stock } : null
+
+        if (outsole) {
+          // Update existing stock
+          outsole = await tx.outsole.update({
+            where: { id: outsole.id },
+            data: {
+              stock: { increment: row.Stock },
+              ...(row.Notes && { notes: row.Notes }),
+            }
+          })
+        } else {
+          // Create new SKU
+          const shortId = generateShortId()
+          outsole = await tx.outsole.create({
+            data: {
+              qrCode: `OSL-${shortId}`,
+              model: row.Model.trim().toUpperCase(),
+              article: row.Article.trim().toUpperCase(),
+              color: row.Color.trim().toUpperCase(),
+              size: row.Size.trim().toUpperCase(),
+              poNumber: row.PONumber || "-",
+              bottomTreatment: row.BottomTreatment || "None",
+              notes: row.Notes || null,
+              stock: row.Stock,
+            }
+          })
+        }
+
+        // Record transaction
+        await tx.transaction.create({
+          data: {
+            outsoleId: outsole.id,
+            userId,
+            type: TransactionType.INBOUND,
+            qty: row.Stock,
+            notes: row.Notes || `Bulk import row ${i + 2}`,
+          }
+        })
+
+        // Record audit log
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: beforeData ? "STOCK_IN" : "CREATE",
+            entityName: "Outsole",
+            entityId: outsole.id,
+            beforeData: beforeData ? (beforeData as Prisma.InputJsonValue) : undefined,
+            afterData: { stock: outsole.stock },
+          }
+        })
       }
-    }
+    }, {
+      timeout: 120000, // 2 minute timeout for large imports
+    })
 
     revalidatePath("/")
     revalidatePath("/inbound")
@@ -175,11 +211,16 @@ export async function processBulkInboundAction(rows: BulkInboundRow[]) {
 
     return {
       success: true,
-      message: `Import complete: ${successCount} succeeded, ${errorCount} failed out of ${rows.length} rows.`,
-      details: { successCount, errorCount, errors: errors.slice(0, 20) },
+      message: `Import complete: All ${validatedRows.length} rows imported successfully.`,
+      details: { successCount: validatedRows.length, errorCount: 0, errors: [] },
     }
   } catch (error) {
     console.error("Bulk Inbound Error:", error)
-    return { success: false, message: error instanceof Error ? error.message : "Failed to process bulk inbound" }
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to process bulk inbound. Entire transaction rolled back.",
+      details: { successCount: 0, errorCount: 1, errors: [error instanceof Error ? error.message : "Unknown database error"] },
+    }
   }
 }
+

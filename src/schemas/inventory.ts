@@ -38,3 +38,19 @@ export const stockOpnameItemSchema = z.object({
   outsoleId: z.string().uuid(),
   physicalStock: z.coerce.number().int().min(0, "Stock cannot be negative")
 })
+
+// Bulk Inbound CSV validation
+export const bulkRowSchema = z.object({
+  Model: z.string().min(1, "Model is required"),
+  Article: z.string().min(1, "Article is required"),
+  Color: z.string().min(1, "Color is required"),
+  Size: z.string().min(1, "Size is required"),
+  Stock: z.preprocess((val) => Number(val), z.number().int().min(1, "Stock must be at least 1")),
+  PONumber: z.string().optional().default("-"),
+  BottomTreatment: z.enum(["Spray", "Spackle", "Marble", "None"]).optional().default("None"),
+  Notes: z.string().optional(),
+})
+
+export const bulkInboundSchema = z.array(bulkRowSchema).min(1, "At least one row is required")
+
+export type BulkRowData = z.infer<typeof bulkRowSchema>
