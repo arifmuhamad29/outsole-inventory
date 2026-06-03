@@ -82,7 +82,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           <span className="text-sm font-medium">{selectedItems.length} items selected</span>
           <Button variant="default" onClick={handleBulkPrint}>
             <Printer className="w-4 h-4 mr-2" />
-            Cetak Masal ({selectedItems.length} Barang)
+            Bulk Print ({selectedItems.length} Items)
           </Button>
         </div>
       )}
@@ -91,19 +91,19 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
       {isPrinting && mounted && createPortal(
         <div className="print-container hidden print:block w-full absolute top-0 left-0 bg-white z-[9999]">
           {barcodePages.map((pageItems, pageIndex) => (
-            <div 
-              key={pageIndex} 
+            <div
+              key={pageIndex}
               className="w-full min-h-screen p-2 grid grid-cols-3 gap-x-4 gap-y-4 content-start"
               style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
             >
               {pageItems.map((item) => (
                 <div key={item.id} className="border border-gray-200 p-2 rounded-md flex flex-col items-center justify-center bg-white text-black text-center estimation-box">
-                  <PrintableLabel 
-                    qrCode={item.qrCode} 
-                    model={item.model} 
-                    article={item.article} 
-                    color={item.color} 
-                    size={item.size} 
+                  <PrintableLabel
+                    qrCode={item.qrCode}
+                    model={item.model}
+                    article={item.article}
+                    color={item.color}
+                    size={item.size}
                     poNumber={item.poNumber ? String(item.poNumber) : undefined}
                     bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
                     createdAt={item.createdAt}
@@ -123,7 +123,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
             <TableRow>
               {!readOnly && (
                 <TableHead className="w-[50px]">
-                  <Checkbox 
+                  <Checkbox
                     checked={allSelected}
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all"
@@ -156,7 +156,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                 <TableRow key={item.id} className={selectedItems.some(i => i.id === item.id) ? "bg-muted/50" : ""}>
                   {!readOnly && (
                     <TableCell>
-                      <Checkbox 
+                      <Checkbox
                         checked={selectedItems.some(i => i.id === item.id)}
                         onCheckedChange={(checked) => handleSelectRow(checked as boolean, item)}
                         aria-label={`Select item ${item.qrCode}`}
