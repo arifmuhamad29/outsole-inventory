@@ -27,6 +27,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type ShoeModelWithTooling = ShoeModel & {
   toolingItems: (ToolingItem & {
@@ -45,6 +55,7 @@ export default function ToolingPage() {
   const [isPending, startTransition] = useTransition()
   const [newModelName, setNewModelName] = useState("")
   const [isNewModelDialogOpen, setIsNewModelDialogOpen] = useState(false)
+  const [modelToDelete, setModelToDelete] = useState<string | null>(null)
 
   const fetchData = async () => {
     try {
@@ -95,18 +106,18 @@ export default function ToolingPage() {
     })
   }
 
-  const handleDeleteModel = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus model ini beserta semua checklist tooling-nya?")) {
-      startTransition(async () => {
-        const res = await deleteShoeModelAction(id)
-        if (res.success) {
-          if (selectedModel?.id === id) setIsDrawerOpen(false)
-          fetchData()
-        } else {
-          alert(res.message)
-        }
-      })
-    }
+  const handleDeleteModel = () => {
+    if (!modelToDelete) return
+    startTransition(async () => {
+      const res = await deleteShoeModelAction(modelToDelete)
+      if (res.success) {
+        if (selectedModel?.id === modelToDelete) setIsDrawerOpen(false)
+        setModelToDelete(null)
+        fetchData()
+      } else {
+        alert(res.message)
+      }
+    })
   }
 
   if (loading) {
@@ -145,11 +156,11 @@ export default function ToolingPage() {
             </DialogHeader>
             <div className="py-4">
               <Input 
-                placeholder="Nama Model Sepatu..." 
+                placeholder="NAMA MODEL SEPATU..." 
                 value={newModelName}
-                onChange={(e) => setNewModelName(e.target.value)}
+                onChange={(e) => setNewModelName(e.target.value.toUpperCase())}
                 disabled={isPending}
-                className="h-10"
+                className="h-10 uppercase"
               />
             </div>
             <DialogFooter>
@@ -225,7 +236,7 @@ export default function ToolingPage() {
                   return (
                     <Fragment key={model.id}>
                       <TableRow className={`transition-colors ${isExpanded ? "bg-slate-50/80" : "hover:bg-slate-50/50"}`}>
-                        <TableCell className="font-medium text-base text-slate-900">
+                        <TableCell className="font-medium text-base text-slate-900 uppercase">
                           {model.name}
                         </TableCell>
                         <TableCell className="text-slate-600">
@@ -253,7 +264,7 @@ export default function ToolingPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleDeleteModel(model.id)}
+                              onClick={() => setModelToDelete(model.id)}
                               className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
                               disabled={isPending}
                               title="Hapus Model"
@@ -286,6 +297,28 @@ export default function ToolingPage() {
           </Table>
         </div>
       </div>
+      <AlertDialog open={!!modelToDelete} onOpenChange={(open) => !open && setModelToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Model Sepatu?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini tidak dapat dibatalkan. Model sepatu beserta seluruh 
+              data checklist tooling di dalamnya akan dihapus secara permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteModel}
+              disabled={isPending}
+              className="bg-red-500 hover:bg-red-600 focus:ring-red-500 text-white"
+            >
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Hapus Permanen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

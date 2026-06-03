@@ -254,7 +254,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
             Tambah Baris
           </Button>
         </div>
-        <div className="rounded-md border bg-white overflow-hidden shadow-sm">
+        <div className="rounded-md border bg-white overflow-x-auto shadow-sm">
           <Table className="text-xs sm:text-sm">
             <TableHeader className="bg-slate-50">
               <TableRow>

@@ -179,8 +179,10 @@ export async function createShoeModelAction(name: string) {
       return { success: false, message: "Nama model tidak boleh kosong" }
     }
 
+    const normalizedName = name.trim().toUpperCase()
+
     const existingModel = await prisma.shoeModel.findUnique({
-      where: { name: name.trim() }
+      where: { name: normalizedName }
     })
     
     if (existingModel) {
@@ -190,7 +192,7 @@ export async function createShoeModelAction(name: string) {
     await prisma.$transaction(async (tx) => {
       const model = await tx.shoeModel.create({
         data: {
-          name: name.trim()
+          name: normalizedName
         }
       })
 
