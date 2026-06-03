@@ -110,7 +110,7 @@ export default async function DashboardPage() {
                 latestActivity.map((activity) => (
                   <TableRow key={activity.id}>
                     <TableCell className="font-medium whitespace-nowrap">
-                      {format(new Date(activity.createdAt), "dd MMM yyyy, HH:mm")}
+                      {new Date(activity.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} WIB
                     </TableCell>
                     <TableCell>
                       <Badge 

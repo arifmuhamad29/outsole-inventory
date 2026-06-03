@@ -173,7 +173,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                   <TableCell className="max-w-[150px] truncate" title={item.notes || "-"}>{item.notes || "-"}</TableCell>
                   <TableCell>
                     {item.transactions && item.transactions.length > 0
-                      ? format(new Date(item.transactions[0].createdAt), "dd MMM yyyy, HH:mm")
+                      ? new Date(item.transactions[0].createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
                       : "-"}
                   </TableCell>
                   <TableCell className="text-right font-medium">{item.stock}</TableCell>
