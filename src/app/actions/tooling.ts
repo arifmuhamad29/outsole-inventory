@@ -148,3 +148,103 @@ export async function updateModelToolingAction(modelId: string, payload: {
     return { success: false, message: error instanceof Error ? error.message : "Gagal menyimpan perubahan" }
   }
 }
+
+const BOTTOM_DEFAULTS = [
+  "Gauge top net",
+  "Gauge part bottom (o/s;m/s)",
+  "ScribeLine",
+  "Toe spring gauge",
+  "Tooling mold midsole",
+]
+
+const ASSEMBLY_DEFAULTS = [
+  "3D Gauge",
+  "Last",
+  "Back part mold",
+  "Toe forming",
+  "Gauge for Sockliner logo",
+]
+
+export async function createShoeModelAction(name: string) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" }
+    }
+    if (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
+      return { success: false, message: "Forbidden" }
+    }
+
+    if (!name || name.trim() === "") {
+      return { success: false, message: "Nama model tidak boleh kosong" }
+    }
+
+    const existingModel = await prisma.shoeModel.findUnique({
+      where: { name: name.trim() }
+    })
+    
+    if (existingModel) {
+      return { success: false, message: "Model dengan nama tersebut sudah ada" }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const model = await tx.shoeModel.create({
+        data: {
+          name: name.trim()
+        }
+      })
+
+      const allDefaults = [
+        ...BOTTOM_DEFAULTS.map(d => ({ category: "BOTTOM TOOLING", name: d })),
+        ...ASSEMBLY_DEFAULTS.map(d => ({ category: "ASSEMBLY TOOLING", name: d }))
+      ]
+
+      for (const def of allDefaults) {
+        await tx.toolingItem.create({
+          data: {
+            modelId: model.id,
+            category: def.category,
+            name: def.name,
+            phases: {
+              create: ["SAMPLE", "EXTREME", "FSR"].map(pt => ({
+                phaseType: pt,
+                status: "ON PROCESS"
+              }))
+            }
+          }
+        })
+      }
+    }, {
+      timeout: 30000
+    })
+
+    revalidatePath("/tooling")
+    return { success: true, message: "Model sepatu berhasil dibuat" }
+  } catch (error) {
+    console.error("Create Shoe Model Error:", error)
+    return { success: false, message: error instanceof Error ? error.message : "Gagal membuat model" }
+  }
+}
+
+export async function deleteShoeModelAction(id: string) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" }
+    }
+    if (session.user.role !== "ADMIN") {
+      // For MES, often only admin can delete the master data, but I will allow it for operators if required. Let's make it ADMIN only.
+      return { success: false, message: "Forbidden: Hanya Admin yang bisa menghapus model" }
+    }
+
+    await prisma.shoeModel.delete({
+      where: { id }
+    })
+
+    revalidatePath("/tooling")
+    return { success: true, message: "Model sepatu berhasil dihapus" }
+  } catch (error) {
+    console.error("Delete Shoe Model Error:", error)
+    return { success: false, message: error instanceof Error ? error.message : "Gagal menghapus model" }
+  }
+}

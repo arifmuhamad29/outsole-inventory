@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState, Fragment } from "react"
+import { useEffect, useState, useTransition, Fragment } from "react"
 import { getToolingModels } from "@/app/actions/tooling-fetch"
+import { createShoeModelAction, deleteShoeModelAction } from "@/app/actions/tooling"
 import { ShoeModel, ToolingItem, ToolingPhase } from "@prisma/client"
 import { format } from "date-fns"
-import { Wrench, Loader2, ListChecks, Search } from "lucide-react"
+import { Wrench, Loader2, ListChecks, Search, Plus, Trash2 } from "lucide-react"
 import { ToolingDrawer } from "@/components/tooling/tooling-drawer"
 import {
   Table,
@@ -17,6 +18,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 type ShoeModelWithTooling = ShoeModel & {
   toolingItems: (ToolingItem & {
@@ -31,6 +41,10 @@ export default function ToolingPage() {
   const [loading, setLoading] = useState(true)
   const [selectedModel, setSelectedModel] = useState<ShoeModelWithTooling | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  
+  const [isPending, startTransition] = useTransition()
+  const [newModelName, setNewModelName] = useState("")
+  const [isNewModelDialogOpen, setIsNewModelDialogOpen] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -68,6 +82,33 @@ export default function ToolingPage() {
     setIsDrawerOpen(true)
   }
 
+  const handleCreateModel = () => {
+    startTransition(async () => {
+      const res = await createShoeModelAction(newModelName)
+      if (res.success) {
+        setIsNewModelDialogOpen(false)
+        setNewModelName("")
+        fetchData()
+      } else {
+        alert(res.message)
+      }
+    })
+  }
+
+  const handleDeleteModel = (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus model ini beserta semua checklist tooling-nya?")) {
+      startTransition(async () => {
+        const res = await deleteShoeModelAction(id)
+        if (res.success) {
+          if (selectedModel?.id === id) setIsDrawerOpen(false)
+          fetchData()
+        } else {
+          alert(res.message)
+        }
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -88,6 +129,38 @@ export default function ToolingPage() {
             Master Data for Bottom and Assembly Tooling.
           </p>
         </div>
+        <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
+          <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
+            <div className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Model
+            </div>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
+              <DialogDescription>
+                Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 3 fasenya (Sample, Extreme, FSR).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Input 
+                placeholder="Nama Model Sepatu..." 
+                value={newModelName}
+                onChange={(e) => setNewModelName(e.target.value)}
+                disabled={isPending}
+                className="h-10"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNewModelDialogOpen(false)} disabled={isPending}>Batal</Button>
+              <Button onClick={handleCreateModel} disabled={isPending || !newModelName.trim()}>
+                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Buat Model
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="bg-white rounded-lg border shadow-sm flex flex-col overflow-hidden">
@@ -167,15 +240,27 @@ export default function ToolingPage() {
                           {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => isExpanded ? handleCloseDrawer() : openDrawer(model)}
-                            className={`gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 ${isExpanded ? "bg-slate-200" : ""}`}
-                          >
-                            <ListChecks className="w-4 h-4" />
-                            {isExpanded ? "Tutup Checklist" : "Kelola Checklist"}
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => isExpanded ? handleCloseDrawer() : openDrawer(model)}
+                              className={`gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 ${isExpanded ? "bg-slate-200" : ""}`}
+                            >
+                              <ListChecks className="w-4 h-4" />
+                              {isExpanded ? "Tutup Checklist" : "Kelola Checklist"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteModel(model.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                              disabled={isPending}
+                              title="Hapus Model"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                       
