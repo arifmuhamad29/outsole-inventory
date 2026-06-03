@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { format, isBefore, startOfDay } from "date-fns"
-import { updateToolingPhaseStatus } from "@/app/actions/tooling"
+import { updateModelToolingAction } from "@/app/actions/tooling"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetFooter,
 } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Loader2, Save } from "lucide-react"
 
 // Types
 type Phase = {
@@ -76,15 +79,88 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
+// Helper to format Date to YYYY-MM-DD for Input type="date"
+const formatDateForInput = (date: Date | null) => {
+  if (!date) return ""
+  return format(new Date(date), "yyyy-MM-dd")
+}
+
 export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
   const [activeTab, setActiveTab] = useState("FSR")
   const [isPending, startTransition] = useTransition()
+  
+  // Form State
+  const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }>>({})
+  const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({})
+
+  // Initialize state when model changes
+  useEffect(() => {
+    if (model) {
+      const newPhaseData: typeof phaseData = {}
+      const newItemRemarks: typeof itemRemarks = {}
+      
+      model.toolingItems.forEach(item => {
+        newItemRemarks[item.id] = item.remark || ""
+        item.phases.forEach(phase => {
+          newPhaseData[phase.id] = {
+            qty: phase.qty || "",
+            orderDate: formatDateForInput(phase.orderDate),
+            targetETA: formatDateForInput(phase.targetETA),
+            actualETA: formatDateForInput(phase.actualETA),
+            status: phase.status,
+          }
+        })
+      })
+      
+      setPhaseData(newPhaseData)
+      setItemRemarks(newItemRemarks)
+    }
+  }, [model])
 
   if (!model) return null
 
-  const handleStatusChange = (phaseId: string, newStatus: string) => {
+  const handlePhaseChange = (phaseId: string, field: string, value: string) => {
+    setPhaseData(prev => ({
+      ...prev,
+      [phaseId]: {
+        ...prev[phaseId],
+        [field]: value
+      }
+    }))
+  }
+
+  const handleRemarkChange = (itemId: string, value: string) => {
+    setItemRemarks(prev => ({
+      ...prev,
+      [itemId]: value
+    }))
+  }
+
+  const handleSave = () => {
+    if (!model) return
+
+    const payload = {
+      phases: Object.entries(phaseData).map(([id, data]) => ({
+        id,
+        qty: data.qty || null,
+        orderDate: data.orderDate || null,
+        targetETA: data.targetETA || null,
+        actualETA: data.actualETA || null,
+        status: data.status,
+      })),
+      items: Object.entries(itemRemarks).map(([id, remark]) => ({
+        id,
+        remark: remark || null,
+      }))
+    }
+
     startTransition(async () => {
-      await updateToolingPhaseStatus(phaseId, newStatus)
+      const res = await updateModelToolingAction(model.id, payload)
+      if (res.success) {
+        onClose() // Close drawer after saving and rely on parent to fetch latest data
+      } else {
+        alert(res.message)
+      }
     })
   }
 
@@ -106,7 +182,8 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                 <TableHead>Order Date</TableHead>
                 <TableHead>Target ETA</TableHead>
                 <TableHead>Actual ETA</TableHead>
-                <TableHead className="w-[160px]">Status</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Remark</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,32 +191,58 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                 const phase = item.phases.find((p) => p.phaseType === phaseType)
                 if (!phase) return null
 
-                // Check overdue logic
+                const currentPhase = phaseData[phase.id]
+                if (!currentPhase) return null // still initializing
+
+                const currentRemark = itemRemarks[item.id] ?? ""
+
+                // Check overdue logic using the current form state or fallback to original
                 const isOverdue =
-                  phase.status === "ON PROCESS" &&
-                  phase.targetETA &&
-                  isBefore(startOfDay(new Date(phase.targetETA)), today)
+                  currentPhase.status === "ON PROCESS" &&
+                  currentPhase.targetETA &&
+                  isBefore(startOfDay(new Date(currentPhase.targetETA)), today)
 
                 return (
                   <TableRow key={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{phase.qty || "-"}</TableCell>
+                    <TableCell className="font-medium min-w-[150px]">{item.name}</TableCell>
                     <TableCell>
-                      {phase.orderDate ? format(new Date(phase.orderDate), "dd-MMM-yy") : "-"}
-                    </TableCell>
-                    <TableCell className={isOverdue ? "text-red-600 font-medium" : ""}>
-                      {phase.targetETA ? format(new Date(phase.targetETA), "dd-MMM-yy") : "-"}
+                      <Input 
+                        value={currentPhase.qty} 
+                        onChange={(e) => handlePhaseChange(phase.id, "qty", e.target.value)}
+                        className="w-20 h-8" 
+                        placeholder="e.g. 1 SET"
+                      />
                     </TableCell>
                     <TableCell>
-                      {phase.actualETA ? format(new Date(phase.actualETA), "dd-MMM-yy") : "-"}
+                      <Input 
+                        type="date"
+                        value={currentPhase.orderDate}
+                        onChange={(e) => handlePhaseChange(phase.id, "orderDate", e.target.value)}
+                        className="w-[130px] h-8"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        type="date"
+                        value={currentPhase.targetETA}
+                        onChange={(e) => handlePhaseChange(phase.id, "targetETA", e.target.value)}
+                        className={`w-[130px] h-8 ${isOverdue ? "border-red-500 text-red-600 focus-visible:ring-red-500" : ""}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        type="date"
+                        value={currentPhase.actualETA}
+                        onChange={(e) => handlePhaseChange(phase.id, "actualETA", e.target.value)}
+                        className="w-[130px] h-8"
+                      />
                     </TableCell>
                     <TableCell>
                       <Select
-                        defaultValue={phase.status}
-                        onValueChange={(val) => { if (val) handleStatusChange(phase.id, val) }}
-                        disabled={isPending}
+                        value={currentPhase.status}
+                        onValueChange={(val) => { if (val) handlePhaseChange(phase.id, "status", val) }}
                       >
-                        <SelectTrigger className="h-8">
+                        <SelectTrigger className="h-8 w-[140px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -149,6 +252,14 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                           <SelectItem value="NOT USE"><StatusBadge status="NOT USE" /></SelectItem>
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        value={currentRemark}
+                        onChange={(e) => handleRemarkChange(item.id, e.target.value)}
+                        className="w-[150px] h-8"
+                        placeholder="Remark..."
+                      />
                     </TableCell>
                   </TableRow>
                 )
@@ -160,66 +271,52 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
     )
   }
 
-  const renderRemarks = (phaseType: string) => {
-    // Collect remarks only for items that have the active phase
-    const remarks = model.toolingItems
-      .filter((i) => i.remark && i.phases.some((p) => p.phaseType === phaseType))
-      .map((i) => ({ name: i.name, remark: i.remark }))
-
-    if (remarks.length === 0) return null
-
-    return (
-      <div className="mt-6 p-4 bg-slate-50 rounded-lg border">
-        <h4 className="font-semibold text-sm mb-2 text-slate-700">Remarks:</h4>
-        <ul className="text-sm space-y-1 text-slate-600 list-disc list-inside">
-          {remarks.map((r, idx) => (
-            <li key={idx}>
-              <span className="font-medium">{r.name}:</span> {r.remark}
-            </li>
-          ))}
-        </ul>
-      </div>
-    )
-  }
-
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="text-2xl flex items-center gap-2">
-            {model.name}
-            {isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-          </SheetTitle>
-          <SheetDescription>
-            Tooling checklist tracking. Last updated: {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
-          </SheetDescription>
-        </SheetHeader>
+      <SheetContent side="right" className="w-full sm:max-w-7xl overflow-y-auto flex flex-col p-0">
+        <div className="p-6 pb-2 border-b">
+          <SheetHeader>
+            <SheetTitle className="text-2xl flex items-center gap-2">
+              {model.name}
+              {isPending && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+            </SheetTitle>
+            <SheetDescription>
+              Tooling checklist batch editor. Last updated: {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
+            </SheetDescription>
+          </SheetHeader>
+        </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="SAMPLE">Sample Size</TabsTrigger>
-            <TabsTrigger value="EXTREME">Extreme Size</TabsTrigger>
-            <TabsTrigger value="FSR">FSR Size</TabsTrigger>
-          </TabsList>
+        <div className="flex-1 overflow-y-auto p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="SAMPLE">Sample Size</TabsTrigger>
+              <TabsTrigger value="EXTREME">Extreme Size</TabsTrigger>
+              <TabsTrigger value="FSR">FSR Size</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="SAMPLE" className="mt-0">
-            {renderTable("BOTTOM TOOLING", "SAMPLE")}
-            {renderTable("ASSEMBLY TOOLING", "SAMPLE")}
-            {renderRemarks("SAMPLE")}
-          </TabsContent>
+            <TabsContent value="SAMPLE" className="mt-0">
+              {renderTable("BOTTOM TOOLING", "SAMPLE")}
+              {renderTable("ASSEMBLY TOOLING", "SAMPLE")}
+            </TabsContent>
 
-          <TabsContent value="EXTREME" className="mt-0">
-            {renderTable("BOTTOM TOOLING", "EXTREME")}
-            {renderTable("ASSEMBLY TOOLING", "EXTREME")}
-            {renderRemarks("EXTREME")}
-          </TabsContent>
+            <TabsContent value="EXTREME" className="mt-0">
+              {renderTable("BOTTOM TOOLING", "EXTREME")}
+              {renderTable("ASSEMBLY TOOLING", "EXTREME")}
+            </TabsContent>
 
-          <TabsContent value="FSR" className="mt-0">
-            {renderTable("BOTTOM TOOLING", "FSR")}
-            {renderTable("ASSEMBLY TOOLING", "FSR")}
-            {renderRemarks("FSR")}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="FSR" className="mt-0">
+              {renderTable("BOTTOM TOOLING", "FSR")}
+              {renderTable("ASSEMBLY TOOLING", "FSR")}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <SheetFooter className="p-6 bg-slate-50 border-t mt-auto sticky bottom-0 z-10">
+          <Button onClick={handleSave} disabled={isPending} className="w-full sm:w-auto gap-2 h-12 text-base shadow-sm">
+            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Simpan Semua Perubahan
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

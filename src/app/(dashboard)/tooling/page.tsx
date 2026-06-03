@@ -1,13 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getToolingModels } from "@/app/actions/tooling-fetch" // We'll need this fetcher
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Button } from "@/components/ui/button"
-import { FileCheck, Wrench, Loader2 } from "lucide-react"
-import { ToolingDrawer } from "@/components/tooling/tooling-drawer"
+import { getToolingModels } from "@/app/actions/tooling-fetch"
 import { ShoeModel, ToolingItem, ToolingPhase } from "@prisma/client"
+import { format } from "date-fns"
+import { Wrench, Loader2, ListChecks, Search } from "lucide-react"
+import { ToolingDrawer } from "@/components/tooling/tooling-drawer"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 
 type ShoeModelWithTooling = ShoeModel & {
   toolingItems: (ToolingItem & {
@@ -17,16 +26,17 @@ type ShoeModelWithTooling = ShoeModel & {
 
 export default function ToolingPage() {
   const [models, setModels] = useState<ShoeModelWithTooling[]>([])
+  const [filteredModels, setFilteredModels] = useState<ShoeModelWithTooling[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [selectedModel, setSelectedModel] = useState<ShoeModelWithTooling | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-  // Fetch data
   const fetchData = async () => {
     try {
-      // Create this action in the next step
       const data = await getToolingModels()
-      setModels(data)
+      setModels(data as ShoeModelWithTooling[])
+      setFilteredModels(data as ShoeModelWithTooling[])
     } catch (error) {
       console.error("Failed to load tooling models", error)
     } finally {
@@ -38,10 +48,18 @@ export default function ToolingPage() {
     fetchData()
   }, [])
 
-  // When drawer closes, refresh data to get latest statuses
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredModels(models)
+    } else {
+      const lowerQuery = searchQuery.toLowerCase()
+      setFilteredModels(models.filter(m => m.name.toLowerCase().includes(lowerQuery)))
+    }
+  }, [searchQuery, models])
+
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false)
-    fetchData()
+    fetchData() // Refresh after saving
   }
 
   const openDrawer = (model: ShoeModelWithTooling) => {
@@ -59,72 +77,109 @@ export default function ToolingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Wrench className="w-8 h-8" />
             Tooling Tracking (MES)
           </h1>
           <p className="text-muted-foreground mt-1">
-            Monitor readiness of Bottom Tooling and Assembly Tooling across all phases.
+            Master Data for Bottom and Assembly Tooling.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {models.map((model) => {
-          // Calculate Readiness
-          let totalPhases = 0
-          let readyPhases = 0
-
-          model.toolingItems.forEach((item: ToolingItem & { phases: ToolingPhase[] }) => {
-            item.phases.forEach((phase: ToolingPhase) => {
-              if (phase.status !== "NOT USE") {
-                totalPhases++
-                if (phase.status === "VERIFIED" || phase.status === "EXISTING") {
-                  readyPhases++
-                }
-              }
-            })
-          })
-
-          const progressPercentage = totalPhases > 0 ? Math.round((readyPhases / totalPhases) * 100) : 0
-
-          return (
-            <Card key={model.id} className="flex flex-col">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xl">{model.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">Overall Readiness</span>
-                    <span className="font-bold text-primary">{progressPercentage}%</span>
-                  </div>
-                  <Progress value={progressPercentage} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {readyPhases} of {totalPhases} active phases verified
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="pt-3 border-t">
-                <Button 
-                  variant="outline" 
-                  className="w-full gap-2" 
-                  onClick={() => openDrawer(model)}
-                >
-                  <FileCheck className="w-4 h-4" />
-                  Lihat Detail Checklist
-                </Button>
-              </CardFooter>
-            </Card>
-          )
-        })}
-        {models.length === 0 && (
-          <div className="col-span-full p-8 text-center border rounded-lg bg-slate-50 text-slate-500">
-            No tooling models found. Add data to begin tracking.
+      <div className="bg-white rounded-lg border shadow-sm flex flex-col overflow-hidden">
+        <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input 
+              placeholder="Search shoe model..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 bg-white"
+            />
           </div>
-        )}
+          <div className="text-sm text-slate-500 font-medium">
+            Showing {filteredModels.length} Models
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/50">
+                <TableHead className="font-semibold text-slate-700">Shoe Model Name</TableHead>
+                <TableHead className="font-semibold text-slate-700">Total Tools</TableHead>
+                <TableHead className="font-semibold text-slate-700">Readiness</TableHead>
+                <TableHead className="font-semibold text-slate-700">Last Updated</TableHead>
+                <TableHead className="text-right font-semibold text-slate-700">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredModels.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-32 text-center text-slate-500">
+                    No models found matching &quot;{searchQuery}&quot;
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredModels.map((model) => {
+                  let totalPhases = 0
+                  let readyPhases = 0
+
+                  model.toolingItems.forEach((item) => {
+                    item.phases.forEach((phase) => {
+                      if (phase.status !== "NOT USE") {
+                        totalPhases++
+                        if (phase.status === "VERIFIED" || phase.status === "EXISTING") {
+                          readyPhases++
+                        }
+                      }
+                    })
+                  })
+
+                  const progress = totalPhases > 0 ? Math.round((readyPhases / totalPhases) * 100) : 0
+                  
+                  let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "secondary"
+                  if (progress === 100) badgeVariant = "default" // or a custom green one
+                  else if (progress > 50) badgeVariant = "outline"
+                  else if (totalPhases > 0) badgeVariant = "destructive"
+
+                  return (
+                    <TableRow key={model.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="font-medium text-base text-slate-900">
+                        {model.name}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {model.toolingItems.length} Items <span className="text-xs text-slate-400">({totalPhases} Active Phases)</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={badgeVariant} className="px-2 py-1">
+                          {progress}% Ready
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {format(new Date(model.lastUpdated), "dd MMM yyyy, HH:mm")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openDrawer(model)}
+                          className="gap-2 border-slate-300 text-slate-700 hover:bg-slate-100"
+                        >
+                          <ListChecks className="w-4 h-4" />
+                          Kelola Checklist
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <ToolingDrawer 
