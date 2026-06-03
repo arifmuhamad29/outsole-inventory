@@ -25,6 +25,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Outsole Inventory",
   description: "Outsole inventory management system with QR scanning for warehouse operations",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
