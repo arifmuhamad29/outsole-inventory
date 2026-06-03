@@ -44,7 +44,13 @@ export async function updateToolingPhaseStatus(phaseId: string, newStatus: strin
 
 export async function updateModelToolingAction(modelId: string, payload: { 
   phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[],
-  items: { id: string, name: string, remark: string | null }[]
+  items: { id: string, name: string, remark: string | null }[],
+  newItems?: {
+    category: string,
+    name: string,
+    remark: string | null,
+    phases: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[]
+  }[]
 }) {
   try {
     const session = await auth()
@@ -91,7 +97,42 @@ export async function updateModelToolingAction(modelId: string, payload: {
         })
       }
 
-      // 3. Update Model lastUpdated timestamp
+      // 3. Create new Tooling Items (and nested phases)
+      if (payload.newItems && payload.newItems.length > 0) {
+        for (const newItem of payload.newItems) {
+          // If name is completely empty and no phases have data, you could optionally skip it,
+          // but we will insert whatever the user sent.
+          await tx.toolingItem.create({
+            data: {
+              modelId,
+              category: newItem.category,
+              name: newItem.name || "Untitled Tooling",
+              remark: newItem.remark,
+              phases: {
+                create: newItem.phases.map(p => {
+                  const pOrderDate = p.orderDate ? new Date(p.orderDate) : null
+                  const pTargetETA = p.targetETA ? new Date(p.targetETA) : null
+                  let pActualETA = p.actualETA ? new Date(p.actualETA) : null
+                  if (p.status === "VERIFIED" && !pActualETA) {
+                    pActualETA = new Date()
+                  }
+                  
+                  return {
+                    phaseType: p.phaseType,
+                    qty: p.qty,
+                    orderDate: pOrderDate,
+                    targetETA: pTargetETA,
+                    actualETA: pActualETA,
+                    status: p.status
+                  }
+                })
+              }
+            }
+          })
+        }
+      }
+
+      // 4. Update Model lastUpdated timestamp
       await tx.shoeModel.update({
         where: { id: modelId },
         data: { lastUpdated: new Date() }

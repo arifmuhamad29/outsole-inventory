@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save, X } from "lucide-react"
+import { Loader2, Save, X, Plus } from "lucide-react"
 
 // Types
 type Phase = {
@@ -56,6 +56,22 @@ interface ToolingDrawerProps {
   onClose: () => void
 }
 
+const BOTTOM_DEFAULTS = [
+  "Gauge top net",
+  "Gauge part bottom (o/s;m/s)",
+  "ScribeLine",
+  "Toe spring gauge",
+  "Tooling mold midsole",
+]
+
+const ASSEMBLY_DEFAULTS = [
+  "3D Gauge",
+  "Last",
+  "Back part mold",
+  "Toe forming",
+  "Gauge for Sockliner logo",
+]
+
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "EXISTING":
@@ -85,6 +101,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
   const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }>>({})
   const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({})
   const [itemNames, setItemNames] = useState<Record<string, string>>({})
+  const [newItemsList, setNewItemsList] = useState<Item[]>([])
 
   // Initialize state when model changes
   useEffect(() => {
@@ -110,10 +127,42 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
       setPhaseData(newPhaseData)
       setItemRemarks(newItemRemarks)
       setItemNames(newItemNames)
+      setNewItemsList([]) // reset new items
     }
   }, [model])
 
   if (!model || !isOpen) return null
+
+  const handleAddNewItem = (category: string) => {
+    const newItemId = `new-item-${Date.now()}`
+    const newPhases = ["SAMPLE", "EXTREME", "FSR"].map(pt => ({
+      id: `new-phase-${pt}-${Date.now()}`,
+      phaseType: pt,
+      qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
+    }))
+    
+    const newItem: Item = {
+      id: newItemId,
+      category,
+      name: "",
+      remark: null,
+      phases: newPhases as Phase[]
+    }
+
+    setNewItemsList(prev => [...prev, newItem])
+    
+    setItemNames(prev => ({ ...prev, [newItemId]: "" }))
+    setItemRemarks(prev => ({ ...prev, [newItemId]: "" }))
+    
+    const newPhaseState: Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }> = {}
+    newPhases.forEach(p => {
+      newPhaseState[p.id] = {
+        qty: "", orderDate: "", targetETA: "", actualETA: "", status: "ON PROCESS"
+      }
+    })
+    
+    setPhaseData(prev => ({ ...prev, ...newPhaseState }))
+  }
 
   const handlePhaseChange = (phaseId: string, field: string, value: string) => {
     setPhaseData(prev => ({
@@ -143,25 +192,42 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
     if (!model) return
 
     const payload = {
-      phases: Object.entries(phaseData).map(([id, data]) => ({
-        id,
-        qty: data.qty || null,
-        orderDate: data.orderDate || null,
-        targetETA: data.targetETA || null,
-        actualETA: data.actualETA || null,
-        status: data.status,
-      })),
-      items: Object.entries(itemRemarks).map(([id, remark]) => ({
-        id,
-        name: itemNames[id] || "",
-        remark: remark || null,
+      phases: Object.entries(phaseData)
+        .filter(([id]) => !id.startsWith("new-phase-"))
+        .map(([id, data]) => ({
+          id,
+          qty: data.qty || null,
+          orderDate: data.orderDate || null,
+          targetETA: data.targetETA || null,
+          actualETA: data.actualETA || null,
+          status: data.status,
+        })),
+      items: Object.entries(itemRemarks)
+        .filter(([id]) => !id.startsWith("new-item-"))
+        .map(([id, remark]) => ({
+          id,
+          name: itemNames[id] || "",
+          remark: remark || null,
+        })),
+      newItems: newItemsList.map(ni => ({
+        category: ni.category,
+        name: itemNames[ni.id] || "",
+        remark: itemRemarks[ni.id] || null,
+        phases: ni.phases.map(p => ({
+          phaseType: p.phaseType,
+          qty: phaseData[p.id]?.qty || null,
+          orderDate: phaseData[p.id]?.orderDate || null,
+          targetETA: phaseData[p.id]?.targetETA || null,
+          actualETA: phaseData[p.id]?.actualETA || null,
+          status: phaseData[p.id]?.status || "ON PROCESS",
+        }))
       }))
     }
 
     startTransition(async () => {
       const res = await updateModelToolingAction(model.id, payload)
       if (res.success) {
-        onClose() // Close drawer after saving and rely on parent to fetch latest data
+        onClose() 
       } else {
         alert(res.message)
       }
@@ -169,14 +235,25 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
   }
 
   const renderTable = (category: string, phaseType: string) => {
-    const items = model.toolingItems.filter((i) => i.category === category)
-    if (items.length === 0) return null
+    const combinedItems = [...model.toolingItems, ...newItemsList]
+    const items = combinedItems.filter((i) => i.category === category)
 
     const today = startOfDay(new Date())
 
     return (
       <div className="mb-6">
-        <h3 className="font-semibold text-base mb-2">{category}</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-base">{category}</h3>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleAddNewItem(category)}
+            className="h-8 gap-1 text-xs text-slate-600"
+          >
+            <Plus className="w-3 h-3" />
+            Tambah Baris
+          </Button>
+        </div>
         <div className="rounded-md border bg-white overflow-hidden shadow-sm">
           <Table className="text-xs sm:text-sm">
             <TableHeader className="bg-slate-50">
@@ -191,7 +268,13 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => {
+              {items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-slate-500 py-6">
+                    Belum ada data untuk kategori ini.
+                  </TableCell>
+                </TableRow>
+              ) : items.map((item) => {
                 const phase = item.phases.find((p) => p.phaseType === phaseType)
                 if (!phase) return null
 
@@ -201,7 +284,6 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                 const currentRemark = itemRemarks[item.id] ?? ""
                 const currentName = itemNames[item.id] ?? item.name
 
-                // Check overdue logic using the current form state or fallback to original
                 const isOverdue =
                   currentPhase.status === "ON PROCESS" &&
                   currentPhase.targetETA &&
@@ -211,6 +293,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                   <TableRow key={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
                     <TableCell className="font-medium min-w-[200px]">
                       <Input 
+                        list={category === "BOTTOM TOOLING" ? "bottom-defaults" : "assembly-defaults"}
                         value={currentName}
                         onChange={(e) => handleItemNameChange(item.id, e.target.value)}
                         className="w-full h-8 text-xs sm:text-sm font-medium"
@@ -285,6 +368,13 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
 
   return (
     <div className="w-full bg-slate-50 shadow-inner p-6 flex flex-col border-b border-gray-200">
+      <datalist id="bottom-defaults">
+        {BOTTOM_DEFAULTS.map(d => <option key={d} value={d} />)}
+      </datalist>
+      <datalist id="assembly-defaults">
+        {ASSEMBLY_DEFAULTS.map(d => <option key={d} value={d} />)}
+      </datalist>
+
       <div className="flex items-center justify-between mb-6 pb-2 border-b">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
