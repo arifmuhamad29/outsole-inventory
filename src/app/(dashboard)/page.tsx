@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
 import { auth } from "@/lib/auth"
 
 export default async function DashboardPage() {
