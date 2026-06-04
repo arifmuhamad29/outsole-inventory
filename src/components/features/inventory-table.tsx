@@ -137,6 +137,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
               <TableHead>Bottom</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Remarks</TableHead>
+              <TableHead>Last Inbound</TableHead>
               <TableHead>Last Outbound</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead>Status</TableHead>
@@ -146,7 +147,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           <TableBody>
             {outsoles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 11 : 13} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={readOnly ? 12 : 14} className="text-center h-24 text-muted-foreground">
                   No inventory found matching your criteria.
                 </TableCell>
               </TableRow>
@@ -171,8 +172,13 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                   <TableCell>{item.size}</TableCell>
                   <TableCell className="max-w-[150px] truncate" title={item.notes || "-"}>{item.notes || "-"}</TableCell>
                   <TableCell>
-                    {item.transactions && item.transactions.length > 0
-                      ? new Date(item.transactions[0].createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+                    {item.transactions?.find(t => t.type === 'INBOUND')
+                      ? new Date(item.transactions.find(t => t.type === 'INBOUND')!.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {item.transactions?.find(t => t.type === 'OUTBOUND')
+                      ? new Date(item.transactions.find(t => t.type === 'OUTBOUND')!.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
                       : "-"}
                   </TableCell>
                   <TableCell className="text-right font-medium">{item.stock}</TableCell>

@@ -39,20 +39,37 @@ export default async function PublicInventoryPage(props: { searchParams?: Promis
     whereClause.stock = { gt: prisma.outsole.fields.minimumStock }
   }
 
-  const [totalSku, outsoles] = await Promise.all([
+  const [totalSku, outsolesRaw] = await Promise.all([
     prisma.outsole.count({ where: { isActive: true } }),
     prisma.outsole.findMany({
       where: whereClause,
-      include: { 
-        transactions: { 
-          where: { type: 'OUTBOUND' }, 
-          orderBy: { createdAt: 'desc' }, 
-          take: 1 
-        } 
-      },
       orderBy: { updatedAt: 'desc' }
     })
   ])
+
+  const outsoleIds = outsolesRaw.map(o => o.id)
+
+  const [lastOutbounds, lastInbounds] = await Promise.all([
+    outsoleIds.length > 0 ? prisma.transaction.findMany({
+      where: { outsoleId: { in: outsoleIds }, type: 'OUTBOUND' },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['outsoleId']
+    }) : [],
+    outsoleIds.length > 0 ? prisma.transaction.findMany({
+      where: { outsoleId: { in: outsoleIds }, type: 'INBOUND' },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['outsoleId']
+    }) : []
+  ])
+
+  const outsoles = outsolesRaw.map(o => {
+    const ob = lastOutbounds.find(t => t.outsoleId === o.id)
+    const ib = lastInbounds.find(t => t.outsoleId === o.id)
+    const transactions = []
+    if (ob) transactions.push(ob)
+    if (ib) transactions.push(ib)
+    return { ...o, transactions }
+  })
 
   const stockAgg = await prisma.outsole.aggregate({
     _sum: { stock: true },
