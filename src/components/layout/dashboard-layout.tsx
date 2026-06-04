@@ -1,11 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Menu, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
@@ -32,10 +35,74 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = role === "ADMIN" ? adminNavItems : operatorNavItems
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <aside className="w-full lg:w-64 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-auto lg:min-h-screen">
+      
+      {/* Mobile Header & Collapsible Menu */}
+      <div className="flex flex-col lg:hidden w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex h-16 items-center px-6 border-b border-gray-100 dark:border-gray-700">
+          <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
+          <div className="flex flex-col justify-center">
+            <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
+            <span className="text-[10px] text-muted-foreground block">by : Arif Setiawan</span>
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <Collapsible open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen} className="w-full space-y-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex justify-between items-center bg-white dark:bg-gray-800">
+                <span className="flex items-center gap-2 font-semibold text-slate-700 dark:text-slate-200">
+                  <Menu className="w-4 h-4" />
+                  Navigasi Modul
+                </span>
+                {isMobileMenuOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2 animate-in slide-in-from-top-2 duration-200">
+              <nav className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium",
+                        isActive 
+                          ? "bg-primary/10 text-primary" 
+                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                      )}
+                    >
+                      <Icon className="w-5 h-5" />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </nav>
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="mb-4 px-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session?.user?.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+                </div>
+                <form action={logOut}>
+                  <button className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors dark:text-red-400 dark:hover:bg-red-900/10">
+                    <LogOut className="w-5 h-5" />
+                    Sign Out
+                  </button>
+                </form>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-64 flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen shrink-0">
         <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-gray-700">
           <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
           <div className="flex flex-col justify-center">
@@ -92,13 +159,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <header className="h-16 flex items-center px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
-           <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
-           <div className="flex flex-col justify-center">
-             <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
-             <span className="text-[10px] text-muted-foreground block">by : Arif Setiawan</span>
-           </div>
-        </header>
         <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
           {children}
         </div>
