@@ -56,7 +56,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Button variant="outline" className="w-full flex justify-between items-center bg-white dark:bg-gray-800">
                 <span className="flex items-center gap-2 font-semibold text-slate-700 dark:text-slate-200">
                   <Menu className="w-4 h-4" />
-                  Navigasi Modul
+                  Menu
                 </span>
                 {isMobileMenuOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
               </Button>

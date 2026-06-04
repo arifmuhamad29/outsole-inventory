@@ -33,7 +33,7 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
             <Button variant="outline" className="w-full flex justify-between items-center bg-white">
               <span className="flex items-center gap-2 font-semibold text-slate-700">
                 <Menu className="w-4 h-4" />
-                Navigasi Modul
+                Menu
               </span>
               {isMenuOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
             </Button>
