@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { importToolingCSVAction } from "@/app/actions/tooling"
+import { useRouter } from "next/navigation"
 import Papa from "papaparse"
 import {
   Dialog,
@@ -19,6 +20,7 @@ export function CsvImporter() {
   const [isOpen, setIsOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const router = useRouter()
 
   const handleDownloadTemplate = () => {
     const csvContent = `Model Name,Category,Tooling Name,Phase,Qty,Order Date,Target ETA,Actual ETA,Status,Remark
@@ -61,6 +63,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
             alert("CSV data imported successfully.")
             setIsOpen(false)
             setFile(null)
+            router.refresh()
           } else {
             alert("Import Failed: " + res.message)
           }
