@@ -7,6 +7,7 @@ import { ShoeModel, ToolingItem, ToolingPhase } from "@prisma/client"
 import { format } from "date-fns"
 import { Wrench, Loader2, ListChecks, Search, Plus, Trash2 } from "lucide-react"
 import { ToolingDrawer } from "@/components/tooling/tooling-drawer"
+import { CsvImporter } from "@/components/tooling/csv-importer"
 import {
   Table,
   TableBody,
@@ -140,13 +141,15 @@ export default function ToolingPage() {
             Master Data for Bottom and Assembly Tooling.
           </p>
         </div>
-        <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
-          <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
-            <div className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              New Model
-            </div>
-          </DialogTrigger>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <CsvImporter />
+          <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
+            <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
+              <div className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                New Model
+              </div>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
@@ -189,6 +192,7 @@ export default function ToolingPage() {
             Showing {filteredModels.length} Models
           </div>
         </div>
+      </div>
 
         <div className="overflow-x-auto">
           <Table>

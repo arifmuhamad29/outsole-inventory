@@ -250,3 +250,114 @@ export async function deleteShoeModelAction(id: string) {
     return { success: false, message: error instanceof Error ? error.message : "Gagal menghapus model" }
   }
 }
+
+export async function importToolingCSVAction(parsedData: Record<string, string>[]) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" }
+    }
+    if (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
+      return { success: false, message: "Forbidden" }
+    }
+
+    if (!parsedData || parsedData.length === 0) {
+      return { success: false, message: "File CSV kosong atau tidak valid" }
+    }
+
+    // Process data inside transaction
+    await prisma.$transaction(async (tx) => {
+      for (const row of parsedData) {
+        const modelName = row["Model Name"]?.trim()?.toUpperCase()
+        const category = row["Category"]?.trim()
+        const toolingName = row["Tooling Name"]?.trim()
+        const phaseType = row["Phase"]?.trim()?.toUpperCase()
+        const qty = row["Qty"]?.trim() || null
+        const orderDateStr = row["Order Date"]?.trim()
+        const targetETAStr = row["Target ETA"]?.trim()
+        const actualETAStr = row["Actual ETA"]?.trim()
+        const status = row["Status"]?.trim()?.toUpperCase() || "ON PROCESS"
+        const remark = row["Remark"]?.trim() || null
+
+        // Skip rows that don't have the minimum required fields
+        if (!modelName || !category || !toolingName || !phaseType) continue
+
+        // Parse dates carefully, handle empty or '-'
+        const parseDate = (dStr: string | null | undefined) => {
+          if (!dStr || dStr === "-" || dStr === "") return null
+          const d = new Date(dStr)
+          return isNaN(d.getTime()) ? null : d
+        }
+
+        const pOrderDate = parseDate(orderDateStr)
+        const pTargetETA = parseDate(targetETAStr)
+        let pActualETA = parseDate(actualETAStr)
+        
+        if (status === "VERIFIED" && !pActualETA) {
+          pActualETA = new Date()
+        }
+
+        // 1. Upsert ShoeModel
+        const shoeModel = await tx.shoeModel.upsert({
+          where: { name: modelName },
+          update: { lastUpdated: new Date() },
+          create: { name: modelName, lastUpdated: new Date() }
+        })
+
+        // 2. Upsert ToolingItem
+        const toolingItem = await tx.toolingItem.upsert({
+          where: { 
+            modelId_name: {
+              modelId: shoeModel.id,
+              name: toolingName
+            }
+          },
+          update: {
+            category,
+            remark
+          },
+          create: {
+            modelId: shoeModel.id,
+            category,
+            name: toolingName,
+            remark
+          }
+        })
+
+        // 3. Upsert ToolingPhase
+        await tx.toolingPhase.upsert({
+          where: {
+            itemId_phaseType: {
+              itemId: toolingItem.id,
+              phaseType: phaseType
+            }
+          },
+          update: {
+            qty,
+            orderDate: pOrderDate,
+            targetETA: pTargetETA,
+            actualETA: pActualETA,
+            status
+          },
+          create: {
+            itemId: toolingItem.id,
+            phaseType: phaseType,
+            qty,
+            orderDate: pOrderDate,
+            targetETA: pTargetETA,
+            actualETA: pActualETA,
+            status
+          }
+        })
+      }
+    }, {
+      timeout: 60000 // Allow up to 60s for large CSVs
+    })
+
+    revalidatePath("/tooling")
+    return { success: true, message: "Bulk import berhasil!" }
+  } catch (error) {
+    console.error("CSV Import Error:", error)
+    return { success: false, message: error instanceof Error ? error.message : "Gagal mengimpor data" }
+  }
+}

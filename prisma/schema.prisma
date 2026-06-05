@@ -186,6 +186,7 @@ model ToolingItem {
   phases      ToolingPhase[]
 
   @@index([modelId])
+  @@unique([modelId, name])
 }
 
 model ToolingPhase {
@@ -200,4 +201,5 @@ model ToolingPhase {
   status      String        // "VERIFIED", "EXISTING", "ON PROCESS", "NOT USE"
 
   @@index([itemId])
+  @@unique([itemId, phaseType])
 }
