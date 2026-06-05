@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { importBpmTfmCSVAction } from "@/app/actions/bpm-tfm"
+import { importBpmTfmFlatCSVAction } from "@/app/actions/bpm-tfm"
 import { useRouter } from "next/navigation"
 import Papa from "papaparse"
 import {
@@ -30,9 +30,11 @@ export function BpmTfmCsvImporter({ onSuccess }: BpmTfmCsvImporterProps) {
   const router = useRouter()
 
   const handleDownloadTemplate = () => {
-    const csvContent = `Code Last,Size Group,Qty BPM HOT,Qty BPM CHILLER,Qty TFM,Qty UNIV PAD
-23021,10K - 2T,3,0,0,10
-23021,3 - 6T,7,5,2,0
+    const csvContent = `Code Last,Tool Name,Type,Size,Dev Stock
+43011,BPM,HOT,3K - 5TK,2
+43011,BPM,CHILLER,3K - 5TK,2
+43011,TFM,,3K - 5TK,1
+43011,UNIVERSAL PAD,,3K - 5TK,1
 `
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
@@ -68,40 +70,40 @@ export function BpmTfmCsvImporter({ onSuccess }: BpmTfmCsvImporterProps) {
         const rows = results.data as Record<string, string>[]
         const errors: string[] = []
 
-        const requiredHeaders = ["Code Last", "Size Group", "Qty BPM HOT", "Qty BPM CHILLER", "Qty TFM", "Qty UNIV PAD"]
+        const requiredHeaders = ["Code Last", "Tool Name", "Type", "Size", "Dev Stock"]
         const headers = results.meta.fields || []
+        
+        let hasHeaderError = false
         for (const h of requiredHeaders) {
           if (!headers.includes(h)) {
-            errors.push(`Missing required column: "${h}". Please check your CSV header row.`)
+            hasHeaderError = true
+            break
           }
+        }
+
+        if (hasHeaderError) {
+          errors.push(`Format CSV tidak sesuai. Harap gunakan template yang dapat diunduh di Step 1.`)
         }
 
         if (errors.length === 0) {
           rows.forEach((row, index) => {
             const codeLast = row["Code Last"]?.trim()
-            const sizeGroup = row["Size Group"]?.trim()
-            const qtyHot = row["Qty BPM HOT"]?.trim()
-            const qtyChiller = row["Qty BPM CHILLER"]?.trim()
-            const qtyTfm = row["Qty TFM"]?.trim()
-            const qtyUniv = row["Qty UNIV PAD"]?.trim()
+            const toolName = row["Tool Name"]?.trim().toUpperCase()
+            const size = row["Size"]?.trim()
+            const devStock = row["Dev Stock"]?.trim()
 
             if (!codeLast) {
               errors.push(`Row ${index + 1}: "Code Last" is empty.`)
             }
-            if (!sizeGroup) {
-              errors.push(`Row ${index + 1}: "Size Group" is empty.`)
+            if (!toolName) {
+              errors.push(`Row ${index + 1}: "Tool Name" is empty.`)
             }
-
-            const checkNum = (val: string | undefined, colName: string) => {
-              if (val && isNaN(parseInt(val, 10))) {
-                errors.push(`Row ${index + 1}: "${colName}" value "${val}" is not a valid number.`)
-              }
+            if (!size) {
+              errors.push(`Row ${index + 1}: "Size" is empty.`)
             }
-
-            checkNum(qtyHot, "Qty BPM HOT")
-            checkNum(qtyChiller, "Qty BPM CHILLER")
-            checkNum(qtyTfm, "Qty TFM")
-            checkNum(qtyUniv, "Qty UNIV PAD")
+            if (devStock && isNaN(parseInt(devStock, 10))) {
+              errors.push(`Row ${index + 1}: "Dev Stock" value "${devStock}" is not a valid number.`)
+            }
           })
         }
 
@@ -112,7 +114,7 @@ export function BpmTfmCsvImporter({ onSuccess }: BpmTfmCsvImporterProps) {
         }
 
         try {
-          const res = await importBpmTfmCSVAction(rows)
+          const res = await importBpmTfmFlatCSVAction(rows)
           if (res.success) {
             setIsOpen(false)
             setFile(null)
@@ -172,7 +174,7 @@ export function BpmTfmCsvImporter({ onSuccess }: BpmTfmCsvImporterProps) {
           <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50 space-y-3">
             <h4 className="font-medium text-sm text-slate-900">Step 2: Upload CSV File</h4>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Required columns: Code Last, Size Group, Qty BPM HOT, Qty BPM CHILLER, Qty TFM, Qty UNIV PAD.
+              Required columns: Code Last, Tool Name, Type, Size, Dev Stock.
             </p>
             <Input
               type="file"

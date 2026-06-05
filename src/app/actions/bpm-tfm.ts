@@ -15,45 +15,38 @@ export async function getBpmTfmStocks() {
   return data
 }
 
-export async function importBpmTfmCSVAction(
+export async function importBpmTfmFlatCSVAction(
   rows: Record<string, string>[]
 ) {
   try {
-    const flatRecords: { codeLast: string; toolName: string; type: string; size: string; devStock: number }[] = []
+    const validRecords: { codeLast: string; toolName: string; type: string; size: string; devStock: number }[] = []
 
     for (const row of rows) {
       const codeLast = row["Code Last"]?.trim()
-      const sizeGroup = row["Size Group"]?.trim().toUpperCase()
-      
-      const rawHot = row["Qty BPM HOT"]?.trim()
-      const rawChiller = row["Qty BPM CHILLER"]?.trim()
-      const rawTfm = row["Qty TFM"]?.trim()
-      const rawUniv = row["Qty UNIV PAD"]?.trim()
+      const toolName = row["Tool Name"]?.trim().toUpperCase()
+      const type = row["Type"]?.trim().toUpperCase() || ""
+      const size = row["Size"]?.trim().toUpperCase()
+      const rawStock = row["Dev Stock"]?.trim()
 
-      if (!codeLast || !sizeGroup) continue
+      if (!codeLast || !toolName || !size) continue
 
-      const isValidStock = (val: string | undefined) => val !== "" && val !== undefined && !isNaN(Number(val))
-
-      if (isValidStock(rawHot)) {
-        flatRecords.push({ codeLast, toolName: "BPM", type: "HOT", size: sizeGroup, devStock: parseInt(rawHot as string, 10) })
-      }
-      if (isValidStock(rawChiller)) {
-        flatRecords.push({ codeLast, toolName: "BPM", type: "CHILLER", size: sizeGroup, devStock: parseInt(rawChiller as string, 10) })
-      }
-      if (isValidStock(rawTfm)) {
-        flatRecords.push({ codeLast, toolName: "TFM", type: "", size: sizeGroup, devStock: parseInt(rawTfm as string, 10) })
-      }
-      if (isValidStock(rawUniv)) {
-        flatRecords.push({ codeLast, toolName: "UNIVERSAL PAD", type: "", size: "-", devStock: parseInt(rawUniv as string, 10) })
+      if (rawStock !== "" && rawStock !== undefined && !isNaN(Number(rawStock))) {
+        validRecords.push({
+          codeLast,
+          toolName,
+          type,
+          size,
+          devStock: parseInt(rawStock, 10),
+        })
       }
     }
 
-    if (flatRecords.length === 0) {
-      return { success: false, message: "Tidak ada data valid yang dapat diimpor (pastikan Qty diisi angka valid, termasuk 0)." }
+    if (validRecords.length === 0) {
+      return { success: false, message: "Tidak ada data valid yang dapat diimpor (pastikan Dev Stock diisi angka valid, termasuk 0)." }
     }
 
     await prisma.$transaction(async (tx) => {
-      for (const record of flatRecords) {
+      for (const record of validRecords) {
         await tx.bpmTfmStock.upsert({
           where: {
             codeLast_toolName_type_size: {
@@ -79,8 +72,8 @@ export async function importBpmTfmCSVAction(
       timeout: 60000,
     })
 
-    revalidatePath("/bpm-tfm")
-    return { success: true, message: `Berhasil mengimpor ${flatRecords.length} data stok!` }
+    revalidatePath("/dashboard/bpm-tfm")
+    return { success: true, message: `Berhasil mengimpor ${validRecords.length} data stok!` }
   } catch (error) {
     console.error("BPM/TFM CSV Import Error:", error)
     return { success: false, message: String(error) }
