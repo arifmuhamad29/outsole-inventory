@@ -20,6 +20,7 @@ export function CsvImporter() {
   const [isOpen, setIsOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
   const router = useRouter()
 
   const handleDownloadTemplate = () => {
@@ -46,8 +47,9 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
   }
 
   const handleImport = async () => {
+    setErrorMsg("")
     if (!file) {
-      alert("Please select a CSV file first.")
+      setErrorMsg("Please select a CSV file first.")
       return
     }
 
@@ -60,25 +62,24 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
         try {
           const res = await importToolingCSVAction(results.data as Record<string, string>[])
           if (res.success) {
-            alert("CSV data imported successfully.")
             setIsOpen(false)
             setFile(null)
             router.refresh()
           } else {
-            alert("Import Failed: " + res.message)
+            setErrorMsg("Import Failed: " + res.message)
           }
         } catch (error: unknown) {
           if (error instanceof Error) {
-            alert("Error: " + (error.message || "An unexpected error occurred."))
+            setErrorMsg("Error: " + (error.message || "An unexpected error occurred."))
           } else {
-            alert("Error: An unexpected error occurred.")
+            setErrorMsg("Error: An unexpected error occurred.")
           }
         } finally {
           setIsUploading(false)
         }
       },
       error: (error) => {
-        alert("CSV Parsing Error: " + error.message)
+        setErrorMsg("CSV Parsing Error: " + error.message)
         setIsUploading(false)
       }
     })
@@ -123,9 +124,15 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
             <Input 
               type="file" 
               accept=".csv" 
-              onChange={handleFileChange}
+              onChange={(e) => {
+                setErrorMsg("")
+                handleFileChange(e)
+              }}
               className="text-sm cursor-pointer bg-white"
             />
+            {errorMsg && (
+              <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded-md border border-red-100">{errorMsg}</p>
+            )}
             <Button 
               onClick={handleImport} 
               disabled={!file || isUploading} 
