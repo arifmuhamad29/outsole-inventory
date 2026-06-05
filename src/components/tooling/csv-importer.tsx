@@ -24,6 +24,7 @@ export function CsvImporter() {
     const csvContent = `Model Name,Category,Tooling Name,Phase,Qty,Order Date,Target ETA,Actual ETA,Status,Remark
 LITE RACER NEXT,BOTTOM TOOLING,Tooling mold midsole,FSR,8 SET,2026-05-12,2026-06-12,,ON PROCESS,ON PROCESS SHIPMENT
 LITE RACER NEXT,ASSEMBLY TOOLING,3D Gauge,FSR,1 SET,2026-05-12,2026-06-12,,ON PROCESS,
+LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,2026-05-09,VERIFIED,
 `
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
