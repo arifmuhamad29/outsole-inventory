@@ -17,7 +17,11 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Upload, Download, Loader2, FileUp, AlertCircle, X } from "lucide-react"
 
-export function CsvImporter() {
+interface CsvImporterProps {
+  onSuccess?: () => void
+}
+
+export function CsvImporter({ onSuccess }: CsvImporterProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -98,6 +102,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
           if (res.success) {
             setIsOpen(false)
             setFile(null)
+            if (onSuccess) onSuccess()
             router.refresh()
           } else {
             setErrorMsg("Import Failed: " + res.message)

@@ -151,7 +151,7 @@ export default function ToolingPage() {
               className="pl-9 h-9 bg-white"
             />
           </div>
-          <CsvImporter />
+          <CsvImporter onSuccess={fetchData} />
           <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
             <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
               <div className="flex items-center gap-2">
