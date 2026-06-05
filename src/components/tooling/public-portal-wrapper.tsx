@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { PublicToolingView } from "@/components/tooling/public-tooling-view"
-import { Package, Wrench, ChevronDown, ChevronUp, Menu } from "lucide-react"
+import { PublicBpmTfmView } from "@/components/bpm-tfm/public-bpm-tfm-view"
+import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -62,6 +63,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
                 <Wrench className="w-4 h-4 shrink-0" />
                 Tooling Tracking (MES)
               </button>
+              <button
+                onClick={() => handleTabChange("bpm-tfm")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "bpm-tfm" 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Layers className="w-4 h-4 shrink-0" />
+                BPM & TFM Stock
+              </button>
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -92,6 +104,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
             <Wrench className="w-4 h-4 shrink-0" />
             Tooling Tracking (MES)
           </button>
+          <button
+            onClick={() => handleTabChange("bpm-tfm")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "bpm-tfm" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <Layers className="w-4 h-4 shrink-0" />
+            BPM & TFM Stock
+          </button>
         </nav>
       </div>
 
@@ -102,6 +125,9 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
         </div>
         <div className={activeTab === "tooling" ? "block" : "hidden"}>
           <PublicToolingView />
+        </div>
+        <div className={activeTab === "bpm-tfm" ? "block" : "hidden"}>
+          <PublicBpmTfmView />
         </div>
       </div>
     </div>
