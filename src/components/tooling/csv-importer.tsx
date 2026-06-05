@@ -14,13 +14,15 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Upload, Download, Loader2, FileUp } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Upload, Download, Loader2, FileUp, AlertCircle, X } from "lucide-react"
 
 export function CsvImporter() {
   const [isOpen, setIsOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const router = useRouter()
 
   const handleDownloadTemplate = () => {
@@ -48,6 +50,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
 
   const handleImport = async () => {
     setErrorMsg("")
+    setValidationErrors([])
     if (!file) {
       setErrorMsg("Please select a CSV file first.")
       return
@@ -59,8 +62,39 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
+        const rows = results.data as Record<string, string>[]
+        const errors: string[] = []
+        
+        const allowedCategories = ['BOTTOM TOOLING', 'ASSEMBLY TOOLING']
+        const allowedPhases = ['SAMPLE', 'EXTREME', 'FSR']
+        const allowedStatuses = ['VERIFIED', 'EXISTING', 'ON PROCESS', 'NOT USE', '']
+
+        rows.forEach((row, index) => {
+          if (!row["Model Name"]?.trim()) return // Skip empty model names or invalid rows
+          
+          const category = row["Category"]?.trim().toUpperCase()
+          const phase = row["Phase"]?.trim().toUpperCase()
+          const status = row["Status"]?.trim().toUpperCase() || ""
+
+          if (category && !allowedCategories.includes(category)) {
+            errors.push(`Row ${index + 1}: Invalid Category '${row["Category"]}'. Must be BOTTOM TOOLING or ASSEMBLY TOOLING.`)
+          }
+          if (phase && !allowedPhases.includes(phase)) {
+            errors.push(`Row ${index + 1}: Invalid Phase '${row["Phase"]}'. Must be SAMPLE, EXTREME, or FSR.`)
+          }
+          if (status && !allowedStatuses.includes(status)) {
+            errors.push(`Row ${index + 1}: Invalid Status '${row["Status"]}'. Must be VERIFIED, EXISTING, ON PROCESS, or NOT USE.`)
+          }
+        })
+
+        if (errors.length > 0) {
+          setValidationErrors(errors)
+          setIsUploading(false)
+          return
+        }
+
         try {
-          const res = await importToolingCSVAction(results.data as Record<string, string>[])
+          const res = await importToolingCSVAction(rows)
           if (res.success) {
             setIsOpen(false)
             setFile(null)
@@ -126,10 +160,29 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
               accept=".csv" 
               onChange={(e) => {
                 setErrorMsg("")
+                setValidationErrors([])
                 handleFileChange(e)
               }}
               className="text-sm cursor-pointer bg-white"
             />
+            {validationErrors.length > 0 && (
+              <Alert variant="destructive" className="bg-red-50 border-red-200">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="flex justify-between items-center">
+                  <span>Validation Errors Found</span>
+                  <Button variant="ghost" size="sm" onClick={() => setValidationErrors([])} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100">
+                    <X className="w-3 h-3 mr-1" /> Clear
+                  </Button>
+                </AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-4 mt-2 text-xs space-y-1">
+                    {validationErrors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             {errorMsg && (
               <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded-md border border-red-100">{errorMsg}</p>
             )}
