@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { getBpmTfmStocks, deleteBpmTfmStockAction } from "@/app/actions/bpm-tfm"
+import { getBpmTfmStocks, deleteBpmTfmStockAction, updateBpmTfmStockAction } from "@/app/actions/bpm-tfm"
 import { BpmTfmStock } from "@prisma/client"
-import { Layers, Loader2, Search, Trash2 } from "lucide-react"
+import { Layers, Loader2, Search, Trash2, Pencil } from "lucide-react"
 import { BpmTfmCsvImporter } from "@/components/bpm-tfm/csv-importer"
 import { ManualEntryModal } from "@/components/bpm-tfm/manual-entry-modal"
 import {
@@ -26,6 +26,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function BpmTfmPage() {
   const [stocks, setStocks] = useState<BpmTfmStock[]>([])
@@ -34,6 +42,8 @@ export default function BpmTfmPage() {
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+  const [itemToEdit, setItemToEdit] = useState<BpmTfmStock | null>(null)
+  const [editStockValue, setEditStockValue] = useState("")
 
   const fetchData = async () => {
     try {
@@ -74,6 +84,19 @@ export default function BpmTfmPage() {
       const res = await deleteBpmTfmStockAction(itemToDelete)
       if (res.success) {
         setItemToDelete(null)
+        fetchData()
+      }
+    })
+  }
+
+  const handleEditSubmit = () => {
+    if (!itemToEdit) return
+    const numVal = parseInt(editStockValue, 10)
+    if (isNaN(numVal) || numVal < 0) return
+    startTransition(async () => {
+      const res = await updateBpmTfmStockAction(itemToEdit.id, numVal)
+      if (res.success) {
+        setItemToEdit(null)
         fetchData()
       }
     })
@@ -145,13 +168,14 @@ export default function BpmTfmPage() {
               <TableHead className="font-semibold text-slate-700">TYPE</TableHead>
               <TableHead className="font-semibold text-slate-700">SIZE</TableHead>
               <TableHead className="font-semibold text-slate-700 text-center">DEV STOCK (SET)</TableHead>
+              <TableHead className="font-semibold text-slate-700">LAST UPDATE</TableHead>
               <TableHead className="text-right font-semibold text-slate-700">ACTION</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredStocks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Layers className="w-10 h-10 text-slate-300" />
                     <p className="text-sm font-medium">No data found.</p>
@@ -211,17 +235,41 @@ export default function BpmTfmPage() {
                         {stock.devStock}
                       </span>
                     </TableCell>
+                    <TableCell className="text-slate-500 text-sm">
+                      {new Date(stock.updatedAt).toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setItemToDelete(stock.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
-                        disabled={isPending}
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setItemToEdit(stock)
+                            setEditStockValue(stock.devStock.toString())
+                          }}
+                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2"
+                          disabled={isPending}
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setItemToDelete(stock.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                          disabled={isPending}
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -252,6 +300,39 @@ export default function BpmTfmPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!itemToEdit} onOpenChange={(open) => !open && setItemToEdit(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Edit Dev Stock</DialogTitle>
+            <DialogDescription>
+              Ubah jumlah Dev Stock untuk {itemToEdit?.toolName} {itemToEdit?.type ? `(${itemToEdit.type})` : ""} ukuran {itemToEdit?.size}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Dev Stock (Set)</label>
+              <Input
+                type="number"
+                min={0}
+                value={editStockValue}
+                onChange={(e) => setEditStockValue(e.target.value)}
+                disabled={isPending}
+                className="w-full"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setItemToEdit(null)} disabled={isPending}>
+              Batal
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={isPending || editStockValue === ""}>
+              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

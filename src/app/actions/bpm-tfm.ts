@@ -119,3 +119,18 @@ export async function addBpmTfmBatchAction(
     return { success: false, message: String(error) }
   }
 }
+
+export async function updateBpmTfmStockAction(id: string, devStock: number) {
+  try {
+    await prisma.bpmTfmStock.update({
+      where: { id },
+      data: { devStock },
+    })
+    revalidatePath("/bpm-tfm")
+    return { success: true }
+  } catch (error) {
+    console.error("Update BPM/TFM stock error:", error)
+    return { success: false, message: String(error) }
+  }
+}
+
