@@ -163,7 +163,7 @@ export default function ToolingPage() {
               <DialogHeader>
                 <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
                 <DialogDescription>
-                  Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 3 fasenya (Sample, Extreme, FSR).
+                  Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 2 fasenya (Extreme, FSR).
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">

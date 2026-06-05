@@ -29,7 +29,7 @@ export function CsvImporter() {
     const csvContent = `Model Name,Category,Tooling Name,Phase,Qty,Order Date,Target ETA,Actual ETA,Status,Remark
 LITE RACER NEXT,BOTTOM TOOLING,Tooling mold midsole,FSR,8 SET,2026-05-12,2026-06-12,,ON PROCESS,ON PROCESS SHIPMENT
 LITE RACER NEXT,ASSEMBLY TOOLING,3D Gauge,FSR,1 SET,2026-05-12,2026-06-12,,ON PROCESS,
-LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,2026-05-09,VERIFIED,
+LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,2026-05-09,VERIFIED,
 `
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
@@ -66,7 +66,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
         const errors: string[] = []
         
         const allowedCategories = ['BOTTOM TOOLING', 'ASSEMBLY TOOLING']
-        const allowedPhases = ['SAMPLE', 'EXTREME', 'FSR']
+        const allowedPhases = ['EXTREME', 'FSR']
         const allowedStatuses = ['VERIFIED', 'EXISTING', 'ON PROCESS', 'NOT USE', '']
 
         rows.forEach((row, index) => {
@@ -80,7 +80,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,SAMPLE,1 SET,2026-05-01,2026-05-10,202
             errors.push(`Row ${index + 1}: Invalid Category '${row["Category"]}'. Must be BOTTOM TOOLING or ASSEMBLY TOOLING.`)
           }
           if (phase && !allowedPhases.includes(phase)) {
-            errors.push(`Row ${index + 1}: Invalid Phase '${row["Phase"]}'. Must be SAMPLE, EXTREME, or FSR.`)
+            errors.push(`Row ${index + 1}: Invalid Phase '${row["Phase"]}'. Must be EXTREME or FSR.`)
           }
           if (status && !allowedStatuses.includes(status)) {
             errors.push(`Row ${index + 1}: Invalid Status '${row["Status"]}'. Must be VERIFIED, EXISTING, ON PROCESS, or NOT USE.`)
