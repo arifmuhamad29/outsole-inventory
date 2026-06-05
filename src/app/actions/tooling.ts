@@ -150,19 +150,19 @@ export async function updateModelToolingAction(modelId: string, payload: {
 }
 
 const BOTTOM_DEFAULTS = [
-  "Gauge top net",
-  "Gauge part bottom (o/s;m/s)",
-  "ScribeLine",
-  "Toe spring gauge",
-  "Tooling mold midsole",
+  "GAUGE TOP NET",
+  "GAUGE PART BOTTOM (O/S;M/S)",
+  "SCRIBELINE",
+  "TOE SPRING GAUGE",
+  "TOOLING MOLD MIDSOLE",
 ]
 
 const ASSEMBLY_DEFAULTS = [
-  "3D Gauge",
-  "Last",
-  "Back part mold",
-  "Toe forming",
-  "Gauge for Sockliner logo",
+  "3D GAUGE",
+  "LAST",
+  "BACK PART MOLD",
+  "TOE FORMING",
+  "GAUGE FOR SOCKLINER LOGO",
 ]
 
 export async function createShoeModelAction(name: string) {
@@ -208,7 +208,7 @@ export async function createShoeModelAction(name: string) {
             category: def.category,
             name: def.name,
             phases: {
-              create: ["SAMPLE", "EXTREME", "FSR"].map(pt => ({
+              create: ["EXTREME", "FSR"].map(pt => ({
                 phaseType: pt,
                 status: "ON PROCESS"
               }))

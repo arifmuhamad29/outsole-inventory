@@ -56,21 +56,6 @@ interface ToolingDrawerProps {
   onClose: () => void
 }
 
-const BOTTOM_DEFAULTS = [
-  "Gauge top net",
-  "Gauge part bottom (o/s;m/s)",
-  "ScribeLine",
-  "Toe spring gauge",
-  "Tooling mold midsole",
-]
-
-const ASSEMBLY_DEFAULTS = [
-  "3D Gauge",
-  "Last",
-  "Back part mold",
-  "Toe forming",
-  "Gauge for Sockliner logo",
-]
 
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
@@ -135,7 +120,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
 
   const handleAddNewItem = (category: string) => {
     const newItemId = `new-item-${Date.now()}`
-    const newPhases = ["SAMPLE", "EXTREME", "FSR"].map(pt => ({
+    const newPhases = ["EXTREME", "FSR"].map(pt => ({
       id: `new-phase-${pt}-${Date.now()}`,
       phaseType: pt,
       qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
@@ -293,7 +278,6 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                   <TableRow key={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
                     <TableCell className="font-medium min-w-[200px]">
                       <Input 
-                        list={category === "BOTTOM TOOLING" ? "bottom-defaults" : "assembly-defaults"}
                         value={currentName}
                         onChange={(e) => handleItemNameChange(item.id, e.target.value)}
                         className="w-full h-8 text-xs sm:text-sm font-medium"
@@ -368,13 +352,6 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
 
   return (
     <div className="w-full bg-slate-50 shadow-inner p-6 flex flex-col border-b border-gray-200">
-      <datalist id="bottom-defaults">
-        {BOTTOM_DEFAULTS.map(d => <option key={d} value={d} />)}
-      </datalist>
-      <datalist id="assembly-defaults">
-        {ASSEMBLY_DEFAULTS.map(d => <option key={d} value={d} />)}
-      </datalist>
-
       <div className="flex items-center justify-between mb-6 pb-2 border-b">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -392,16 +369,10 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
 
       <div className="w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
-            <TabsTrigger value="SAMPLE">Sample</TabsTrigger>
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
             <TabsTrigger value="EXTREME">Extreme</TabsTrigger>
             <TabsTrigger value="FSR">FSR</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="SAMPLE" className="mt-0">
-            {renderTable("BOTTOM TOOLING", "SAMPLE")}
-            {renderTable("ASSEMBLY TOOLING", "SAMPLE")}
-          </TabsContent>
 
           <TabsContent value="EXTREME" className="mt-0">
             {renderTable("BOTTOM TOOLING", "EXTREME")}

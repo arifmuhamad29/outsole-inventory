@@ -150,16 +150,10 @@ function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithT
 
       <div className="w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
-            <TabsTrigger value="SAMPLE">Sample</TabsTrigger>
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
             <TabsTrigger value="EXTREME">Extreme</TabsTrigger>
             <TabsTrigger value="FSR">FSR</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="SAMPLE" className="mt-0">
-            {renderTable("BOTTOM TOOLING", "SAMPLE")}
-            {renderTable("ASSEMBLY TOOLING", "SAMPLE")}
-          </TabsContent>
 
           <TabsContent value="EXTREME" className="mt-0">
             {renderTable("BOTTOM TOOLING", "EXTREME")}
