@@ -130,8 +130,8 @@ export default function ToolingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col space-y-6 p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Wrench className="w-8 h-8" />
@@ -141,44 +141,7 @@ export default function ToolingPage() {
             Master Data for Bottom and Assembly Tooling.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <CsvImporter />
-          <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
-            <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                New Model
-              </div>
-            </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
-              <DialogDescription>
-                Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 3 fasenya (Sample, Extreme, FSR).
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Input 
-                placeholder="NAMA MODEL SEPATU..." 
-                value={newModelName}
-                onChange={(e) => setNewModelName(e.target.value.toUpperCase())}
-                disabled={isPending}
-                className="h-10 uppercase"
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsNewModelDialogOpen(false)} disabled={isPending}>Batal</Button>
-              <Button onClick={handleCreateModel} disabled={isPending || !newModelName.trim()}>
-                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Buat Model
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="bg-white rounded-lg border shadow-sm flex flex-col overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input 
@@ -188,14 +151,49 @@ export default function ToolingPage() {
               className="pl-9 h-9 bg-white"
             />
           </div>
+          <CsvImporter />
+          <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
+            <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
+              <div className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                New Model
+              </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
+                <DialogDescription>
+                  Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 3 fasenya (Sample, Extreme, FSR).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Input 
+                  placeholder="NAMA MODEL SEPATU..." 
+                  value={newModelName}
+                  onChange={(e) => setNewModelName(e.target.value.toUpperCase())}
+                  disabled={isPending}
+                  className="h-10 uppercase"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsNewModelDialogOpen(false)} disabled={isPending}>Batal</Button>
+                <Button onClick={handleCreateModel} disabled={isPending || !newModelName.trim()}>
+                  {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Buat Model
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="w-full overflow-x-auto rounded-md border bg-white shadow-sm">
+        <div className="p-4 border-b bg-slate-50 flex items-center justify-end">
           <div className="text-sm text-slate-500 font-medium">
             Showing {filteredModels.length} Models
           </div>
         </div>
-      </div>
-
-        <div className="overflow-x-auto">
-          <Table>
+        <Table>
             <TableHeader>
               <TableRow className="bg-slate-50/50">
                 <TableHead className="font-semibold text-slate-700">Shoe Model Name</TableHead>
@@ -299,7 +297,6 @@ export default function ToolingPage() {
               )}
             </TableBody>
           </Table>
-        </div>
       </div>
       <AlertDialog open={!!modelToDelete} onOpenChange={(open) => !open && setModelToDelete(null)}>
         <AlertDialogContent>
