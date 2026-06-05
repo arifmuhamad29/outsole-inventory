@@ -24,29 +24,32 @@ export async function importBpmTfmCSVAction(
     for (const row of rows) {
       const codeLast = row["Code Last"]?.trim()
       const sizeGroup = row["Size Group"]?.trim().toUpperCase()
-      const qtyHot = parseInt(row["Qty BPM HOT"] || "0", 10)
-      const qtyChiller = parseInt(row["Qty BPM CHILLER"] || "0", 10)
-      const qtyTfm = parseInt(row["Qty TFM"] || "0", 10)
-      const qtyUniv = parseInt(row["Qty UNIV PAD"] || "0", 10)
+      
+      const rawHot = row["Qty BPM HOT"]?.trim()
+      const rawChiller = row["Qty BPM CHILLER"]?.trim()
+      const rawTfm = row["Qty TFM"]?.trim()
+      const rawUniv = row["Qty UNIV PAD"]?.trim()
 
       if (!codeLast || !sizeGroup) continue
 
-      if (qtyHot > 0) {
-        flatRecords.push({ codeLast, toolName: "BPM", type: "HOT", size: sizeGroup, devStock: qtyHot })
+      const isValidStock = (val: string | undefined) => val !== "" && val !== undefined && !isNaN(Number(val))
+
+      if (isValidStock(rawHot)) {
+        flatRecords.push({ codeLast, toolName: "BPM", type: "HOT", size: sizeGroup, devStock: parseInt(rawHot as string, 10) })
       }
-      if (qtyChiller > 0) {
-        flatRecords.push({ codeLast, toolName: "BPM", type: "CHILLER", size: sizeGroup, devStock: qtyChiller })
+      if (isValidStock(rawChiller)) {
+        flatRecords.push({ codeLast, toolName: "BPM", type: "CHILLER", size: sizeGroup, devStock: parseInt(rawChiller as string, 10) })
       }
-      if (qtyTfm > 0) {
-        flatRecords.push({ codeLast, toolName: "TFM", type: "", size: sizeGroup, devStock: qtyTfm })
+      if (isValidStock(rawTfm)) {
+        flatRecords.push({ codeLast, toolName: "TFM", type: "", size: sizeGroup, devStock: parseInt(rawTfm as string, 10) })
       }
-      if (qtyUniv > 0) {
-        flatRecords.push({ codeLast, toolName: "UNIVERSAL PAD", type: "", size: "-", devStock: qtyUniv })
+      if (isValidStock(rawUniv)) {
+        flatRecords.push({ codeLast, toolName: "UNIVERSAL PAD", type: "", size: "-", devStock: parseInt(rawUniv as string, 10) })
       }
     }
 
     if (flatRecords.length === 0) {
-      return { success: false, message: "Tidak ada data valid yang dapat diimpor (pastikan Qty > 0)." }
+      return { success: false, message: "Tidak ada data valid yang dapat diimpor (pastikan Qty diisi angka valid, termasuk 0)." }
     }
 
     await prisma.$transaction(async (tx) => {
