@@ -203,3 +203,16 @@ model ToolingPhase {
   @@index([itemId])
   @@unique([itemId, phaseType])
 }
+
+model BpmTfmStock {
+  id        String   @id @default(cuid())
+  codeLast  String
+  toolName  String
+  type      String   @default("")
+  size      String
+  devStock  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([codeLast, toolName, type, size])
+  @@index([codeLast])
+}
