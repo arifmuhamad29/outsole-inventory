@@ -5,6 +5,7 @@ import { getBpmTfmStocks, deleteBpmTfmStockAction } from "@/app/actions/bpm-tfm"
 import { BpmTfmStock } from "@prisma/client"
 import { Layers, Loader2, Search, Trash2 } from "lucide-react"
 import { BpmTfmCsvImporter } from "@/components/bpm-tfm/csv-importer"
+import { ManualEntryModal } from "@/components/bpm-tfm/manual-entry-modal"
 import {
   Table,
   TableBody,
@@ -126,6 +127,7 @@ export default function BpmTfmPage() {
             />
           </div>
           <BpmTfmCsvImporter onSuccess={fetchData} />
+          <ManualEntryModal onSuccess={fetchData} />
         </div>
       </div>
 

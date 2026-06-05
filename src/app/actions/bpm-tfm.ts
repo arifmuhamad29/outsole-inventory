@@ -72,3 +72,50 @@ export async function deleteBpmTfmStockAction(id: string) {
     return { success: false, message: String(error) }
   }
 }
+
+export async function addBpmTfmBatchAction(
+  codeLast: string,
+  items: { toolName: string; type: string; size: string; devStock: number }[]
+) {
+  try {
+    // Filter out rows with no stock data
+    const validItems = items.filter((item) => item.devStock > 0 && item.size.trim() !== "")
+
+    if (validItems.length === 0) {
+      return { success: false, message: "Tidak ada data yang valid untuk disimpan. Pastikan minimal satu baris memiliki Size dan Dev Stock > 0." }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of validItems) {
+        await tx.bpmTfmStock.upsert({
+          where: {
+            codeLast_toolName_type_size: {
+              codeLast: codeLast.trim(),
+              toolName: item.toolName.trim().toUpperCase(),
+              type: item.type.trim().toUpperCase(),
+              size: item.size.trim().toUpperCase(),
+            },
+          },
+          update: {
+            devStock: item.devStock,
+          },
+          create: {
+            codeLast: codeLast.trim(),
+            toolName: item.toolName.trim().toUpperCase(),
+            type: item.type.trim().toUpperCase(),
+            size: item.size.trim().toUpperCase(),
+            devStock: item.devStock,
+          },
+        })
+      }
+    }, {
+      timeout: 30000,
+    })
+
+    revalidatePath("/bpm-tfm")
+    return { success: true, message: `Berhasil menyimpan ${validItems.length} tool untuk Code Last ${codeLast}.` }
+  } catch (error) {
+    console.error("Add BPM/TFM Batch Error:", error)
+    return { success: false, message: String(error) }
+  }
+}
