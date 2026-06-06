@@ -165,10 +165,6 @@ export async function updateUserCredentialsAction(id: string, username?: string,
       return { success: false, message: "Unauthorized Access" }
     }
 
-    if (session.user.id === id) {
-      return { success: false, message: "Gunakan menu profil Anda sendiri untuk mengubah kata sandi." }
-    }
-
     const dataToUpdate: Record<string, string> = {}
 
     if (username) {

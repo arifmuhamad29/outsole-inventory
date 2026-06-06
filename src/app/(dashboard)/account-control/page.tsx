@@ -236,17 +236,18 @@ export default function AccountControlPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setEditingCredentialsFor(user)}
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
+                        title="Edit Username & Password"
+                      >
+                        <UserCog className="w-4 h-4" />
+                      </Button>
+                      
                       {user.id !== session?.user?.id ? (
                         <>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setEditingCredentialsFor(user)}
-                            className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
-                            title="Edit Username & Password"
-                          >
-                            <UserCog className="w-4 h-4" />
-                          </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
