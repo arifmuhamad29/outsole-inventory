@@ -45,7 +45,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { getRealTimeStock, getAvailableSizesAction, getAvailableShoeModelsAction } from "@/app/actions/handover"
+import { getRealTimeStock, getAvailableSizesAction, getShoeModels, getUniqueCodeLasts } from "@/app/actions/handover"
 
 // Tool options for the dropdown
 const TOOL_OPTIONS = [
@@ -79,6 +79,7 @@ type HandoverItem = {
 type FormValues = {
   date: string
   recipient: string
+  modelName: string
   codeLast: string
   items: HandoverItem[]
 }
@@ -90,12 +91,13 @@ interface HandoverRowProps {
   control: Control<FormValues>
   register: UseFormRegister<FormValues>
   globalCodeLast: string
+  globalModelName: string
   remove: (index: number) => void
   isRemoveDisabled: boolean
   setValue: UseFormSetValue<FormValues>
 }
 
-function HandoverRow({ index, control, register, globalCodeLast, remove, isRemoveDisabled, setValue }: HandoverRowProps) {
+function HandoverRow({ index, control, register, globalCodeLast, globalModelName, remove, isRemoveDisabled, setValue }: HandoverRowProps) {
   const currentItem = useWatch({ control, name: `items.${index}` }) || {}
   const toolName = currentItem.toolName || ""
   const type = currentItem.type || ""
@@ -156,15 +158,33 @@ function HandoverRow({ index, control, register, globalCodeLast, remove, isRemov
 
       {/* Tool Name */}
       <TableCell>
-        <select
-          {...register(`items.${index}.toolName` as const)}
-          className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-        >
-          <option value="">-- Pilih Tool --</option>
-          {TOOL_OPTIONS.map((tool) => (
-            <option key={tool} value={tool}>{tool}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            {...register(`items.${index}.toolName` as const)}
+            className={`w-full h-9 rounded-md border px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${
+              toolName && isStockTracked && !globalCodeLast
+                ? "border-amber-400 bg-amber-50 dark:border-amber-500/50 dark:bg-amber-900/20"
+                : toolName && !isStockTracked && !globalModelName
+                ? "border-amber-400 bg-amber-50 dark:border-amber-500/50 dark:bg-amber-900/20"
+                : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800"
+            }`}
+          >
+            <option value="">-- Pilih Tool --</option>
+            {TOOL_OPTIONS.map((tool) => (
+              <option key={tool} value={tool}>{tool}</option>
+            ))}
+          </select>
+          {toolName && isStockTracked && !globalCodeLast && (
+            <div className="absolute -bottom-4 left-1 text-[10px] text-amber-600 font-medium whitespace-nowrap">
+              Isi Code Last
+            </div>
+          )}
+          {toolName && !isStockTracked && !globalModelName && (
+            <div className="absolute -bottom-4 left-1 text-[10px] text-amber-600 font-medium whitespace-nowrap">
+              Isi Model Sepatu
+            </div>
+          )}
+        </div>
       </TableCell>
 
       {/* Type */}
@@ -321,18 +341,22 @@ function HandoverRow({ index, control, register, globalCodeLast, remove, isRemov
 export default function NewHandoverPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [modelOptions, setModelOptions] = useState<string[]>([])
+  const [codeLastOptions, setCodeLastOptions] = useState<string[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [isLoadingCodeLasts, setIsLoadingCodeLasts] = useState(true)
+  const [openModelName, setOpenModelName] = useState(false)
   const [openCodeLast, setOpenCodeLast] = useState(false)
 
   useEffect(() => {
-    getAvailableShoeModelsAction()
-      .then(models => {
-        setModelOptions(models)
-      })
+    getShoeModels()
+      .then(models => setModelOptions(models))
       .catch(console.error)
-      .finally(() => {
-        setIsLoadingModels(false)
-      })
+      .finally(() => setIsLoadingModels(false))
+
+    getUniqueCodeLasts()
+      .then(codes => setCodeLastOptions(codes))
+      .catch(console.error)
+      .finally(() => setIsLoadingCodeLasts(false))
   }, [])
 
   const {
@@ -346,6 +370,7 @@ export default function NewHandoverPage() {
     defaultValues: {
       date: format(new Date(), "yyyy-MM-dd"),
       recipient: "",
+      modelName: "",
       codeLast: "",
       items: [{ toolName: "", type: "", size: "", satuan: "SET", qtyHandover: 0, remark: "" }],
     },
@@ -356,13 +381,32 @@ export default function NewHandoverPage() {
     name: "items",
   })
 
+  const globalModelName = watch("modelName")
   const globalCodeLast = watch("codeLast")
 
   const onSubmit = async (data: FormValues) => {
+    // Custom row-level validation
+    let hasValidationError = false
+    
+    data.items.forEach((item) => {
+      const isStockTracked = STOCK_TRACKED_TOOLS.includes(item.toolName)
+      if (isStockTracked && !data.codeLast) {
+        hasValidationError = true
+      }
+      if (!isStockTracked && item.toolName && !data.modelName) {
+        hasValidationError = true
+      }
+    })
+
+    if (hasValidationError) {
+      alert("Validation Error:\n- Untuk alat stok (BPM/TFM), 'Code Last' di header wajib diisi.\n- Untuk alat non-stok (Gauges dll), 'Model Sepatu' wajib diisi.")
+      return
+    }
+
     setIsSubmitting(true)
     // TODO: Replace with real server action in Step 2
     console.log("Handover payload:", data)
-    alert(`[MOCKUP] Handover berhasil dibuat!\n\nRecipient: ${data.recipient}\nCode Last: ${data.codeLast}\nTotal Items: ${data.items.length}`)
+    alert(`[MOCKUP] Handover berhasil dibuat!\n\nRecipient: ${data.recipient}\nModel Name: ${data.modelName || "-"}\nCode Last: ${data.codeLast || "-"}\nTotal Items: ${data.items.length}`)
     setIsSubmitting(false)
   }
 
@@ -399,7 +443,7 @@ export default function NewHandoverPage() {
             <CardDescription>Isi detail penerima dan Code Last yang akan diserahkan.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Date */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tanggal</label>
@@ -426,21 +470,20 @@ export default function NewHandoverPage() {
                 )}
               </div>
 
-              {/* Code Last */}
+              {/* Model Name */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Code Last / Model Sepatu</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model Sepatu</label>
                 <Controller
                   control={control}
-                  name="codeLast"
-                  rules={{ required: "Code Last wajib diisi" }}
+                  name="modelName"
                   render={({ field }) => (
-                    <Popover open={openCodeLast} onOpenChange={setOpenCodeLast}>
+                    <Popover open={openModelName} onOpenChange={setOpenModelName}>
                       <PopoverTrigger 
                         render={
                           <Button
                             variant="outline"
                             role="combobox"
-                            aria-expanded={openCodeLast}
+                            aria-expanded={openModelName}
                             disabled={isLoadingModels}
                             className="w-full h-10 justify-between bg-white dark:bg-gray-800 font-mono tracking-wider"
                           />
@@ -450,12 +493,12 @@ export default function NewHandoverPage() {
                           ? "Loading models..." 
                           : field.value 
                             ? field.value 
-                            : "Pilih Code Last"}
+                            : "Pilih Model"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </PopoverTrigger>
                       <PopoverContent className="w-[300px] p-0" align="start">
                         <Command>
-                          <CommandInput placeholder="Cari Code Last / Model..." />
+                          <CommandInput placeholder="Cari Model Sepatu..." />
                           <CommandList>
                             <CommandEmpty>Model tidak ditemukan.</CommandEmpty>
                             <CommandGroup>
@@ -465,7 +508,7 @@ export default function NewHandoverPage() {
                                   value={model}
                                   onSelect={() => {
                                     field.onChange(model)
-                                    setOpenCodeLast(false)
+                                    setOpenModelName(false)
                                   }}
                                   className="font-mono"
                                 >
@@ -484,9 +527,65 @@ export default function NewHandoverPage() {
                     </Popover>
                   )}
                 />
-                {errors.codeLast && (
-                  <p className="text-xs text-red-500 font-medium">{errors.codeLast.message}</p>
-                )}
+              </div>
+
+              {/* Code Last */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Code Last</label>
+                <Controller
+                  control={control}
+                  name="codeLast"
+                  render={({ field }) => (
+                    <Popover open={openCodeLast} onOpenChange={setOpenCodeLast}>
+                      <PopoverTrigger 
+                        render={
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCodeLast}
+                            disabled={isLoadingCodeLasts}
+                            className="w-full h-10 justify-between bg-white dark:bg-gray-800 font-mono tracking-wider"
+                          />
+                        }
+                      >
+                        {isLoadingCodeLasts 
+                          ? "Loading code lasts..." 
+                          : field.value 
+                            ? field.value 
+                            : "Pilih Code Last"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Cari Code Last..." />
+                          <CommandList>
+                            <CommandEmpty>Code Last tidak ditemukan.</CommandEmpty>
+                            <CommandGroup>
+                              {codeLastOptions.map((code) => (
+                                <CommandItem
+                                  key={code}
+                                  value={code}
+                                  onSelect={() => {
+                                    field.onChange(code)
+                                    setOpenCodeLast(false)
+                                  }}
+                                  className="font-mono"
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      field.value === code ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  {code}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                />
               </div>
             </div>
           </CardContent>
@@ -539,6 +638,7 @@ export default function NewHandoverPage() {
                       control={control}
                       register={register}
                       globalCodeLast={globalCodeLast}
+                      globalModelName={globalModelName}
                       remove={remove}
                       isRemoveDisabled={fields.length <= 1}
                       setValue={setValue}

@@ -62,28 +62,31 @@ export async function getAvailableSizesAction(
   }
 }
 
-export async function getAvailableShoeModelsAction(): Promise<string[]> {
+export async function getShoeModels(): Promise<string[]> {
   try {
     const models = await prisma.shoeModel.findMany({
       select: { name: true },
       orderBy: { name: "asc" }
     })
     
+    return models.map(m => m.name)
+  } catch (error) {
+    console.error("Error fetching shoe models:", error)
+    return []
+  }
+}
+
+export async function getUniqueCodeLasts(): Promise<string[]> {
+  try {
     const bpmStocks = await prisma.bpmTfmStock.findMany({
       select: { codeLast: true },
       distinct: ["codeLast"],
+      orderBy: { codeLast: "asc" }
     })
     
-    const modelNames = models.map(m => m.name)
-    const stockCodeLasts = bpmStocks.map(b => b.codeLast)
-    
-    // Combine and get unique sorted list
-    const combined = Array.from(new Set([...modelNames, ...stockCodeLasts]))
-    combined.sort((a, b) => a.localeCompare(b))
-    
-    return combined
+    return bpmStocks.map(b => b.codeLast)
   } catch (error) {
-    console.error("Error fetching shoe models:", error)
+    console.error("Error fetching code lasts:", error)
     return []
   }
 }
