@@ -22,6 +22,7 @@ export async function getUsersAction() {
     }
 
     const users = await prisma.user.findMany({
+      where: { isDeleted: false },
       select: {
         id: true,
         name: true,
@@ -91,7 +92,10 @@ export async function deleteUserAction(id: string) {
       return { success: false, message: "Tidak dapat menghapus akun Anda sendiri!" }
     }
 
-    await prisma.user.delete({ where: { id } })
+    await prisma.user.update({ 
+      where: { id },
+      data: { isDeleted: true }
+    })
     revalidatePath("/account-control")
     return { success: true, message: "User berhasil dihapus" }
   } catch (error) {
