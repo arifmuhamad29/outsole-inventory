@@ -53,7 +53,7 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
     })
 
     if (!validatedFields.success) {
-      return { success: false, message: validatedFields.error.errors[0].message }
+      return { success: false, message: validatedFields.error.issues[0].message }
     }
 
     const { name, username, password, role } = validatedFields.data

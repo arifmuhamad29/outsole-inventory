@@ -227,7 +227,7 @@ export default function AccountControlPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Role (Akses)</label>
-                    <Select value={role} onValueChange={(val) => setRole(val)}>
+                    <Select value={role} onValueChange={(val) => setRole(val || "OPERATOR")}>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih Role" />
                       </SelectTrigger>
@@ -288,7 +288,9 @@ export default function AccountControlPage() {
                   <TableCell>
                     <Select 
                       value={user.role} 
-                      onValueChange={(val: "SUPER_ADMIN" | "ADMIN" | "OPERATOR") => handleRoleChange(user.id, val)}
+                      onValueChange={(val) => {
+                        if (val) handleRoleChange(user.id, val as "SUPER_ADMIN" | "ADMIN" | "OPERATOR")
+                      }}
                       disabled={user.id === session?.user?.id}
                     >
                       <SelectTrigger className="w-[140px] h-8 text-xs font-semibold">
