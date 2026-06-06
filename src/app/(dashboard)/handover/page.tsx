@@ -142,7 +142,7 @@ export default function HandoverPage() {
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Date/Time</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Pemberi</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Penerima</TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Code Last</TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Code Last/Model</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Total Items</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Remark</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Actions</TableHead>
