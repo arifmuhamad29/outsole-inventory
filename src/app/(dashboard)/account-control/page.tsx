@@ -181,11 +181,11 @@ export default function AccountControlPage() {
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white">
-                <Plus className="w-4 h-4" />
-                Tambah Pengguna
-              </Button>
+            <DialogTrigger 
+              render={<Button className="gap-2 shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white" />}
+            >
+              <Plus className="w-4 h-4" />
+              Tambah Pengguna
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <form onSubmit={handleCreate}>
