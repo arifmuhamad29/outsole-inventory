@@ -161,7 +161,10 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
             throw new Error(`Stok tidak mencukupi untuk ${item.toolName} ukuran ${item.size}`)
           }
 
-          // Decrement stock atomically
+          // Deduct stock manually
+          const deduction = Number(item.qtyHandover) || 0
+          const updatedStock = stockRecord.devStock - deduction
+
           await tx.bpmTfmStock.update({
             where: {
               codeLast_toolName_type_size: {
@@ -172,7 +175,7 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
               }
             },
             data: {
-              devStock: { decrement: item.qtyHandover }
+              devStock: updatedStock
             }
           })
         }
@@ -225,18 +228,25 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
       for (const item of handover.items) {
         const isStockTracked = ["BPM", "TFM", "UNIVERSAL PAD"].includes(item.toolName)
         if (isStockTracked && handover.codeLast && item.size) {
-          // Increment stock atomically
-          await tx.bpmTfmStock.updateMany({
+          // Find the exact existing stock record
+          const existingStock = await tx.bpmTfmStock.findFirst({
             where: {
               codeLast: handover.codeLast.trim(),
               toolName: item.toolName.trim().toUpperCase(),
               type: (item.type || "").trim().toUpperCase(),
               size: item.size.trim().toUpperCase()
-            },
-            data: {
-              devStock: { increment: item.qty }
             }
           })
+
+          if (existingStock) {
+            const addition = Number(item.qty) || 0
+            const updatedStock = existingStock.devStock + addition
+
+            await tx.bpmTfmStock.update({
+              where: { id: existingStock.id },
+              data: { devStock: updatedStock }
+            })
+          }
         }
       }
 
