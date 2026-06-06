@@ -13,6 +13,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 import { getHandoversAction, deleteHandoverAction } from "@/app/actions/handover"
@@ -52,8 +63,6 @@ export default function HandoverPage() {
   }, [])
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus handover ini? Stok akan dikembalikan otomatis.")) return
-
     setIsDeleting(id)
     try {
       const res = await deleteHandoverAction(id)
@@ -183,19 +192,39 @@ export default function HandoverPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleDelete(ho.id)}
-                          disabled={isDeleting === ho.id}
-                          className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                        >
-                          {isDeleting === ho.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              disabled={isDeleting === ho.id}
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                            >
+                              {isDeleting === ho.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Konfirmasi Hapus Data</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Apakah Anda yakin ingin menghapus data handover ini? Tindakan ini tidak dapat dibatalkan dan stok akan dikembalikan otomatis ke inventaris.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDelete(ho.id)}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                              >
+                                Ya, Hapus
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
