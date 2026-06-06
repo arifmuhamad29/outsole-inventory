@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { format } from "date-fns"
-import { Send, Plus, Trash2 } from "lucide-react"
+import { Send, Plus, Trash2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -14,67 +14,71 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getHandoversAction, deleteHandoverAction } from "@/app/actions/handover"
+import { toast } from "sonner"
 
-// Dummy data for UI mockup
-const dummyHandovers = [
-  {
-    id: "HO-20260601-001",
-    date: new Date("2026-06-01T10:30:00"),
-    pemberi: "Arif (Admin)",
-    penerima: "Budi (Line 3)",
-    codeLast: "43011",
-    totalItems: 4,
-    status: "COMPLETED",
-  },
-  {
-    id: "HO-20260602-002",
-    date: new Date("2026-06-02T14:15:00"),
-    pemberi: "Arif (Admin)",
-    penerima: "Joko (Line 5)",
-    codeLast: "23021",
-    totalItems: 3,
-    status: "COMPLETED",
-  },
-  {
-    id: "HO-20260603-003",
-    date: new Date("2026-06-03T09:45:00"),
-    pemberi: "Siti (Operator)",
-    penerima: "Andi (Line 1)",
-    codeLast: "55010",
-    totalItems: 6,
-    status: "PENDING",
-  },
-  {
-    id: "HO-20260604-004",
-    date: new Date("2026-06-04T16:20:00"),
-    pemberi: "Arif (Admin)",
-    penerima: "Rina (Line 2)",
-    codeLast: "43011",
-    totalItems: 2,
-    status: "COMPLETED",
-  },
-  {
-    id: "HO-20260605-005",
-    date: new Date("2026-06-05T11:10:00"),
-    pemberi: "Siti (Operator)",
-    penerima: "Doni (Line 4)",
-    codeLast: "12099",
-    totalItems: 5,
-    status: "PENDING",
-  },
-]
+type HandoverList = {
+  id: string
+  date: Date | string
+  giver: string
+  recipient: string
+  codeLast: string | null
+  modelName: string | null
+  items: { toolName: string; qty: number }[]
+}
 
 export default function HandoverPage() {
   const [search, setSearch] = useState("")
+  const [handovers, setHandovers] = useState<HandoverList[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
-  const filtered = dummyHandovers.filter((h) => {
+  const fetchHandovers = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getHandoversAction()
+      setHandovers(data)
+    } catch (error) {
+      console.error(error)
+      toast.error("Gagal memuat data handover")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchHandovers()
+  }, [])
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus handover ini? Stok akan dikembalikan otomatis.")) return
+
+    setIsDeleting(id)
+    try {
+      const res = await deleteHandoverAction(id)
+      if (res.success) {
+        toast.success("Berhasil", { description: res.message })
+        fetchHandovers()
+      } else {
+        toast.error("Gagal", { description: res.message })
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Terjadi kesalahan saat menghapus")
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
+  const filtered = handovers.filter((h) => {
     const q = search.toLowerCase()
     return (
       h.id.toLowerCase().includes(q) ||
-      h.pemberi.toLowerCase().includes(q) ||
-      h.penerima.toLowerCase().includes(q) ||
-      h.codeLast.toLowerCase().includes(q)
+      h.giver.toLowerCase().includes(q) ||
+      h.recipient.toLowerCase().includes(q) ||
+      (h.codeLast && h.codeLast.toLowerCase().includes(q)) ||
+      (h.modelName && h.modelName.toLowerCase().includes(q))
     )
   })
 
@@ -91,12 +95,17 @@ export default function HandoverPage() {
             Record outgoing tools and deduct stock for BPM, TFM, and Universal Pad.
           </p>
         </div>
-        <Link href="/handover/new">
-          <Button className="gap-2 shadow-sm">
-            <Plus className="w-4 h-4" />
-            Buat Handover Baru
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={fetchHandovers} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-        </Link>
+          <Link href="/handover/new">
+            <Button className="gap-2 shadow-sm">
+              <Plus className="w-4 h-4" />
+              Buat Handover Baru
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search & Table Card */}
@@ -111,7 +120,7 @@ export default function HandoverPage() {
             />
           </div>
           <div className="text-sm text-slate-500 font-medium whitespace-nowrap">
-            Showing {filtered.length} of {dummyHandovers.length} records
+            Showing {filtered.length} records
           </div>
         </div>
 
@@ -125,58 +134,67 @@ export default function HandoverPage() {
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Penerima</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Code Last</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Total Items</TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Status</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-slate-500">
-                    Tidak ditemukan data handover &quot;{search}&quot;
+                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    Memuat data...
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    Tidak ditemukan data handover {search && `"${search}"`}
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((ho) => (
                   <TableRow key={ho.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <TableCell className="font-mono font-semibold text-sm text-slate-900 dark:text-slate-100">
-                      {ho.id}
+                      {ho.id.split('-')[0]}-{ho.id.slice(-6)} {/* Shorten CUID */}
                     </TableCell>
                     <TableCell className="text-slate-600 dark:text-slate-400">
-                      {format(ho.date, "dd MMM yyyy, HH:mm")}
+                      {format(new Date(ho.date), "dd MMM yyyy")}
                     </TableCell>
                     <TableCell className="font-medium text-slate-800 dark:text-slate-200">
-                      {ho.pemberi}
+                      {ho.giver}
                     </TableCell>
                     <TableCell className="font-medium text-slate-800 dark:text-slate-200">
-                      {ho.penerima}
+                      {ho.recipient}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-mono bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600">
-                        {ho.codeLast}
-                      </Badge>
+                      {ho.codeLast ? (
+                        <Badge variant="outline" className="font-mono bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600">
+                          {ho.codeLast}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="font-mono text-slate-500">
+                          {ho.modelName}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-sm">
-                        {ho.totalItems}
+                        {ho.items?.length || 0}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={ho.status === "COMPLETED" ? "default" : "secondary"}
-                        className={
-                          ho.status === "COMPLETED"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
-                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700"
-                        }
-                      >
-                        {ho.status}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-red-600">
-                          <Trash2 className="w-4 h-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDelete(ho.id)}
+                          disabled={isDeleting === ho.id}
+                          className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                        >
+                          {isDeleting === ho.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>

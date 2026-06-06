@@ -188,3 +188,70 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
     return { success: false, message: error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan handover" }
   }
 }
+
+export async function getHandoversAction() {
+  try {
+    const handovers = await prisma.handover.findMany({
+      include: {
+        items: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
+    
+    // Format to plain objects if needed, but Prisma findMany returns plain objects.
+    return handovers
+  } catch (error) {
+    console.error("Error fetching handovers:", error)
+    return []
+  }
+}
+
+export async function deleteHandoverAction(id: string): Promise<{ success: boolean; message: string }> {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Get the handover with items
+      const handover = await tx.handover.findUnique({
+        where: { id },
+        include: { items: true },
+      })
+
+      if (!handover) {
+        throw new Error("Handover tidak ditemukan")
+      }
+
+      // 2. Revert stock
+      for (const item of handover.items) {
+        const isStockTracked = ["BPM", "TFM", "UNIVERSAL PAD"].includes(item.toolName)
+        if (isStockTracked && handover.codeLast && item.size) {
+          // Increment stock atomically
+          await tx.bpmTfmStock.updateMany({
+            where: {
+              codeLast: handover.codeLast.trim(),
+              toolName: item.toolName.trim().toUpperCase(),
+              type: (item.type || "").trim().toUpperCase(),
+              size: item.size.trim().toUpperCase()
+            },
+            data: {
+              devStock: { increment: item.qty }
+            }
+          })
+        }
+      }
+
+      // 3. Delete handover
+      await tx.handover.delete({
+        where: { id }
+      })
+    })
+
+    revalidatePath("/(dashboard)/handover")
+    revalidatePath("/(dashboard)/bpm-tfm")
+    
+    return { success: true, message: "Handover berhasil dihapus dan stok dikembalikan" }
+  } catch (error: unknown) {
+    console.error("Delete handover error:", error)
+    return { success: false, message: error instanceof Error ? error.message : "Terjadi kesalahan saat menghapus handover" }
+  }
+}
