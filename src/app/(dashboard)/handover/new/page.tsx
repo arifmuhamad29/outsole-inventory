@@ -45,6 +45,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { getRealTimeStock, getAvailableSizesAction, getShoeModels, getUniqueCodeLasts } from "@/app/actions/handover"
 
 // Tool options for the dropdown
@@ -501,10 +508,23 @@ export default function NewHandoverPage() {
               {/* Giver */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pemberi</label>
-                <Input
-                  placeholder="e.g. ADMIN TOOLING"
-                  {...register("giver", { required: "Pemberi wajib diisi" })}
-                  className="h-10 bg-white dark:bg-gray-800"
+                <Controller
+                  control={control}
+                  name="giver"
+                  rules={{ required: "Pemberi wajib diisi" }}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger className="w-full h-10 bg-white dark:bg-gray-800">
+                        <SelectValue placeholder="Pilih Pemberi..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Admin 1">Admin 1</SelectItem>
+                        <SelectItem value="Admin 2">Admin 2</SelectItem>
+                        <SelectItem value="Operator 1">Operator 1</SelectItem>
+                        <SelectItem value="Operator 2">Operator 2</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
                 {errors.giver && (
                   <p className="text-xs text-red-500 font-medium">{errors.giver.message}</p>
