@@ -92,10 +92,16 @@ export async function deleteUserAction(id: string) {
       return { success: false, message: "Tidak dapat menghapus akun Anda sendiri!" }
     }
 
-    await prisma.user.update({ 
-      where: { id },
-      data: { isDeleted: true }
-    })
+    const userToDel = await prisma.user.findUnique({ where: { id } })
+    if (userToDel) {
+      await prisma.user.update({ 
+        where: { id },
+        data: { 
+          isDeleted: true,
+          username: `${userToDel.username}_del_${Date.now()}`
+        }
+      })
+    }
     revalidatePath("/account-control")
     return { success: true, message: "User berhasil dihapus" }
   } catch (error) {
