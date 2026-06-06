@@ -6,23 +6,7 @@ const prisma = new PrismaClient()
 async function main() {
   console.log("Seeding database...")
 
-  // 1. Backfill existing users (if any) to have a username based on their email
-  const existingUsers = await prisma.user.findMany({
-    where: { username: null }
-  })
-
-  for (const user of existingUsers) {
-    if (user.email) {
-      const newUsername = user.email.split("@")[0] + "-" + Math.floor(Math.random() * 1000)
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { username: newUsername }
-      })
-      console.log(`Backfilled username for ${user.email} -> ${newUsername}`)
-    }
-  }
-
-  // 2. Create the Super Admin if it doesn't exist
+  // 1. Create the Super Admin if it doesn't exist
   const superAdminUsername = "superadmin"
   
   const existingSuperAdmin = await prisma.user.findFirst({
