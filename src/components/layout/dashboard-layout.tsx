@@ -14,6 +14,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const role = session?.user?.role
+  const permissions = session?.user?.permissions || []
 
   const adminNavItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -42,7 +43,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Account Control", href: "/account-control", icon: ShieldAlert },
   ]
 
-  const navItems = role === "SUPER_ADMIN" ? superAdminNavItems : (role === "ADMIN" ? adminNavItems : operatorNavItems)
+  let baseNavItems = role === "SUPER_ADMIN" ? superAdminNavItems : (role === "ADMIN" ? adminNavItems : operatorNavItems)
+
+  // Filter based on new granular permissions
+  if (role !== "SUPER_ADMIN") {
+    baseNavItems = baseNavItems.filter(item => {
+      if (item.name === "Inbound" && !permissions.includes("MANAGE_INBOUND")) return false;
+      if (item.name === "Outbound" && !permissions.includes("MANAGE_OUTBOUND")) return false;
+      return true;
+    });
+  }
+  
+  const navItems = baseNavItems;
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 

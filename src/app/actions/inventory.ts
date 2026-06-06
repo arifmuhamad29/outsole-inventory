@@ -18,8 +18,8 @@ export async function processInboundAction(formData: FormData) {
     if (!session?.user?.id) {
       return { success: false, message: "Unauthorized" }
     }
-    if (session.user.role !== "ADMIN") {
-      return { success: false, message: "Forbidden: Only ADMIN can perform inbound" }
+    if (session.user.role !== "SUPER_ADMIN" && !session.user.permissions?.includes("MANAGE_INBOUND")) {
+      return { success: false, message: "Forbidden: Anda tidak memiliki izin Kelola Inbound" }
     }
 
     const data = {
@@ -105,8 +105,8 @@ export async function processBulkInboundAction(rows: unknown[]) {
     if (!session?.user?.id) {
       return { success: false, message: "Unauthorized" }
     }
-    if (session.user.role !== "ADMIN") {
-      return { success: false, message: "Forbidden: Only ADMIN can perform bulk inbound" }
+    if (session.user.role !== "SUPER_ADMIN" && !session.user.permissions?.includes("MANAGE_INBOUND")) {
+      return { success: false, message: "Forbidden: Anda tidak memiliki izin Kelola Inbound" }
     }
 
     // STRICT server-side Zod re-validation — reject entire payload if any row is invalid

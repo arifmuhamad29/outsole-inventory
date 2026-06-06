@@ -9,9 +9,9 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
-    
-    // Both ADMIN and OPERATOR can do outbound scanning
-    
+    if (session.user.role !== "SUPER_ADMIN" && !session.user.permissions?.includes("MANAGE_OUTBOUND")) {
+      return NextResponse.json({ success: false, message: "Forbidden: Anda tidak memiliki izin Kelola Outbound" }, { status: 403 })
+    }
     const body = await req.json()
     const parsed = outboundSchema.safeParse(body)
     
