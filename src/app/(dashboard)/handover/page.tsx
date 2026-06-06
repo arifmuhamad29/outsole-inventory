@@ -36,7 +36,7 @@ type HandoverList = {
   recipient: string
   codeLast: string | null
   modelName: string | null
-  items: { toolName: string; qty: number; satuan: string; type: string | null; size: string }[]
+  items: { toolName: string; qty: number; satuan: string; type: string | null; size: string; remark: string | null }[]
 }
 
 export default function HandoverPage() {
@@ -143,19 +143,20 @@ export default function HandoverPage() {
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Penerima</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Code Last</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Total Items</TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Remark</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={8} className="h-32 text-center text-slate-500">
                     Memuat data...
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={8} className="h-32 text-center text-slate-500">
                     Tidak ditemukan data handover {search && `"${search}"`}
                   </TableCell>
                 </TableRow>
@@ -166,7 +167,16 @@ export default function HandoverPage() {
                       {ho.id}
                     </TableCell>
                     <TableCell className="text-slate-600 dark:text-slate-400">
-                      {format(new Date(ho.date), "dd MMM yyyy")}
+                      <div>
+                        {new Date(ho.date).toLocaleDateString('id-ID', {
+                          day: '2-digit', month: 'short', year: 'numeric'
+                        })}
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {new Date(ho.date).toLocaleTimeString('id-ID', {
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </div>
                     </TableCell>
                     <TableCell className="font-medium text-slate-800 dark:text-slate-200">
                       {ho.giver}
@@ -200,6 +210,21 @@ export default function HandoverPage() {
                           </div>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {ho.items.filter(item => item.remark && item.remark.trim() !== "").length > 0 ? (
+                        <div className="flex flex-col space-y-1">
+                          {ho.items
+                            .filter(item => item.remark && item.remark.trim() !== "")
+                            .map((item, idx) => (
+                              <span key={idx} className="text-[10px] text-gray-500 dark:text-gray-400 italic truncate" title={item.remark || ""}>
+                                - {item.remark}
+                              </span>
+                            ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
