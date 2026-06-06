@@ -138,7 +138,7 @@ export default function HandoverPage() {
             <TableHeader>
               <TableRow className="bg-slate-50/50 dark:bg-slate-800/30">
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Handover ID</TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Date</TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Date/Time</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Pemberi</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Penerima</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Code Last</TableHead>
@@ -166,17 +166,12 @@ export default function HandoverPage() {
                     <TableCell className="font-mono font-semibold text-sm text-slate-900 dark:text-slate-100 whitespace-nowrap">
                       {ho.id}
                     </TableCell>
-                    <TableCell className="text-slate-600 dark:text-slate-400">
-                      <div>
-                        {new Date(ho.date).toLocaleDateString('id-ID', {
-                          day: '2-digit', month: 'short', year: 'numeric'
-                        })}
-                      </div>
-                      <div className="text-gray-500 text-xs">
-                        {new Date(ho.date).toLocaleTimeString('id-ID', {
-                          hour: '2-digit', minute: '2-digit'
-                        })}
-                      </div>
+                    <TableCell className="text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                      {new Date(ho.date).toLocaleDateString('id-ID', {
+                        day: '2-digit', month: 'short', year: 'numeric'
+                      })}, {new Date(ho.date).toLocaleTimeString('id-ID', {
+                        hour: '2-digit', minute: '2-digit'
+                      }).replace('.', ':')} WIB
                     </TableCell>
                     <TableCell className="font-medium text-slate-800 dark:text-slate-200">
                       {ho.giver}
