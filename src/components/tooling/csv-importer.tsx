@@ -116,19 +116,24 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
           setImportProgress({ current: 0, total: models.length, currentModel: "" })
 
           let hasErrors = false
+          let currentIndex = 0
           
           // Sequential Upload Loop
-          for (let i = 0; i < models.length; i++) {
-            const modelName = models[i]
+          for (const modelName of Object.keys(groupedData)) {
             const modelRows = groupedData[modelName]
+            currentIndex++
             
-            setImportProgress({ current: i + 1, total: models.length, currentModel: modelName })
+            setImportProgress({ current: currentIndex, total: models.length, currentModel: modelName })
 
-            const res = await importSingleModelAction(modelName, modelRows)
-            if (!res.success) {
+            try {
+              const res = await importSingleModelAction(modelName, modelRows)
+              if (!res.success) {
+                hasErrors = true
+                setErrorMsg(prev => prev ? `${prev}\nFailed ${modelName}: ${res.message}` : `Failed ${modelName}: ${res.message}`)
+              }
+            } catch (err: unknown) {
               hasErrors = true
-              setErrorMsg(prev => prev ? `${prev}\nFailed ${modelName}: ${res.message}` : `Failed ${modelName}: ${res.message}`)
-              // Continue to next model even if one fails
+              setErrorMsg(prev => prev ? `${prev}\nFailed ${modelName}: ${err instanceof Error ? err.message : String(err)}` : `Failed ${modelName}: ${err instanceof Error ? err.message : String(err)}`)
             }
           }
 

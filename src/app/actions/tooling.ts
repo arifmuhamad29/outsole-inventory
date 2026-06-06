@@ -265,94 +265,86 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
       return { success: false, message: "Data tidak valid untuk model ini" }
     }
 
-    await prisma.$transaction(
-      async (tx) => {
-        // A. Upsert the master Shoe Model once per group
-        const shoeModel = await tx.shoeModel.upsert({
-          where: { name: modelName },
-          update: { lastUpdated: new Date() },
-          create: { name: modelName, lastUpdated: new Date() }
-        })
+    // A. Upsert the master Shoe Model once per group
+    const shoeModel = await prisma.shoeModel.upsert({
+      where: { name: modelName },
+      update: { lastUpdated: new Date() },
+      create: { name: modelName, lastUpdated: new Date() }
+    })
 
-        // B. Upsert all tooling items and phases associated with this specific model
-        for (const row of rows) {
-          const category = row["Category"]?.trim()
-          const toolingName = row["Tooling Name"]?.trim()
-          const phaseType = row["Phase"]?.trim()?.toUpperCase()
-          const qty = row["Qty"]?.trim() || null
-          const orderDateStr = row["Order Date"]?.trim()
-          const targetETAStr = row["Target ETA"]?.trim()
-          const actualETAStr = row["Actual ETA"]?.trim()
-          const status = row["Status"]?.trim()?.toUpperCase() || "ON PROCESS"
-          const remark = row["Remark"]?.trim() || null
+    // B. Upsert all tooling items and phases associated with this specific model
+    for (const row of rows) {
+      const category = row["Category"]?.trim()
+      const toolingName = row["Tooling Name"]?.trim()
+      const phaseType = row["Phase"]?.trim()?.toUpperCase()
+      const qty = row["Qty"]?.trim() || null
+      const orderDateStr = row["Order Date"]?.trim()
+      const targetETAStr = row["Target ETA"]?.trim()
+      const actualETAStr = row["Actual ETA"]?.trim()
+      const status = row["Status"]?.trim()?.toUpperCase() || "ON PROCESS"
+      const remark = row["Remark"]?.trim() || null
 
-          // Skip if missing essential item info
-          if (!category || !toolingName || !phaseType) continue
+      // Skip if missing essential item info
+      if (!category || !toolingName || !phaseType) continue
 
-          // Parse dates carefully, handle empty or '-'
-          const parseDate = (dStr: string | null | undefined) => {
-            if (!dStr || dStr === "-" || dStr === "") return null
-            const d = new Date(dStr)
-            return isNaN(d.getTime()) ? null : d
-          }
-
-          const pOrderDate = parseDate(orderDateStr)
-          const pTargetETA = parseDate(targetETAStr)
-          let pActualETA = parseDate(actualETAStr)
-          
-          if (status === "VERIFIED" && !pActualETA) {
-            pActualETA = new Date()
-          }
-
-          // Upsert ToolingItem
-          const toolingItem = await tx.toolingItem.upsert({
-            where: { 
-              modelId_name: {
-                modelId: shoeModel.id,
-                name: toolingName
-              }
-            },
-            update: { category, remark },
-            create: {
-              modelId: shoeModel.id,
-              category,
-              name: toolingName,
-              remark
-            }
-          })
-
-          // Upsert ToolingPhase
-          await tx.toolingPhase.upsert({
-            where: {
-              itemId_phaseType: {
-                itemId: toolingItem.id,
-                phaseType: phaseType
-              }
-            },
-            update: {
-              qty,
-              orderDate: pOrderDate,
-              targetETA: pTargetETA,
-              actualETA: pActualETA,
-              status
-            },
-            create: {
-              itemId: toolingItem.id,
-              phaseType: phaseType,
-              qty,
-              orderDate: pOrderDate,
-              targetETA: pTargetETA,
-              actualETA: pActualETA,
-              status
-            }
-          })
-        }
-      },
-      {
-        maxWait: 10000,
-        timeout: 15000 // 15s is plenty for one model
+      // Parse dates carefully, handle empty or '-'
+      const parseDate = (dStr: string | null | undefined) => {
+        if (!dStr || dStr === "-" || dStr === "") return null
+        const d = new Date(dStr)
+        return isNaN(d.getTime()) ? null : d
       }
-    )
+
+      const pOrderDate = parseDate(orderDateStr)
+      const pTargetETA = parseDate(targetETAStr)
+      let pActualETA = parseDate(actualETAStr)
+      
+      if (status === "VERIFIED" && !pActualETA) {
+        pActualETA = new Date()
+      }
+
+      // Upsert ToolingItem
+      const toolingItem = await prisma.toolingItem.upsert({
+        where: { 
+          modelId_name: {
+            modelId: shoeModel.id,
+            name: toolingName
+          }
+        },
+        update: { category, remark },
+        create: {
+          modelId: shoeModel.id,
+          category,
+          name: toolingName,
+          remark
+        }
+      })
+
+      // Upsert ToolingPhase
+      await prisma.toolingPhase.upsert({
+        where: {
+          itemId_phaseType: {
+            itemId: toolingItem.id,
+            phaseType: phaseType
+          }
+        },
+        update: {
+          qty,
+          orderDate: pOrderDate,
+          targetETA: pTargetETA,
+          actualETA: pActualETA,
+          status
+        },
+        create: {
+          itemId: toolingItem.id,
+          phaseType: phaseType,
+          qty,
+          orderDate: pOrderDate,
+          targetETA: pTargetETA,
+          actualETA: pActualETA,
+          status
+        }
+      })
+    }
 
     revalidatePath("/tooling")
     return { success: true, message: `Model ${modelName} berhasil diimpor` }
