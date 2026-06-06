@@ -30,7 +30,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { getRealTimeStock, getAvailableSizesAction } from "@/app/actions/handover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { getRealTimeStock, getAvailableSizesAction, getAvailableShoeModelsAction } from "@/app/actions/handover"
 
 // Tool options for the dropdown
 const TOOL_OPTIONS = [
@@ -305,6 +312,19 @@ function HandoverRow({ index, control, register, globalCodeLast, remove, isRemov
 
 export default function NewHandoverPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [modelOptions, setModelOptions] = useState<string[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
+
+  useEffect(() => {
+    getAvailableShoeModelsAction()
+      .then(models => {
+        setModelOptions(models)
+      })
+      .catch(console.error)
+      .finally(() => {
+        setIsLoadingModels(false)
+      })
+  }, [])
 
   const {
     register,
@@ -400,10 +420,29 @@ export default function NewHandoverPage() {
               {/* Code Last */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Code Last / Model Sepatu</label>
-                <Input
-                  placeholder="e.g. 43011"
-                  {...register("codeLast", { required: "Code Last wajib diisi" })}
-                  className="h-10 font-mono tracking-wider bg-white dark:bg-gray-800"
+                <Controller
+                  control={control}
+                  name="codeLast"
+                  rules={{ required: "Code Last wajib diisi" }}
+                  render={({ field }) => (
+                    <Select
+                      disabled={isLoadingModels}
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <SelectTrigger className="h-10 bg-white dark:bg-gray-800 font-mono tracking-wider">
+                        <SelectValue placeholder={isLoadingModels ? "Loading models..." : "Pilih Code Last"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modelOptions.map((model) => (
+                          <SelectItem key={model} value={model}>
+                            {model}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
                 {errors.codeLast && (
                   <p className="text-xs text-red-500 font-medium">{errors.codeLast.message}</p>
