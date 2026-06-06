@@ -260,7 +260,7 @@ export default function HandoverPage() {
                                   variant="destructive" 
                                   onClick={(e) => handleDelete(ho.id, e)}
                                   disabled={isDeleting === ho.id}
-                                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                                  className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                                 >
                                   {isDeleting === ho.id ? (
                                     <>
