@@ -435,21 +435,23 @@ export default function NewHandoverPage() {
                   rules={{ required: "Code Last wajib diisi" }}
                   render={({ field }) => (
                     <Popover open={openCodeLast} onOpenChange={setOpenCodeLast}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openCodeLast}
-                          disabled={isLoadingModels}
-                          className="w-full h-10 justify-between bg-white dark:bg-gray-800 font-mono tracking-wider"
-                        >
-                          {isLoadingModels 
-                            ? "Loading models..." 
-                            : field.value 
-                              ? field.value 
-                              : "Pilih Code Last"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
+                      <PopoverTrigger 
+                        render={
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCodeLast}
+                            disabled={isLoadingModels}
+                            className="w-full h-10 justify-between bg-white dark:bg-gray-800 font-mono tracking-wider"
+                          />
+                        }
+                      >
+                        {isLoadingModels 
+                          ? "Loading models..." 
+                          : field.value 
+                            ? field.value 
+                            : "Pilih Code Last"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </PopoverTrigger>
                       <PopoverContent className="w-[300px] p-0" align="start">
                         <Command>
