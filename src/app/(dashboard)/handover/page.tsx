@@ -193,19 +193,21 @@ export default function HandoverPage() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              disabled={isDeleting === ho.id}
-                              className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                            >
-                              {isDeleting === ho.id ? (
-                                <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </Button>
+                          <AlertDialogTrigger 
+                            render={
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                disabled={isDeleting === ho.id}
+                                className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                              />
+                            }
+                          >
+                            {isDeleting === ho.id ? (
+                              <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
