@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { format } from "date-fns"
-import { Send, Plus, Eye, Trash2 } from "lucide-react"
+import { Send, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -20,40 +20,45 @@ import { useState } from "react"
 const dummyHandovers = [
   {
     id: "HO-20260601-001",
-    date: new Date("2026-06-01"),
-    recipient: "LINE 3 - ASSY",
+    date: new Date("2026-06-01T10:30:00"),
+    pemberi: "Arif (Admin)",
+    penerima: "Budi (Line 3)",
     codeLast: "43011",
     totalItems: 4,
     status: "COMPLETED",
   },
   {
     id: "HO-20260602-002",
-    date: new Date("2026-06-02"),
-    recipient: "LINE 5 - BOTTOM",
+    date: new Date("2026-06-02T14:15:00"),
+    pemberi: "Arif (Admin)",
+    penerima: "Joko (Line 5)",
     codeLast: "23021",
     totalItems: 3,
     status: "COMPLETED",
   },
   {
     id: "HO-20260603-003",
-    date: new Date("2026-06-03"),
-    recipient: "LINE 1 - ASSY",
+    date: new Date("2026-06-03T09:45:00"),
+    pemberi: "Siti (Operator)",
+    penerima: "Andi (Line 1)",
     codeLast: "55010",
     totalItems: 6,
     status: "PENDING",
   },
   {
     id: "HO-20260604-004",
-    date: new Date("2026-06-04"),
-    recipient: "LINE 2 - BOTTOM",
+    date: new Date("2026-06-04T16:20:00"),
+    pemberi: "Arif (Admin)",
+    penerima: "Rina (Line 2)",
     codeLast: "43011",
     totalItems: 2,
     status: "COMPLETED",
   },
   {
     id: "HO-20260605-005",
-    date: new Date("2026-06-05"),
-    recipient: "LINE 4 - STOCKFIT",
+    date: new Date("2026-06-05T11:10:00"),
+    pemberi: "Siti (Operator)",
+    penerima: "Doni (Line 4)",
     codeLast: "12099",
     totalItems: 5,
     status: "PENDING",
@@ -67,7 +72,8 @@ export default function HandoverPage() {
     const q = search.toLowerCase()
     return (
       h.id.toLowerCase().includes(q) ||
-      h.recipient.toLowerCase().includes(q) ||
+      h.pemberi.toLowerCase().includes(q) ||
+      h.penerima.toLowerCase().includes(q) ||
       h.codeLast.toLowerCase().includes(q)
     )
   })
@@ -98,7 +104,7 @@ export default function HandoverPage() {
         <div className="p-4 border-b bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="relative w-full max-w-sm">
             <Input
-              placeholder="Cari ID, Recipient, atau Code Last..."
+              placeholder="Cari ID, Pemberi, Penerima, atau Code Last..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 bg-white dark:bg-gray-800"
@@ -115,7 +121,8 @@ export default function HandoverPage() {
               <TableRow className="bg-slate-50/50 dark:bg-slate-800/30">
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Handover ID</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Date</TableHead>
-                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Recipient / Line</TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Pemberi</TableHead>
+                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Penerima</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Code Last</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Total Items</TableHead>
                 <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Status</TableHead>
@@ -125,7 +132,7 @@ export default function HandoverPage() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={8} className="h-32 text-center text-slate-500">
                     Tidak ditemukan data handover &quot;{search}&quot;
                   </TableCell>
                 </TableRow>
@@ -136,10 +143,13 @@ export default function HandoverPage() {
                       {ho.id}
                     </TableCell>
                     <TableCell className="text-slate-600 dark:text-slate-400">
-                      {format(ho.date, "dd MMM yyyy")}
+                      {format(ho.date, "dd MMM yyyy, HH:mm")}
                     </TableCell>
                     <TableCell className="font-medium text-slate-800 dark:text-slate-200">
-                      {ho.recipient}
+                      {ho.pemberi}
+                    </TableCell>
+                    <TableCell className="font-medium text-slate-800 dark:text-slate-200">
+                      {ho.penerima}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-mono bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600">
@@ -165,9 +175,6 @@ export default function HandoverPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600">
-                          <Eye className="w-4 h-4" />
-                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-red-600">
                           <Trash2 className="w-4 h-4" />
                         </Button>
