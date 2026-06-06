@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { format } from "date-fns"
 import Link from "next/link"
@@ -56,7 +56,9 @@ type HandoverItem = {
   toolName: string
   type: string
   size: string
+  satuan: string
   qtyHandover: number
+  remark: string
 }
 
 type FormValues = {
@@ -79,7 +81,6 @@ function getMockStock(toolName: string, type: string, size: string): number | nu
 }
 
 export default function NewHandoverPage() {
-  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -93,7 +94,7 @@ export default function NewHandoverPage() {
       date: format(new Date(), "yyyy-MM-dd"),
       recipient: "",
       codeLast: "",
-      items: [{ toolName: "", type: "", size: "", qtyHandover: 0 }],
+      items: [{ toolName: "", type: "", size: "", satuan: "SET", qtyHandover: 0, remark: "" }],
     },
   })
 
@@ -103,6 +104,7 @@ export default function NewHandoverPage() {
   })
 
   const watchedItems = watch("items")
+  const globalCodeLast = watch("codeLast")
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
@@ -174,7 +176,7 @@ export default function NewHandoverPage() {
 
               {/* Code Last */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Code Last</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Code Last / Model Sepatu</label>
                 <Input
                   placeholder="e.g. 43011"
                   {...register("codeLast", { required: "Code Last wajib diisi" })}
@@ -203,7 +205,7 @@ export default function NewHandoverPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ toolName: "", type: "", size: "", qtyHandover: 0 })}
+                onClick={() => append({ toolName: "", type: "", size: "", satuan: "SET", qtyHandover: 0, remark: "" })}
                 className="gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
               >
                 <Plus className="w-4 h-4" />
@@ -217,12 +219,14 @@ export default function NewHandoverPage() {
                 <TableHeader>
                   <TableRow className="bg-slate-50/80 dark:bg-slate-800/50">
                     <TableHead className="w-[40px] text-center font-semibold text-slate-600 dark:text-slate-400">#</TableHead>
-                    <TableHead className="min-w-[200px] font-semibold text-slate-600 dark:text-slate-400">Tool Name</TableHead>
-                    <TableHead className="min-w-[130px] font-semibold text-slate-600 dark:text-slate-400">Type</TableHead>
-                    <TableHead className="min-w-[130px] font-semibold text-slate-600 dark:text-slate-400">Size</TableHead>
-                    <TableHead className="min-w-[100px] font-semibold text-slate-600 dark:text-slate-400">Qty Handover</TableHead>
-                    <TableHead className="min-w-[120px] font-semibold text-slate-600 dark:text-slate-400 text-center">Current Stock</TableHead>
-                    <TableHead className="w-[60px] font-semibold text-slate-600 dark:text-slate-400 text-center">Hapus</TableHead>
+                    <TableHead className="min-w-[180px] font-semibold text-slate-600 dark:text-slate-400">Tool Name</TableHead>
+                    <TableHead className="min-w-[120px] font-semibold text-slate-600 dark:text-slate-400">Type</TableHead>
+                    <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Size</TableHead>
+                    <TableHead className="min-w-[90px] font-semibold text-slate-600 dark:text-slate-400">Satuan</TableHead>
+                    <TableHead className="min-w-[90px] font-semibold text-slate-600 dark:text-slate-400">Qty</TableHead>
+                    <TableHead className="min-w-[80px] font-semibold text-slate-600 dark:text-slate-400 text-center">Stock</TableHead>
+                    <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Remark</TableHead>
+                    <TableHead className="w-[50px] font-semibold text-slate-600 dark:text-slate-400 text-center">Hapus</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,24 +265,67 @@ export default function NewHandoverPage() {
 
                         {/* Type */}
                         <TableCell>
-                          <select
-                            {...register(`items.${index}.type` as const)}
-                            disabled={!isTyped}
-                            className={`w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${!isTyped ? "opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-900" : ""}`}
-                          >
-                            <option value="">None</option>
-                            <option value="HOT">HOT</option>
-                            <option value="CHILLER">CHILLER</option>
-                          </select>
+                          {isStockTracked && isTyped ? (
+                            <select
+                              {...register(`items.${index}.type` as const)}
+                              className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                            >
+                              <option value="">None</option>
+                              <option value="HOT">HOT</option>
+                              <option value="CHILLER">CHILLER</option>
+                            </select>
+                          ) : (
+                            <select disabled className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed px-2 text-sm">
+                              <option value="">-</option>
+                            </select>
+                          )}
                         </TableCell>
 
                         {/* Size */}
                         <TableCell>
-                          <Input
-                            placeholder="e.g. 3K-5TK"
-                            {...register(`items.${index}.size` as const)}
-                            className="h-9 bg-white dark:bg-gray-800"
-                          />
+                          {!isStockTracked ? (
+                            <Input
+                              placeholder="e.g. 5T"
+                              {...register(`items.${index}.size` as const)}
+                              className="h-9 bg-white dark:bg-gray-800"
+                            />
+                          ) : (
+                            <select
+                              {...register(`items.${index}.size` as const)}
+                              disabled={!globalCodeLast}
+                              className={`w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${!globalCodeLast ? "bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed" : "bg-white dark:bg-gray-800"}`}
+                            >
+                              <option value="">
+                                {!globalCodeLast ? "Isi Code Last dulu" : "-- Pilih Size --"}
+                              </option>
+                              {globalCodeLast && (
+                                <>
+                                  <option value="3K-5TK">3K-5TK</option>
+                                  <option value="10K-2T">10K-2T</option>
+                                </>
+                              )}
+                            </select>
+                          )}
+                        </TableCell>
+
+                        {/* Satuan */}
+                        <TableCell>
+                          {!isStockTracked ? (
+                            <select
+                              {...register(`items.${index}.satuan` as const)}
+                              className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                            >
+                              <option value="SET">SET</option>
+                              <option value="EA">EA</option>
+                            </select>
+                          ) : (
+                            <Input
+                              value="SET"
+                              readOnly
+                              disabled
+                              className="h-9 bg-slate-50 dark:bg-slate-900 opacity-60 text-center font-medium"
+                            />
+                          )}
                         </TableCell>
 
                         {/* Qty Handover */}
@@ -294,17 +341,17 @@ export default function NewHandoverPage() {
                                 value={f.value === 0 ? "" : f.value}
                                 onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
                                 className={`h-9 text-center font-semibold bg-white dark:bg-gray-800 ${
-                                  isOverStock
+                                  isStockTracked && isOverStock
                                     ? "border-red-400 ring-2 ring-red-200 focus-visible:ring-red-400 text-red-700 dark:border-red-500 dark:ring-red-800 dark:text-red-400"
                                     : ""
                                 }`}
                               />
                             )}
                           />
-                          {isOverStock && (
-                            <p className="flex items-center gap-1 mt-1 text-[10px] text-red-500 font-medium">
-                              <AlertTriangle className="w-3 h-3" />
-                              Melebihi stok ({mockStock})
+                          {isStockTracked && isOverStock && (
+                            <p className="flex items-center gap-1 mt-1 text-[10px] text-red-500 font-medium leading-tight">
+                              <AlertTriangle className="w-3 h-3 shrink-0" />
+                              Melebihi stok
                             </p>
                           )}
                         </TableCell>
@@ -315,20 +362,29 @@ export default function NewHandoverPage() {
                             currentItem?.size?.trim() ? (
                               <Badge
                                 variant="outline"
-                                className={`font-mono text-xs px-2.5 py-1 ${
+                                className={`font-mono text-xs px-2 py-1 ${
                                   mockStock !== null && mockStock > 0
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
                                     : "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700"
                                 }`}
                               >
-                                Stock: {mockStock ?? 0}
+                                {mockStock ?? 0}
                               </Badge>
                             ) : (
-                              <span className="text-xs text-slate-400 italic">Isi size dulu</span>
+                              <span className="text-[10px] text-slate-400 italic">Pilih size</span>
                             )
                           ) : (
-                            <span className="text-xs text-slate-400">—</span>
+                            <span className="text-sm text-slate-400">—</span>
                           )}
+                        </TableCell>
+
+                        {/* Remark */}
+                        <TableCell>
+                          <Input
+                            placeholder="Catatan..."
+                            {...register(`items.${index}.remark` as const)}
+                            className="h-9 bg-white dark:bg-gray-800"
+                          />
                         </TableCell>
 
                         {/* Remove Button */}
@@ -359,7 +415,7 @@ export default function NewHandoverPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ toolName: "", type: "", size: "", qtyHandover: 0 })}
+                onClick={() => append({ toolName: "", type: "", size: "", satuan: "SET", qtyHandover: 0, remark: "" })}
                 className="w-full border-dashed border-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 gap-2 h-10"
               >
                 <Plus className="w-4 h-4" />
