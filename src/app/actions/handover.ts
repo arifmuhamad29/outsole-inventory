@@ -1,6 +1,8 @@
 "use server"
 
 import prisma from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
+import { auth } from "@/lib/auth"
 
 export async function getRealTimeStock(
   codeLast: string,
@@ -90,8 +92,6 @@ export async function getUniqueCodeLasts(): Promise<string[]> {
     return []
   }
 }
-
-import { revalidatePath } from "next/cache"
 
 type HandoverItemPayload = {
   toolName: string
@@ -231,6 +231,11 @@ export async function getHandoversAction() {
 
 export async function deleteHandoverAction(id: string): Promise<{ success: boolean; message: string }> {
   try {
+    const session = await auth()
+    if (!session || session.user.role !== "ADMIN") {
+      throw new Error("Unauthorized Access: Only Administrators can delete handovers")
+    }
+
     await prisma.$transaction(async (tx) => {
       // 1. Get the handover with items
       const handover = await tx.handover.findUnique({

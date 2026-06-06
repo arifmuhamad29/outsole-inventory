@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input"
 import { useState, useEffect } from "react"
 import { getHandoversAction, deleteHandoverAction } from "@/app/actions/handover"
 import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 
 type HandoverList = {
   id: string
@@ -41,6 +42,9 @@ type HandoverList = {
 }
 
 export default function HandoverPage() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
+
   const [search, setSearch] = useState("")
   const [handovers, setHandovers] = useState<HandoverList[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -224,41 +228,45 @@ export default function HandoverPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <AlertDialog>
-                          <AlertDialogTrigger 
-                            render={
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                disabled={isDeleting === ho.id}
-                                className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                              />
-                            }
-                          >
-                            {isDeleting === ho.id ? (
-                              <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Konfirmasi Hapus Data</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Apakah Anda yakin ingin menghapus data handover ini? Tindakan ini tidak dapat dibatalkan dan stok akan dikembalikan otomatis ke inventaris.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleDelete(ho.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white"
-                              >
-                                Ya, Hapus
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {isAdmin ? (
+                          <AlertDialog>
+                            <AlertDialogTrigger 
+                              render={
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  disabled={isDeleting === ho.id}
+                                  className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                                />
+                              }
+                            >
+                              {isDeleting === ho.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Hapus Handover?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tindakan ini tidak dapat dibatalkan. Stok yang telah dipotong akan dikembalikan.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDelete(ho.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Hapus
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        ) : (
+                          <div className="w-8 h-8"></div>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

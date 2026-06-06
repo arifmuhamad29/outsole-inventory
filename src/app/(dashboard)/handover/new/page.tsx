@@ -52,6 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useSession } from "next-auth/react"
 import { getRealTimeStock, getAvailableSizesAction, getShoeModels, getUniqueCodeLasts } from "@/app/actions/handover"
 
 // Tool options for the dropdown
@@ -351,6 +352,7 @@ import { toast } from "sonner"
 
 export default function NewHandoverPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [modelOptions, setModelOptions] = useState<string[]>([])
@@ -397,6 +399,13 @@ export default function NewHandoverPage() {
 
   const globalModelName = watch("modelName")
   const globalCodeLast = watch("codeLast")
+  const globalGiver = watch("giver")
+
+  useEffect(() => {
+    if (session?.user && !globalGiver) {
+      setValue("giver", session.user.name || session.user.email || "SYSTEM")
+    }
+  }, [session, globalGiver, setValue])
 
   const onSubmit = async (data: FormValues) => {
     // Custom row-level validation
@@ -508,24 +517,13 @@ export default function NewHandoverPage() {
               {/* Giver */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pemberi</label>
-                <Controller
-                  control={control}
-                  name="giver"
-                  rules={{ required: "Pemberi wajib diisi" }}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <SelectTrigger className="w-full h-10 bg-white dark:bg-gray-800">
-                        <SelectValue placeholder="Pilih Pemberi..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Admin 1">Admin 1</SelectItem>
-                        <SelectItem value="Admin 2">Admin 2</SelectItem>
-                        <SelectItem value="Operator 1">Operator 1</SelectItem>
-                        <SelectItem value="Operator 2">Operator 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                <Input
+                  disabled
+                  value={watch("giver") || (status === "loading" ? "Loading..." : "")}
+                  className="h-10 bg-slate-100 dark:bg-slate-900 font-medium text-slate-500 cursor-not-allowed"
                 />
+                {/* Keep the hidden input to ensure it's submitted with the form */}
+                <input type="hidden" {...register("giver", { required: "Pemberi wajib diisi" })} />
                 {errors.giver && (
                   <p className="text-xs text-red-500 font-medium">{errors.giver.message}</p>
                 )}
