@@ -265,17 +265,31 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
       return { success: false, message: "File CSV kosong atau tidak valid" }
     }
 
-    // Process data in chunks to prevent database connection pool timeouts
-    const CHUNK_SIZE = 50
-    for (let i = 0; i < parsedData.length; i += CHUNK_SIZE) {
-      const chunk = parsedData.slice(i, i + CHUNK_SIZE)
+    // 1. Group the parsed rows by Model Name
+    const groupedByModel = parsedData.reduce((acc, row) => {
+      const modelName = row["Model Name"]?.trim()?.toUpperCase()
+      if (!modelName) return acc // skip empty
 
-      // Execute each chunk as a separate interactive transaction
+      if (!acc[modelName]) {
+        acc[modelName] = []
+      }
+      acc[modelName].push(row)
+      return acc
+    }, {} as Record<string, Record<string, string>[]>)
+
+    // 2. Process each model group in its own transaction
+    for (const [modelName, rows] of Object.entries(groupedByModel)) {
       await prisma.$transaction(
         async (tx) => {
-          // Process sequentially inside the chunk to avoid Unique Constraint deadlocks
-          for (const row of chunk) {
-            const modelName = row["Model Name"]?.trim()?.toUpperCase()
+          // A. Upsert the master Shoe Model once per group
+          const shoeModel = await tx.shoeModel.upsert({
+            where: { name: modelName },
+            update: { lastUpdated: new Date() },
+            create: { name: modelName, lastUpdated: new Date() }
+          })
+
+          // B. Upsert all tooling items and phases associated with this specific model
+          for (const row of rows) {
             const category = row["Category"]?.trim()
             const toolingName = row["Tooling Name"]?.trim()
             const phaseType = row["Phase"]?.trim()?.toUpperCase()
@@ -286,8 +300,8 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
             const status = row["Status"]?.trim()?.toUpperCase() || "ON PROCESS"
             const remark = row["Remark"]?.trim() || null
 
-            // Skip rows that don't have the minimum required fields
-            if (!modelName || !category || !toolingName || !phaseType) continue
+            // Skip if missing essential item info
+            if (!category || !toolingName || !phaseType) continue
 
             // Parse dates carefully, handle empty or '-'
             const parseDate = (dStr: string | null | undefined) => {
@@ -304,14 +318,7 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
               pActualETA = new Date()
             }
 
-            // 1. Upsert ShoeModel
-            const shoeModel = await tx.shoeModel.upsert({
-              where: { name: modelName },
-              update: { lastUpdated: new Date() },
-              create: { name: modelName, lastUpdated: new Date() }
-            })
-
-            // 2. Upsert ToolingItem
+            // Upsert ToolingItem
             const toolingItem = await tx.toolingItem.upsert({
               where: { 
                 modelId_name: {
@@ -319,10 +326,7 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
                   name: toolingName
                 }
               },
-              update: {
-                category,
-                remark
-              },
+              update: { category, remark },
               create: {
                 modelId: shoeModel.id,
                 category,
@@ -331,7 +335,7 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
               }
             })
 
-            // 3. Upsert ToolingPhase
+            // Upsert ToolingPhase
             await tx.toolingPhase.upsert({
               where: {
                 itemId_phaseType: {
@@ -360,7 +364,7 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
         },
         {
           maxWait: 15000,
-          timeout: 30000 // 30s per chunk is plenty
+          timeout: 30000 // 30s is more than enough for a single model's tooling
         }
       )
     }
