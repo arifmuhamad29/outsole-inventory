@@ -265,11 +265,16 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
       return { success: false, message: "File CSV kosong atau tidak valid" }
     }
 
-    // Process data inside transaction
-    await prisma.$transaction(
-      async (tx) => {
-        await Promise.all(
-          parsedData.map(async (row) => {
+    // Process data in chunks to prevent database connection pool timeouts
+    const CHUNK_SIZE = 50
+    for (let i = 0; i < parsedData.length; i += CHUNK_SIZE) {
+      const chunk = parsedData.slice(i, i + CHUNK_SIZE)
+
+      // Execute each chunk as a separate interactive transaction
+      await prisma.$transaction(
+        async (tx) => {
+          // Process sequentially inside the chunk to avoid Unique Constraint deadlocks
+          for (const row of chunk) {
             const modelName = row["Model Name"]?.trim()?.toUpperCase()
             const category = row["Category"]?.trim()
             const toolingName = row["Tooling Name"]?.trim()
@@ -282,7 +287,7 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
             const remark = row["Remark"]?.trim() || null
 
             // Skip rows that don't have the minimum required fields
-            if (!modelName || !category || !toolingName || !phaseType) return
+            if (!modelName || !category || !toolingName || !phaseType) continue
 
             // Parse dates carefully, handle empty or '-'
             const parseDate = (dStr: string | null | undefined) => {
@@ -351,14 +356,14 @@ export async function importToolingCSVAction(parsedData: Record<string, string>[
                 status
               }
             })
-          })
-        )
-      },
-      {
-        maxWait: 10000,
-        timeout: 60000 // Allow up to 60s for large CSVs
-      }
-    )
+          }
+        },
+        {
+          maxWait: 15000,
+          timeout: 30000 // 30s per chunk is plenty
+        }
+      )
+    }
 
     revalidatePath("/tooling")
     return { success: true, message: "Bulk import berhasil!" }
