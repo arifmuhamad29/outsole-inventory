@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { format } from "date-fns"
-import { Send, Plus, Trash2, RefreshCw } from "lucide-react"
+import { Send, Plus, Trash2, RefreshCw, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -67,7 +67,8 @@ export default function HandoverPage() {
     fetchHandovers()
   }, [])
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
     setIsDeleting(id)
     try {
       const res = await deleteHandoverAction(id)
@@ -254,13 +255,22 @@ export default function HandoverPage() {
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDelete(ho.id)}
-                                  className="bg-red-600 hover:bg-red-700"
+                                <AlertDialogCancel disabled={isDeleting === ho.id}>Batal</AlertDialogCancel>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={(e) => handleDelete(ho.id, e)}
+                                  disabled={isDeleting === ho.id}
+                                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
                                 >
-                                  Hapus
-                                </AlertDialogAction>
+                                  {isDeleting === ho.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Menghapus...
+                                    </>
+                                  ) : (
+                                    "Ya, Hapus"
+                                  )}
+                                </Button>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
