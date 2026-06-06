@@ -36,7 +36,7 @@ type HandoverList = {
   recipient: string
   codeLast: string | null
   modelName: string | null
-  items: { toolName: string; qty: number }[]
+  items: { toolName: string; qty: number; satuan: string; type: string | null; size: string }[]
 }
 
 export default function HandoverPage() {
@@ -187,13 +187,17 @@ export default function HandoverPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex flex-col items-center">
-                        <span className="font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
+                        <span className="font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full text-xs whitespace-nowrap mb-1">
                           {ho.items?.length || 0} Alat
                         </span>
                         {ho.items && ho.items.length > 0 && (
-                          <span className="text-[10px] text-slate-500 mt-1 max-w-[150px] truncate" title={ho.items.map(item => item.toolName).join(', ')}>
-                            {ho.items.map(item => item.toolName).join(', ')}
-                          </span>
+                          <div className="flex flex-col space-y-1 items-start w-full">
+                            {ho.items.map((item, index) => (
+                              <span key={index} className="text-[10px] text-slate-600 dark:text-slate-400 text-left">
+                                • {item.qty} {item.satuan} {item.toolName} {item.type && item.type !== "-" ? `(${item.type})` : ""} - Sz: {item.size}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </TableCell>
