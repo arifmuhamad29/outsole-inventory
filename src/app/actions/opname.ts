@@ -9,7 +9,7 @@ export async function createOpnameSessionAction(formData: FormData) {
   try {
     const session = await auth()
     if (!session?.user?.id) return { success: false, message: "Unauthorized" }
-    if (session.user.role !== "ADMIN") return { success: false, message: "Forbidden" }
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") return { success: false, message: "Forbidden" }
 
     const name = formData.get("name") as string
     if (!name) return { success: false, message: "Name is required" }
@@ -46,7 +46,7 @@ export async function getOutsoleByQrCodeAction(qrCode: string) {
 export async function submitOpnameItemAction(sessionId: string, qrCode: string, physicalStock: number) {
   try {
     const session = await auth()
-    if (session?.user?.role !== "ADMIN") return { success: false, message: "Forbidden" }
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") return { success: false, message: "Forbidden" }
 
     const outsole = await prisma.outsole.findUnique({ where: { qrCode } })
     if (!outsole) return { success: false, message: "Outsole not found" }
@@ -98,7 +98,7 @@ export async function deleteStockOpnameSessionAction(id: string, password?: stri
 
     const session = await auth()
     if (!session?.user?.id) return { success: false, message: "Unauthorized" }
-    if (session.user.role !== "ADMIN") return { success: false, message: "Forbidden: Only ADMIN can delete permanently" }
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") return { success: false, message: "Forbidden: Only ADMIN can delete permanently" }
 
     const user = await prisma.user.findUnique({ where: { id: session.user.id } })
     if (!user || !user.passwordHash) return { success: false, message: "Unauthorized" }

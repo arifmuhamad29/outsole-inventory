@@ -7,7 +7,7 @@ import { InventoryTable } from "@/components/features/inventory-table"
 
 export default async function InventoryPage(props: { searchParams?: Promise<{ q?: string | string[], status?: string | string[] }> }) {
   const session = await auth()
-  const isAdmin = session?.user?.role === "ADMIN"
+  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN"
   
   const resolvedParams = props.searchParams ? await props.searchParams : {}
   const rawQuery = resolvedParams.q

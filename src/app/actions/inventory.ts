@@ -55,7 +55,7 @@ export async function processAdjustmentAction(formData: FormData) {
     if (!session?.user?.id) {
       return { success: false, message: "Unauthorized" }
     }
-    if (session.user.role !== "ADMIN") {
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
       return { success: false, message: "Forbidden: Only ADMIN can perform adjustment" }
     }
 
@@ -87,7 +87,7 @@ export async function hardDeleteOutsoleAction(id: string, password?: string) {
 
     const session = await auth()
     if (!session?.user?.id) return { success: false, message: "Unauthorized" }
-    if (session.user.role !== "ADMIN") return { success: false, message: "Forbidden: Only ADMIN can delete permanently" }
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") return { success: false, message: "Forbidden: Only ADMIN/SUPER_ADMIN can delete permanently" }
 
     await InventoryService.hardDeleteOutsole(id, session.user.id, password)
     revalidatePath("/")

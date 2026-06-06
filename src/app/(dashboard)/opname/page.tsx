@@ -9,7 +9,7 @@ import { OpnameCreateSessionForm } from "@/components/features/opname-create-ses
 
 export default async function OpnamePage() {
   const session = await auth()
-  if (session?.user?.role !== "ADMIN") {
+  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
     redirect("/")
   }
 
@@ -55,7 +55,7 @@ export default async function OpnamePage() {
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-sm text-gray-600">{s._count.items} items scanned</span>
                   <div className="flex gap-2">
-                    <OpnameSessionActions id={s.id} isAdmin={session?.user?.role === "ADMIN"} />
+                    <OpnameSessionActions id={s.id} isAdmin={session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN"} />
                     <Link href={`/opname/${s.id}`}>
                       <Button variant="outline" size="sm">
                         View Details

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 
 export default async function AuditPage() {
   const session = await auth()
-  if (session?.user?.role !== "ADMIN") {
+  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
     redirect("/")
   }
 

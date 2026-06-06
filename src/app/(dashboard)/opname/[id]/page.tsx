@@ -15,7 +15,7 @@ export default async function OpnameDetailsPage({ params }: { params: Promise<{ 
   const { id } = await params
 
   const session = await auth()
-  if (session?.user?.role !== "ADMIN") redirect("/")
+  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") redirect("/")
 
   const opnameSession = await prisma.stockOpnameSession.findUnique({
     where: { id },
