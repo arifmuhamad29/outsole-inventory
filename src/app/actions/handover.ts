@@ -118,7 +118,8 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
       return { success: false, message: "Unauthorized Access: You do not have permission to create handovers" }
     }
 
-    const { date, recipient, giver = "SYSTEM", modelName, codeLast, items } = data
+    const actualGiver = session.user.username || session.user.name || "SYSTEM"
+    const { date, recipient, modelName, codeLast, items } = data
 
     await prisma.$transaction(async (tx) => {
       // Generate format: HO-YYYYMMDD-001
@@ -144,7 +145,7 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
           id: customId,
           date: new Date(date),
           recipient,
-          giver,
+          giver: actualGiver,
           modelName: modelName || null,
           codeLast: codeLast || null,
         }

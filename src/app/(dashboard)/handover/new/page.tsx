@@ -514,21 +514,6 @@ export default function NewHandoverPage() {
                 )}
               </div>
 
-              {/* Giver */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pemberi</label>
-                <Input
-                  disabled
-                  value={watch("giver") || (status === "loading" ? "Loading..." : "")}
-                  className="h-10 bg-slate-100 dark:bg-slate-900 font-medium text-slate-500 cursor-not-allowed"
-                />
-                {/* Keep the hidden input to ensure it's submitted with the form */}
-                <input type="hidden" {...register("giver", { required: "Pemberi wajib diisi" })} />
-                {errors.giver && (
-                  <p className="text-xs text-red-500 font-medium">{errors.giver.message}</p>
-                )}
-              </div>
-
               {/* Model Name */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model Sepatu</label>
