@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useTransition, Fragment } from "react"
+import { useSession } from "next-auth/react"
 import { getToolingModels } from "@/app/actions/tooling-fetch"
 import { createShoeModelAction, deleteShoeModelAction } from "@/app/actions/tooling"
 import { ShoeModel, ToolingItem, ToolingPhase } from "@prisma/client"
@@ -46,6 +47,8 @@ type ShoeModelWithTooling = ShoeModel & {
 }
 
 export default function ToolingPage() {
+  const { data: session } = useSession()
+  const canEdit = session?.user?.permissions?.includes("EDIT_TOOLING_MES") || session?.user?.role === "SUPER_ADMIN"
   const [models, setModels] = useState<ShoeModelWithTooling[]>([])
   const [filteredModels, setFilteredModels] = useState<ShoeModelWithTooling[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -151,39 +154,43 @@ export default function ToolingPage() {
               className="pl-9 h-9 bg-white"
             />
           </div>
-          <CsvImporter onSuccess={fetchData} />
-          <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
-            <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                New Model
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
-                <DialogDescription>
-                  Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 2 fasenya (Extreme, FSR).
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Input 
-                  placeholder="NAMA MODEL SEPATU..." 
-                  value={newModelName}
-                  onChange={(e) => setNewModelName(e.target.value.toUpperCase())}
-                  disabled={isPending}
-                  className="h-10 uppercase"
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsNewModelDialogOpen(false)} disabled={isPending}>Batal</Button>
-                <Button onClick={handleCreateModel} disabled={isPending || !newModelName.trim()}>
-                  {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Buat Model
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {canEdit && (
+            <>
+              <CsvImporter onSuccess={fetchData} />
+              <Dialog open={isNewModelDialogOpen} onOpenChange={setIsNewModelDialogOpen}>
+                <DialogTrigger render={<Button className="gap-2 shadow-sm" />}>
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    New Model
+                  </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Tambah Model Sepatu Baru</DialogTitle>
+                    <DialogDescription>
+                      Model baru ini akan otomatis diisi dengan 10 baris tooling bawaan beserta 2 fasenya (Extreme, FSR).
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Input 
+                      placeholder="NAMA MODEL SEPATU..." 
+                      value={newModelName}
+                      onChange={(e) => setNewModelName(e.target.value.toUpperCase())}
+                      disabled={isPending}
+                      className="h-10 uppercase"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsNewModelDialogOpen(false)} disabled={isPending}>Batal</Button>
+                    <Button onClick={handleCreateModel} disabled={isPending || !newModelName.trim()}>
+                      {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Buat Model
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
       </div>
 
@@ -261,18 +268,20 @@ export default function ToolingPage() {
                               className={`gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 ${isExpanded ? "bg-slate-200" : ""}`}
                             >
                               <ListChecks className="w-4 h-4" />
-                              {isExpanded ? "Tutup Checklist" : "Kelola Checklist"}
+                              {isExpanded ? "Tutup Checklist" : (canEdit ? "Kelola Checklist" : "Lihat Checklist")}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setModelToDelete(model.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
-                              disabled={isPending}
-                              title="Hapus Model"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {canEdit && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setModelToDelete(model.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                                disabled={isPending}
+                                title="Hapus Model"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -286,6 +295,7 @@ export default function ToolingPage() {
                                 model={selectedModel} 
                                 isOpen={true} 
                                 onClose={handleCloseDrawer} 
+                                isReadOnly={!canEdit}
                               />
                             </div>
                           </TableCell>

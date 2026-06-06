@@ -54,6 +54,7 @@ interface ToolingDrawerProps {
   model: ShoeModelWithTooling | null
   isOpen: boolean
   onClose: () => void
+  isReadOnly?: boolean
 }
 
 
@@ -78,7 +79,7 @@ const formatDateForInput = (date: Date | null) => {
   return format(new Date(date), "yyyy-MM-dd")
 }
 
-export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
+export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: ToolingDrawerProps) {
   const [activeTab, setActiveTab] = useState("FSR")
   const [isPending, startTransition] = useTransition()
   
@@ -229,15 +230,17 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-base">{category}</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleAddNewItem(category)}
-            className="h-8 gap-1 text-xs text-slate-600"
-          >
-            <Plus className="w-3 h-3" />
-            Tambah Baris
-          </Button>
+          {!isReadOnly && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleAddNewItem(category)}
+              className="h-8 gap-1 text-xs text-slate-600"
+            >
+              <Plus className="w-3 h-3" />
+              Tambah Baris
+            </Button>
+          )}
         </div>
         <div className="rounded-md border bg-white overflow-x-auto shadow-sm">
           <Table className="text-xs sm:text-sm">
@@ -282,6 +285,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                         onChange={(e) => handleItemNameChange(item.id, e.target.value)}
                         className="w-full h-8 text-xs sm:text-sm font-medium"
                         placeholder="Tooling Name..."
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
@@ -290,6 +294,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                         onChange={(e) => handlePhaseChange(phase.id, "qty", e.target.value)}
                         className="w-20 h-8" 
                         placeholder="e.g. 1 SET"
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
@@ -298,6 +303,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                         value={currentPhase.orderDate}
                         onChange={(e) => handlePhaseChange(phase.id, "orderDate", e.target.value)}
                         className="w-[130px] h-8"
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
@@ -306,6 +312,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                         value={currentPhase.targetETA}
                         onChange={(e) => handlePhaseChange(phase.id, "targetETA", e.target.value)}
                         className={`w-[130px] h-8 ${isOverdue ? "border-red-500 text-red-600 focus-visible:ring-red-500" : ""}`}
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
@@ -314,12 +321,14 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                         value={currentPhase.actualETA}
                         onChange={(e) => handlePhaseChange(phase.id, "actualETA", e.target.value)}
                         className="w-[130px] h-8"
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                     <TableCell>
                       <Select
                         value={currentPhase.status}
                         onValueChange={(val) => { if (val) handlePhaseChange(phase.id, "status", val) }}
+                        disabled={isReadOnly}
                       >
                         <SelectTrigger className="h-8 w-[140px]">
                           <SelectValue />
@@ -338,6 +347,7 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
                         onChange={(e) => handleRemarkChange(item.id, e.target.value)}
                         className="w-[150px] h-8"
                         placeholder="Remark..."
+                        disabled={isReadOnly}
                       />
                     </TableCell>
                   </TableRow>
@@ -386,12 +396,14 @@ export function ToolingDrawer({ model, isOpen, onClose }: ToolingDrawerProps) {
         </Tabs>
       </div>
 
-      <div className="pt-6 mt-4 border-t flex justify-end">
-        <Button onClick={handleSave} disabled={isPending} className="w-full sm:w-auto gap-2">
-          {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-          Simpan Semua Perubahan
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="pt-6 mt-4 border-t flex justify-end">
+          <Button onClick={handleSave} disabled={isPending} className="w-full sm:w-auto gap-2">
+            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Simpan Semua Perubahan
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

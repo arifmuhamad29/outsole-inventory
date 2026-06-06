@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
 import { getBpmTfmStocks } from "@/app/actions/bpm-tfm"
 import { BpmTfmStock } from "@prisma/client"
 import { Layers, Loader2 } from "lucide-react"
@@ -9,6 +10,8 @@ import { ManualEntryModal } from "@/components/bpm-tfm/manual-entry-modal"
 import { BpmTfmTable } from "@/components/bpm-tfm/bpm-tfm-table"
 
 export default function BpmTfmPage() {
+  const { data: session } = useSession()
+  const canEdit = session?.user?.permissions?.includes("EDIT_INVENTORY") || session?.user?.role === "SUPER_ADMIN"
   const [stocks, setStocks] = useState<BpmTfmStock[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -52,13 +55,15 @@ export default function BpmTfmPage() {
 
       <BpmTfmTable
         data={stocks}
-        isReadOnly={false}
+        isReadOnly={!canEdit}
         onRefresh={fetchData}
         actions={
-          <>
-            <BpmTfmCsvImporter onSuccess={fetchData} />
-            <ManualEntryModal onSuccess={fetchData} />
-          </>
+          canEdit ? (
+            <>
+              <BpmTfmCsvImporter onSuccess={fetchData} />
+              <ManualEntryModal onSuccess={fetchData} />
+            </>
+          ) : null
         }
       />
     </div>

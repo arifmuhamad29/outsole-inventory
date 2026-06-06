@@ -7,11 +7,8 @@ import { revalidatePath } from "next/cache"
 export async function updateToolingPhaseStatus(phaseId: string, newStatus: string) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" }
-    }
-    if (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
-      return { success: false, message: "Forbidden" }
+    if (!session || (!session.user.permissions?.includes("EDIT_TOOLING_MES") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit tooling" }
     }
 
     const phase = await prisma.toolingPhase.findUnique({
@@ -54,11 +51,8 @@ export async function updateModelToolingAction(modelId: string, payload: {
 }) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" }
-    }
-    if (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
-      return { success: false, message: "Forbidden" }
+    if (!session || (!session.user.permissions?.includes("EDIT_TOOLING_MES") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit tooling" }
     }
 
     await prisma.$transaction(async (tx) => {
@@ -168,11 +162,8 @@ const ASSEMBLY_DEFAULTS = [
 export async function createShoeModelAction(name: string) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" }
-    }
-    if (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
-      return { success: false, message: "Forbidden" }
+    if (!session || (!session.user.permissions?.includes("EDIT_TOOLING_MES") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit tooling" }
     }
 
     if (!name || name.trim() === "") {
@@ -231,12 +222,8 @@ export async function createShoeModelAction(name: string) {
 export async function deleteShoeModelAction(id: string) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" }
-    }
-    if (session.user.role !== "ADMIN") {
-      // For MES, often only admin can delete the master data, but I will allow it for operators if required. Let's make it ADMIN only.
-      return { success: false, message: "Forbidden: Hanya Admin yang bisa menghapus model" }
+    if (!session || (!session.user.permissions?.includes("EDIT_TOOLING_MES") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit tooling" }
     }
 
     await prisma.shoeModel.delete({
@@ -254,11 +241,8 @@ export async function deleteShoeModelAction(id: string) {
 export async function importSingleModelAction(modelName: string, rows: Record<string, string>[]) {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" }
-    }
-    if (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
-      return { success: false, message: "Forbidden" }
+    if (!session || (!session.user.permissions?.includes("EDIT_TOOLING_MES") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit tooling" }
     }
 
     if (!modelName || !rows || rows.length === 0) {

@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { auth } from "@/lib/auth"
 
 export async function getBpmTfmStocks() {
   const data = await prisma.bpmTfmStock.findMany({
@@ -19,6 +20,11 @@ export async function importBpmTfmFlatCSVAction(
   rows: Record<string, string>[]
 ) {
   try {
+    const session = await auth()
+    if (!session || (!session.user.permissions?.includes("EDIT_INVENTORY") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit stok" }
+    }
+
     const validRecords: { codeLast: string; toolName: string; type: string; size: string; devStock: number }[] = []
 
     for (const row of rows) {
@@ -82,6 +88,11 @@ export async function importBpmTfmFlatCSVAction(
 
 export async function deleteBpmTfmStockAction(id: string) {
   try {
+    const session = await auth()
+    if (!session || (!session.user.permissions?.includes("EDIT_INVENTORY") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit stok" }
+    }
+
     await prisma.bpmTfmStock.delete({ where: { id } })
     revalidatePath("/bpm-tfm")
     return { success: true }
@@ -96,6 +107,11 @@ export async function addBpmTfmBatchAction(
   items: { toolName: string; type: string; size: string; devStock: number }[]
 ) {
   try {
+    const session = await auth()
+    if (!session || (!session.user.permissions?.includes("EDIT_INVENTORY") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit stok" }
+    }
+
     // Filter out rows with no stock data
     const validItems = items.filter((item) => item.devStock > 0 && item.size.trim() !== "")
 
@@ -140,6 +156,11 @@ export async function addBpmTfmBatchAction(
 
 export async function updateBpmTfmStockAction(id: string, devStock: number) {
   try {
+    const session = await auth()
+    if (!session || (!session.user.permissions?.includes("EDIT_INVENTORY") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit stok" }
+    }
+
     await prisma.bpmTfmStock.update({
       where: { id },
       data: { devStock },
