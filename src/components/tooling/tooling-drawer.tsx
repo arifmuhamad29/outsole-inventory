@@ -79,6 +79,11 @@ const formatDateForInput = (date: Date | null) => {
   return format(new Date(date), "yyyy-MM-dd")
 }
 
+const formatDateForDisplay = (date: Date | null | string) => {
+  if (!date) return "-"
+  return format(new Date(date), "dd MMM yyyy")
+}
+
 export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: ToolingDrawerProps) {
   const [activeTab, setActiveTab] = useState("FSR")
   const [isPending, startTransition] = useTransition()
@@ -280,75 +285,100 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                 return (
                   <TableRow key={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
                     <TableCell className="font-medium min-w-[200px]">
-                      <Input 
-                        value={currentName}
-                        onChange={(e) => handleItemNameChange(item.id, e.target.value)}
-                        className="w-full h-8 text-xs sm:text-sm font-medium"
-                        placeholder="Tooling Name..."
-                        disabled={isReadOnly}
-                      />
+                      {isReadOnly ? (
+                        <span className="text-slate-900">{currentName || "-"}</span>
+                      ) : (
+                        <Input 
+                          value={currentName}
+                          onChange={(e) => handleItemNameChange(item.id, e.target.value)}
+                          className="w-full h-8 text-xs sm:text-sm font-medium"
+                          placeholder="Tooling Name..."
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        value={currentPhase.qty} 
-                        onChange={(e) => handlePhaseChange(phase.id, "qty", e.target.value)}
-                        className="w-20 h-8" 
-                        placeholder="e.g. 1 SET"
-                        disabled={isReadOnly}
-                      />
+                      {isReadOnly ? (
+                        <span className="text-slate-600">{currentPhase.qty || "-"}</span>
+                      ) : (
+                        <Input 
+                          value={currentPhase.qty} 
+                          onChange={(e) => handlePhaseChange(phase.id, "qty", e.target.value)}
+                          className="w-20 h-8" 
+                          placeholder="e.g. 1 SET"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        type="date"
-                        value={currentPhase.orderDate}
-                        onChange={(e) => handlePhaseChange(phase.id, "orderDate", e.target.value)}
-                        className="w-[130px] h-8"
-                        disabled={isReadOnly}
-                      />
+                      {isReadOnly ? (
+                        <span className="text-slate-600">{formatDateForDisplay(currentPhase.orderDate)}</span>
+                      ) : (
+                        <Input 
+                          type="date"
+                          value={currentPhase.orderDate}
+                          onChange={(e) => handlePhaseChange(phase.id, "orderDate", e.target.value)}
+                          className="w-[130px] h-8"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        type="date"
-                        value={currentPhase.targetETA}
-                        onChange={(e) => handlePhaseChange(phase.id, "targetETA", e.target.value)}
-                        className={`w-[130px] h-8 ${isOverdue ? "border-red-500 text-red-600 focus-visible:ring-red-500" : ""}`}
-                        disabled={isReadOnly}
-                      />
+                      {isReadOnly ? (
+                        <span className={`text-slate-600 font-medium ${isOverdue ? "text-red-600" : ""}`}>
+                          {formatDateForDisplay(currentPhase.targetETA)}
+                        </span>
+                      ) : (
+                        <Input 
+                          type="date"
+                          value={currentPhase.targetETA}
+                          onChange={(e) => handlePhaseChange(phase.id, "targetETA", e.target.value)}
+                          className={`w-[130px] h-8 ${isOverdue ? "border-red-500 text-red-600 focus-visible:ring-red-500" : ""}`}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        type="date"
-                        value={currentPhase.actualETA}
-                        onChange={(e) => handlePhaseChange(phase.id, "actualETA", e.target.value)}
-                        className="w-[130px] h-8"
-                        disabled={isReadOnly}
-                      />
+                      {isReadOnly ? (
+                        <span className="text-slate-600">{formatDateForDisplay(currentPhase.actualETA)}</span>
+                      ) : (
+                        <Input 
+                          type="date"
+                          value={currentPhase.actualETA}
+                          onChange={(e) => handlePhaseChange(phase.id, "actualETA", e.target.value)}
+                          className="w-[130px] h-8"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={currentPhase.status}
-                        onValueChange={(val) => { if (val) handlePhaseChange(phase.id, "status", val) }}
-                        disabled={isReadOnly}
-                      >
-                        <SelectTrigger className="h-8 w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="VERIFIED"><StatusBadge status="VERIFIED" /></SelectItem>
-                          <SelectItem value="EXISTING"><StatusBadge status="EXISTING" /></SelectItem>
-                          <SelectItem value="ON PROCESS"><StatusBadge status="ON PROCESS" /></SelectItem>
-                          <SelectItem value="NOT USE"><StatusBadge status="NOT USE" /></SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isReadOnly ? (
+                        <StatusBadge status={currentPhase.status} />
+                      ) : (
+                        <Select
+                          value={currentPhase.status}
+                          onValueChange={(val) => { if (val) handlePhaseChange(phase.id, "status", val) }}
+                        >
+                          <SelectTrigger className="h-8 w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="VERIFIED"><StatusBadge status="VERIFIED" /></SelectItem>
+                            <SelectItem value="EXISTING"><StatusBadge status="EXISTING" /></SelectItem>
+                            <SelectItem value="ON PROCESS"><StatusBadge status="ON PROCESS" /></SelectItem>
+                            <SelectItem value="NOT USE"><StatusBadge status="NOT USE" /></SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Input 
-                        value={currentRemark}
-                        onChange={(e) => handleRemarkChange(item.id, e.target.value)}
-                        className="w-[150px] h-8"
-                        placeholder="Remark..."
-                        disabled={isReadOnly}
-                      />
+                      {isReadOnly ? (
+                        <span className="text-slate-600 max-w-[200px] truncate block" title={currentRemark || ""}>
+                          {currentRemark || "-"}
+                        </span>
+                      ) : (
+                        <Input 
+                          value={currentRemark}
+                          onChange={(e) => handleRemarkChange(item.id, e.target.value)}
+                          className="w-[150px] h-8"
+                          placeholder="Remark..."
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 )
