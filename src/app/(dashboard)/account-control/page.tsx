@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import { UserForm } from "./components/user-form"
 import { PermissionsForm } from "./components/permissions-form"
+import { CredentialsForm } from "./components/credentials-form"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +49,7 @@ import {
 } from "@/components/ui/select"
 
 import { getUsersAction, createUserAction, deleteUserAction, updateUserRoleAction } from "@/app/actions/users"
+import { UserCog } from "lucide-react"
 
 type UserItem = {
   id: string
@@ -68,6 +70,7 @@ export default function AccountControlPage() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingPermissionsFor, setEditingPermissionsFor] = useState<UserItem | null>(null)
+  const [editingCredentialsFor, setEditingCredentialsFor] = useState<UserItem | null>(null)
 
   const fetchUsers = async () => {
     setIsLoading(true)
@@ -238,6 +241,15 @@ export default function AccountControlPage() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
+                            onClick={() => setEditingCredentialsFor(user)}
+                            className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600"
+                            title="Edit Username & Password"
+                          >
+                            <UserCog className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
                             onClick={() => setEditingPermissionsFor(user)}
                             className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600"
                             title="Edit Permissions"
@@ -316,6 +328,25 @@ export default function AccountControlPage() {
               initialPermissions={editingPermissionsFor.permissions || []}
               onSuccess={() => { setEditingPermissionsFor(null); fetchUsers(); }}
               onCancel={() => setEditingPermissionsFor(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingCredentialsFor} onOpenChange={(open) => !open && setEditingCredentialsFor(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Ubah Username / Password</DialogTitle>
+            <DialogDescription>
+              Ganti username atau password untuk <strong>{editingCredentialsFor?.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          {editingCredentialsFor && (
+            <CredentialsForm
+              userId={editingCredentialsFor.id}
+              currentUsername={editingCredentialsFor.username}
+              onSuccess={() => { setEditingCredentialsFor(null); fetchUsers(); }}
+              onCancel={() => setEditingCredentialsFor(null)}
             />
           )}
         </DialogContent>

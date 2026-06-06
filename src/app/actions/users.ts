@@ -157,3 +157,48 @@ export async function updateUserPermissionsAction(id: string, permissions: strin
     return { success: false, message: "Terjadi kesalahan server" }
   }
 }
+
+export async function updateUserCredentialsAction(id: string, username?: string, password?: string) {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Unauthorized Access" }
+    }
+
+    if (session.user.id === id) {
+      return { success: false, message: "Gunakan menu profil Anda sendiri untuk mengubah kata sandi." }
+    }
+
+    const dataToUpdate: Record<string, string> = {}
+
+    if (username) {
+      if (username.length < 3) return { success: false, message: "Username minimal 3 karakter" }
+      const existingUser = await prisma.user.findUnique({ where: { username } })
+      if (existingUser && existingUser.id !== id) {
+        return { success: false, message: "Username sudah digunakan oleh akun lain" }
+      }
+      dataToUpdate.username = username
+    }
+
+    if (password) {
+      if (password.length < 6) return { success: false, message: "Password minimal 6 karakter" }
+      dataToUpdate.passwordHash = await bcrypt.hash(password, 10)
+    }
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return { success: false, message: "Tidak ada data yang diubah" }
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: dataToUpdate
+    })
+    
+    revalidatePath("/account-control")
+    return { success: true, message: "Kredensial berhasil diperbarui" }
+  } catch (error) {
+    console.error("Error updating user credentials:", error)
+    return { success: false, message: "Terjadi kesalahan server" }
+  }
+}
+
