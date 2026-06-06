@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { importToolingCSVAction } from "@/app/actions/tooling"
+import { importSingleModelAction } from "@/app/actions/tooling"
 import { useRouter } from "next/navigation"
 import Papa from "papaparse"
 import {
@@ -27,6 +27,7 @@ export function CsvImporter({ onSuccess }: CsvImporterProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, currentModel: "" })
   const router = useRouter()
 
   const handleDownloadTemplate = () => {
@@ -61,6 +62,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
     }
 
     setIsUploading(true)
+    setImportProgress({ current: 0, total: 0, currentModel: "" })
 
     Papa.parse(file, {
       header: true,
@@ -98,14 +100,43 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
         }
 
         try {
-          const res = await importToolingCSVAction(rows)
-          if (res.success) {
+          // Client-Side Chunking by Model Name
+          const groupedData = rows.reduce((acc, row) => {
+            const modelName = row["Model Name"]?.trim()?.toUpperCase()
+            if (!modelName) return acc
+
+            if (!acc[modelName]) {
+              acc[modelName] = []
+            }
+            acc[modelName].push(row)
+            return acc
+          }, {} as Record<string, Record<string, string>[]>)
+
+          const models = Object.keys(groupedData)
+          setImportProgress({ current: 0, total: models.length, currentModel: "" })
+
+          let hasErrors = false
+          
+          // Sequential Upload Loop
+          for (let i = 0; i < models.length; i++) {
+            const modelName = models[i]
+            const modelRows = groupedData[modelName]
+            
+            setImportProgress({ current: i + 1, total: models.length, currentModel: modelName })
+
+            const res = await importSingleModelAction(modelName, modelRows)
+            if (!res.success) {
+              hasErrors = true
+              setErrorMsg(prev => prev ? `${prev}\nFailed ${modelName}: ${res.message}` : `Failed ${modelName}: ${res.message}`)
+              // Continue to next model even if one fails
+            }
+          }
+
+          if (!hasErrors) {
             setIsOpen(false)
             setFile(null)
             if (onSuccess) onSuccess()
             router.refresh()
-          } else {
-            setErrorMsg("Import Failed: " + res.message)
           }
         } catch (error: unknown) {
           if (error instanceof Error) {
@@ -115,6 +146,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
           }
         } finally {
           setIsUploading(false)
+          setImportProgress({ current: 0, total: 0, currentModel: "" })
         }
       },
       error: (error) => {
@@ -169,13 +201,14 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
                 handleFileChange(e)
               }}
               className="text-sm cursor-pointer bg-white"
+              disabled={isUploading}
             />
             {validationErrors.length > 0 && (
               <Alert variant="destructive" className="bg-red-50 border-red-200">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle className="flex justify-between items-center">
                   <span>Validation Errors Found</span>
-                  <Button variant="ghost" size="sm" onClick={() => setValidationErrors([])} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100">
+                  <Button variant="ghost" size="sm" onClick={() => setValidationErrors([])} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100" disabled={isUploading}>
                     <X className="w-3 h-3 mr-1" /> Clear
                   </Button>
                 </AlertTitle>
@@ -189,15 +222,37 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
               </Alert>
             )}
             {errorMsg && (
-              <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded-md border border-red-100">{errorMsg}</p>
+              <div className="max-h-32 overflow-y-auto">
+                <p className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded-md border border-red-100 whitespace-pre-wrap">{errorMsg}</p>
+              </div>
             )}
+            
+            {/* Progress UI */}
+            {isUploading && importProgress.total > 0 && (
+              <div className="space-y-2 py-2">
+                <div className="flex justify-between text-xs text-slate-600 font-medium">
+                  <span>Mengimpor Model {importProgress.current} dari {importProgress.total}...</span>
+                  <span>{Math.round((importProgress.current / importProgress.total) * 100)}%</span>
+                </div>
+                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 truncate">
+                  Memproses: {importProgress.currentModel}
+                </p>
+              </div>
+            )}
+
             <Button 
               onClick={handleImport} 
               disabled={!file || isUploading} 
               className="w-full gap-2"
             >
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {isUploading ? "Importing..." : "Import Rows"}
+              {isUploading ? "Mengimpor Data..." : "Import Rows"}
             </Button>
           </div>
         </div>
