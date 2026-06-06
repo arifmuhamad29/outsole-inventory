@@ -11,6 +11,8 @@ import {
   Send,
   AlertTriangle,
   Package,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,12 +33,18 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { getRealTimeStock, getAvailableSizesAction, getAvailableShoeModelsAction } from "@/app/actions/handover"
 
 // Tool options for the dropdown
@@ -314,6 +322,7 @@ export default function NewHandoverPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [modelOptions, setModelOptions] = useState<string[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [openCodeLast, setOpenCodeLast] = useState(false)
 
   useEffect(() => {
     getAvailableShoeModelsAction()
@@ -425,23 +434,52 @@ export default function NewHandoverPage() {
                   name="codeLast"
                   rules={{ required: "Code Last wajib diisi" }}
                   render={({ field }) => (
-                    <Select
-                      disabled={isLoadingModels}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <SelectTrigger className="h-10 bg-white dark:bg-gray-800 font-mono tracking-wider">
-                        <SelectValue placeholder={isLoadingModels ? "Loading models..." : "Pilih Code Last"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {modelOptions.map((model) => (
-                          <SelectItem key={model} value={model}>
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openCodeLast} onOpenChange={setOpenCodeLast}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCodeLast}
+                          disabled={isLoadingModels}
+                          className="w-full h-10 justify-between bg-white dark:bg-gray-800 font-mono tracking-wider"
+                        >
+                          {isLoadingModels 
+                            ? "Loading models..." 
+                            : field.value 
+                              ? field.value 
+                              : "Pilih Code Last"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Cari Code Last / Model..." />
+                          <CommandList>
+                            <CommandEmpty>Model tidak ditemukan.</CommandEmpty>
+                            <CommandGroup>
+                              {modelOptions.map((model) => (
+                                <CommandItem
+                                  key={model}
+                                  value={model}
+                                  onSelect={() => {
+                                    field.onChange(model)
+                                    setOpenCodeLast(false)
+                                  }}
+                                  className="font-mono"
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      field.value === model ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  {model}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 />
                 {errors.codeLast && (
