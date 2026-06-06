@@ -12,6 +12,7 @@ declare module "next-auth" {
       id: string;
       role: string;
       username?: string;
+      permissions?: string[];
     } & DefaultSession["user"]
   }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
     id: string;
     role: string;
     username?: string;
+    permissions?: string[];
   }
 }
 
@@ -49,6 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               username: user.username,
               name: user.name,
               role: user.role,
+              permissions: user.permissions,
             };
           }
         }

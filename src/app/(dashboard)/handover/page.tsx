@@ -43,7 +43,8 @@ type HandoverList = {
 
 export default function HandoverPage() {
   const { data: session } = useSession()
-  const isAdmin = session?.user?.role === "ADMIN"
+  const canDelete = session?.user?.permissions?.includes("DELETE_HANDOVER") || session?.user?.role === "SUPER_ADMIN"
+  const canCreate = session?.user?.permissions?.includes("CREATE_HANDOVER") || session?.user?.role === "SUPER_ADMIN"
 
   const [search, setSearch] = useState("")
   const [handovers, setHandovers] = useState<HandoverList[]>([])
@@ -114,12 +115,14 @@ export default function HandoverPage() {
           <Button variant="outline" size="icon" onClick={fetchHandovers} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-          <Link href="/handover/new">
-            <Button className="gap-2 shadow-sm">
-              <Plus className="w-4 h-4" />
-              Buat Handover Baru
-            </Button>
-          </Link>
+          {canCreate && (
+            <Link href="/handover/new">
+              <Button className="gap-2 shadow-sm">
+                <Plus className="w-4 h-4" />
+                Buat Handover Baru
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -229,7 +232,7 @@ export default function HandoverPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {isAdmin ? (
+                        {canDelete ? (
                           <AlertDialog>
                             <AlertDialogTrigger 
                               render={

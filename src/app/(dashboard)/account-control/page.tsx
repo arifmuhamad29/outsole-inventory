@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { ShieldAlert, Plus, Trash2, Loader2, RefreshCw } from "lucide-react"
+import { ShieldAlert, Plus, Trash2, Loader2, RefreshCw, KeyRound } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
+
+import { UserForm } from "./components/user-form"
+import { PermissionsForm } from "./components/permissions-form"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +55,7 @@ type UserItem = {
   username: string
   email: string | null
   role: string
+  permissions: string[]
   createdAt: Date
 }
 
@@ -62,13 +66,8 @@ export default function AccountControlPage() {
   const [users, setUsers] = useState<UserItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-
-  const [name, setName] = useState("")
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [role, setRole] = useState<string>("OPERATOR")
+  const [editingPermissionsFor, setEditingPermissionsFor] = useState<UserItem | null>(null)
 
   const fetchUsers = async () => {
     setIsLoading(true)
@@ -105,36 +104,6 @@ export default function AccountControlPage() {
       toast.error("Terjadi kesalahan saat menghapus")
     } finally {
       setIsDeleting(null)
-    }
-  }
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsCreating(true)
-
-    const formData = new FormData()
-    formData.append("name", name)
-    formData.append("username", username)
-    formData.append("password", password)
-    formData.append("role", role)
-
-    try {
-      const res = await createUserAction(null, formData)
-      if (res.success) {
-        toast.success("Berhasil", { description: res.message })
-        setIsDialogOpen(false)
-        setName("")
-        setUsername("")
-        setPassword("")
-        setRole("OPERATOR")
-        fetchUsers()
-      } else {
-        toast.error("Gagal", { description: res.message })
-      }
-    } catch (error) {
-      toast.error("Terjadi kesalahan saat membuat pengguna")
-    } finally {
-      setIsCreating(false)
     }
   }
 
@@ -188,66 +157,16 @@ export default function AccountControlPage() {
               Tambah Pengguna
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <form onSubmit={handleCreate}>
-                <DialogHeader>
-                  <DialogTitle>Tambah Pengguna Baru</DialogTitle>
-                  <DialogDescription>
-                    Buat akun baru dan tentukan hak akses (role) pengguna tersebut.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nama Lengkap</label>
-                    <Input 
-                      required 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                      placeholder="Contoh: John Doe" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Username</label>
-                    <Input 
-                      required 
-                      value={username} 
-                      onChange={(e) => setUsername(e.target.value.toLowerCase())} 
-                      placeholder="Contoh: john.doe" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Password</label>
-                    <Input 
-                      required 
-                      type="password"
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      placeholder="Minimal 6 karakter" 
-                      minLength={6}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Role (Akses)</label>
-                    <Select value={role} onValueChange={(val) => setRole(val || "OPERATOR")}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih Role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OPERATOR">OPERATOR (Basic Access)</SelectItem>
-                        <SelectItem value="ADMIN">ADMIN (Managerial Access)</SelectItem>
-                        <SelectItem value="SUPER_ADMIN">SUPER_ADMIN (Full Control)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isCreating}>
-                    Batal
-                  </Button>
-                  <Button type="submit" disabled={isCreating} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                    {isCreating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</> : "Simpan Pengguna"}
-                  </Button>
-                </DialogFooter>
-              </form>
+              <DialogHeader>
+                <DialogTitle>Tambah Pengguna Baru</DialogTitle>
+                <DialogDescription>
+                  Buat akun baru dan tentukan hak akses (role & permissions) pengguna tersebut.
+                </DialogDescription>
+              </DialogHeader>
+              <UserForm 
+                onSuccess={() => { setIsDialogOpen(false); fetchUsers(); }} 
+                onCancel={() => setIsDialogOpen(false)} 
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -313,54 +232,66 @@ export default function AccountControlPage() {
                     {format(new Date(user.createdAt), "dd MMM yyyy, HH:mm")}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end">
+                    <div className="flex justify-end items-center gap-1">
                       {user.id !== session?.user?.id ? (
-                        <AlertDialog>
-                          <AlertDialogTrigger 
-                            render={
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                disabled={isDeleting === user.id}
-                                className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                              />
-                            }
+                        <>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setEditingPermissionsFor(user)}
+                            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600"
+                            title="Edit Permissions"
                           >
-                            {isDeleting === user.id ? (
-                              <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Hapus Pengguna?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Apakah Anda yakin ingin menghapus <strong>{user.name}</strong> (@{user.username})? Tindakan ini tidak dapat dibatalkan.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel disabled={isDeleting === user.id}>Batal</AlertDialogCancel>
-                              <Button 
-                                variant="destructive" 
-                                onClick={(e) => handleDelete(user.id, e)}
-                                disabled={isDeleting === user.id}
-                                className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                              >
-                                {isDeleting === user.id ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Menghapus...
-                                  </>
-                                ) : (
-                                  "Ya, Hapus"
-                                )}
-                              </Button>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                            <KeyRound className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger 
+                              render={
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  disabled={isDeleting === user.id}
+                                  className="h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                                  title="Delete User"
+                                />
+                              }
+                            >
+                              {isDeleting === user.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Hapus Pengguna?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Apakah Anda yakin ingin menghapus <strong>{user.name}</strong> (@{user.username})? Tindakan ini tidak dapat dibatalkan.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isDeleting === user.id}>Batal</AlertDialogCancel>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={(e) => handleDelete(user.id, e)}
+                                  disabled={isDeleting === user.id}
+                                  className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                                >
+                                  {isDeleting === user.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Menghapus...
+                                    </>
+                                  ) : (
+                                    "Ya, Hapus"
+                                  )}
+                                </Button>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
                       ) : (
-                        <div className="w-8 h-8"></div>
+                        <div className="w-16 h-8"></div>
                       )}
                     </div>
                   </TableCell>
@@ -370,6 +301,25 @@ export default function AccountControlPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!editingPermissionsFor} onOpenChange={(open) => !open && setEditingPermissionsFor(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Hak Akses (Permissions)</DialogTitle>
+            <DialogDescription>
+              Atur hak akses granular untuk <strong>{editingPermissionsFor?.name}</strong> (@{editingPermissionsFor?.username}).
+            </DialogDescription>
+          </DialogHeader>
+          {editingPermissionsFor && (
+            <PermissionsForm
+              userId={editingPermissionsFor.id}
+              initialPermissions={editingPermissionsFor.permissions || []}
+              onSuccess={() => { setEditingPermissionsFor(null); fetchUsers(); }}
+              onCancel={() => setEditingPermissionsFor(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

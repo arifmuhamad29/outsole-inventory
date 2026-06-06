@@ -11,6 +11,7 @@ const userSchema = z.object({
   username: z.string().min(3, "Username minimal 3 karakter"),
   password: z.string().min(6, "Password minimal 6 karakter"),
   role: z.enum(["SUPER_ADMIN", "ADMIN", "OPERATOR"]),
+  permissions: z.array(z.string()),
 })
 
 export async function getUsersAction() {
@@ -27,6 +28,7 @@ export async function getUsersAction() {
         username: true,
         email: true,
         role: true,
+        permissions: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" }
@@ -38,25 +40,20 @@ export async function getUsersAction() {
   }
 }
 
-export async function createUserAction(prevState: unknown, formData: FormData) {
+export async function createUserAction(data: z.infer<typeof userSchema>) {
   try {
     const session = await auth()
     if (!session || session.user.role !== "SUPER_ADMIN") {
       return { success: false, message: "Unauthorized Access" }
     }
 
-    const validatedFields = userSchema.safeParse({
-      name: formData.get("name"),
-      username: formData.get("username"),
-      password: formData.get("password"),
-      role: formData.get("role"),
-    })
+    const validatedFields = userSchema.safeParse(data)
 
     if (!validatedFields.success) {
       return { success: false, message: validatedFields.error.issues[0].message }
     }
 
-    const { name, username, password, role } = validatedFields.data
+    const { name, username, password, role, permissions } = validatedFields.data
 
     const existingUser = await prisma.user.findUnique({ where: { username } })
     if (existingUser) {
@@ -71,6 +68,7 @@ export async function createUserAction(prevState: unknown, formData: FormData) {
         username,
         passwordHash,
         role,
+        permissions,
       }
     })
 
@@ -122,6 +120,30 @@ export async function updateUserRoleAction(id: string, role: "SUPER_ADMIN" | "AD
     return { success: true, message: "Role berhasil diubah" }
   } catch (error) {
     console.error("Error updating user role:", error)
+    return { success: false, message: "Terjadi kesalahan server" }
+  }
+}
+
+export async function updateUserPermissionsAction(id: string, permissions: string[]) {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Unauthorized Access" }
+    }
+
+    if (session.user.id === id) {
+      return { success: false, message: "Tidak dapat mengubah izin akun Anda sendiri!" }
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { permissions }
+    })
+    
+    revalidatePath("/account-control")
+    return { success: true, message: "Permissions berhasil diubah" }
+  } catch (error) {
+    console.error("Error updating user permissions:", error)
     return { success: false, message: "Terjadi kesalahan server" }
   }
 }

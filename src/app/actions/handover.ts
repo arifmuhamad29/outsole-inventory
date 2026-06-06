@@ -113,6 +113,11 @@ type HandoverPayload = {
 
 export async function submitHandoverAction(data: HandoverPayload): Promise<{ success: boolean; message: string }> {
   try {
+    const session = await auth()
+    if (!session || (!session.user.permissions?.includes("CREATE_HANDOVER") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: You do not have permission to create handovers" }
+    }
+
     const { date, recipient, giver = "SYSTEM", modelName, codeLast, items } = data
 
     await prisma.$transaction(async (tx) => {
@@ -232,8 +237,8 @@ export async function getHandoversAction() {
 export async function deleteHandoverAction(id: string): Promise<{ success: boolean; message: string }> {
   try {
     const session = await auth()
-    if (!session || session.user.role !== "ADMIN") {
-      throw new Error("Unauthorized Access: Only Administrators can delete handovers")
+    if (!session || (!session.user.permissions?.includes("DELETE_HANDOVER") && session.user.role !== "SUPER_ADMIN")) {
+      throw new Error("Unauthorized Access: You do not have permission to delete handovers")
     }
 
     await prisma.$transaction(async (tx) => {
