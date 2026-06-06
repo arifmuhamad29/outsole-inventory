@@ -31,3 +31,33 @@ export async function getRealTimeStock(
     return 0
   }
 }
+
+export async function getAvailableSizesAction(
+  codeLast: string,
+  toolName: string,
+  type: string | null
+): Promise<string[]> {
+  if (!codeLast || !toolName) return []
+
+  try {
+    const records = await prisma.bpmTfmStock.findMany({
+      where: {
+        codeLast: codeLast.trim(),
+        toolName: toolName.trim().toUpperCase(),
+        ...(type ? { type: type.trim().toUpperCase() } : {}),
+      },
+      select: {
+        size: true,
+      },
+      distinct: ["size"],
+      orderBy: {
+        size: "asc",
+      },
+    })
+    
+    return records.map((r) => r.size)
+  } catch (error) {
+    console.error("Error fetching available sizes:", error)
+    return []
+  }
+}
