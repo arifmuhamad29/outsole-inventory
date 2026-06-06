@@ -90,3 +90,101 @@ export async function getUniqueCodeLasts(): Promise<string[]> {
     return []
   }
 }
+
+import { revalidatePath } from "next/cache"
+
+type HandoverItemPayload = {
+  toolName: string
+  type?: string
+  size?: string
+  satuan?: string
+  qtyHandover: number
+  remark?: string
+}
+
+type HandoverPayload = {
+  date: string
+  recipient: string
+  giver?: string
+  modelName?: string
+  codeLast?: string
+  items: HandoverItemPayload[]
+}
+
+export async function submitHandoverAction(data: HandoverPayload): Promise<{ success: boolean; message: string }> {
+  try {
+    const { date, recipient, giver = "SYSTEM", modelName, codeLast, items } = data
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Create the master Handover record
+      const handover = await tx.handover.create({
+        data: {
+          date: new Date(date),
+          recipient,
+          giver,
+          modelName: modelName || null,
+          codeLast: codeLast || null,
+        }
+      })
+
+      // 2. Loop through items
+      for (const item of items) {
+        // Create HandoverItem
+        await tx.handoverItem.create({
+          data: {
+            handoverId: handover.id,
+            toolName: item.toolName,
+            type: item.type || "",
+            size: item.size || "",
+            satuan: item.satuan || "SET",
+            qty: item.qtyHandover,
+            remark: item.remark || null,
+          }
+        })
+
+        // 3. Stock Deduction for tracked tools
+        const isStockTracked = ["BPM", "TFM", "UNIVERSAL PAD"].includes(item.toolName)
+        if (isStockTracked && codeLast && item.size) {
+          // Check if stock exists and is sufficient
+          const stockRecord = await tx.bpmTfmStock.findUnique({
+            where: {
+              codeLast_toolName_type_size: {
+                codeLast: codeLast.trim(),
+                toolName: item.toolName.trim().toUpperCase(),
+                type: (item.type || "").trim().toUpperCase(),
+                size: item.size.trim().toUpperCase()
+              }
+            }
+          })
+
+          if (!stockRecord || stockRecord.devStock < item.qtyHandover) {
+            throw new Error(`Stok tidak mencukupi untuk ${item.toolName} ukuran ${item.size}`)
+          }
+
+          // Decrement stock atomically
+          await tx.bpmTfmStock.update({
+            where: {
+              codeLast_toolName_type_size: {
+                codeLast: codeLast.trim(),
+                toolName: item.toolName.trim().toUpperCase(),
+                type: (item.type || "").trim().toUpperCase(),
+                size: item.size.trim().toUpperCase()
+              }
+            },
+            data: {
+              devStock: { decrement: item.qtyHandover }
+            }
+          })
+        }
+      }
+    })
+
+    revalidatePath("/(dashboard)/handover")
+    revalidatePath("/(dashboard)/bpm-tfm")
+    
+    return { success: true, message: "Handover berhasil disimpan" }
+  } catch (error: unknown) {
+    console.error("Submit handover error:", error)
+    return { success: false, message: error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan handover" }
+  }
+}

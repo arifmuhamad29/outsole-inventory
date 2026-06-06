@@ -36,6 +36,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -51,6 +53,7 @@ export default function RootLayout({
       >
         <NextTopLoader color="#2563eb" showSpinner={false} />
         {children}
+        <Toaster richColors />
         <script
           dangerouslySetInnerHTML={{
             __html: `

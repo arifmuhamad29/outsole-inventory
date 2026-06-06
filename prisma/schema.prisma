@@ -216,3 +216,35 @@ model BpmTfmStock {
   @@unique([codeLast, toolName, type, size])
   @@index([codeLast])
 }
+
+model Handover {
+  id          String   @id @default(cuid())
+  date        DateTime
+  recipient   String
+  giver       String   @default("SYSTEM") // Can be extended to relation with User
+  modelName   String?
+  codeLast    String?
+  
+  items       HandoverItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model HandoverItem {
+  id          String   @id @default(cuid())
+  handoverId  String
+  handover    Handover @relation(fields: [handoverId], references: [id], onDelete: Cascade)
+  
+  toolName    String
+  type        String   @default("")
+  size        String
+  satuan      String   @default("SET")
+  qty         Int
+  remark      String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([handoverId])
+}

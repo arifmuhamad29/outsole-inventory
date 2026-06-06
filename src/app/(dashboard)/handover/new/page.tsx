@@ -338,7 +338,12 @@ function HandoverRow({ index, control, register, globalCodeLast, globalModelName
   )
 }
 
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+
 export default function NewHandoverPage() {
+  const router = useRouter()
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [modelOptions, setModelOptions] = useState<string[]>([])
   const [codeLastOptions, setCodeLastOptions] = useState<string[]>([])
@@ -399,15 +404,36 @@ export default function NewHandoverPage() {
     })
 
     if (hasValidationError) {
-      alert("Validation Error:\n- Untuk alat stok (BPM/TFM), 'Code Last' di header wajib diisi.\n- Untuk alat non-stok (Gauges dll), 'Model Sepatu' wajib diisi.")
+      toast.error("Validasi Gagal", {
+        description: "Untuk alat stok (BPM/TFM), 'Code Last' di header wajib diisi. Untuk alat non-stok (Gauges dll), 'Model Sepatu' wajib diisi."
+      })
       return
     }
 
     setIsSubmitting(true)
-    // TODO: Replace with real server action in Step 2
-    console.log("Handover payload:", data)
-    alert(`[MOCKUP] Handover berhasil dibuat!\n\nRecipient: ${data.recipient}\nModel Name: ${data.modelName || "-"}\nCode Last: ${data.codeLast || "-"}\nTotal Items: ${data.items.length}`)
-    setIsSubmitting(false)
+    
+    const { submitHandoverAction } = await import("@/app/actions/handover")
+    
+    try {
+      const res = await submitHandoverAction(data)
+      
+      if (res.success) {
+        toast.success("Sukses!", {
+          description: "Handover berhasil disimpan.",
+        })
+        router.push("/handover")
+      } else {
+        toast.error("Gagal", {
+          description: res.message
+        })
+        setIsSubmitting(false)
+      }
+    } catch (error) {
+      toast.error("Error", {
+        description: "Terjadi kesalahan saat menyimpan handover"
+      })
+      setIsSubmitting(false)
+    }
   }
 
   return (
