@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { format } from "date-fns"
@@ -31,6 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { getRealTimeStock } from "@/app/actions/handover"
 
 // Tool options for the dropdown
 const TOOL_OPTIONS = [
@@ -68,17 +69,7 @@ type FormValues = {
   items: HandoverItem[]
 }
 
-// Mock stock lookup
-function getMockStock(toolName: string, type: string, size: string): number | null {
-  if (!STOCK_TRACKED_TOOLS.includes(toolName)) return null
-  if (!size.trim()) return null
-  // Return mock stock values for demo
-  if (toolName === "BPM" && type === "HOT") return 5
-  if (toolName === "BPM" && type === "CHILLER") return 3
-  if (toolName === "TFM") return 2
-  if (toolName === "UNIVERSAL PAD") return 8
-  return 0
-}
+
 
 export default function NewHandoverPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -105,6 +96,29 @@ export default function NewHandoverPage() {
 
   const watchedItems = watch("items")
   const globalCodeLast = watch("codeLast")
+  const [stockCache, setStockCache] = useState<Record<string, { stock: number | null; loading: boolean }>>({})
+
+  useEffect(() => {
+    if (!globalCodeLast) return
+
+    watchedItems.forEach((item) => {
+      const isStockTracked = STOCK_TRACKED_TOOLS.includes(item.toolName)
+      if (!isStockTracked || !item.size) return
+
+      const cacheKey = `${globalCodeLast}-${item.toolName}-${item.type}-${item.size}`
+      
+      setStockCache((prev) => {
+        if (prev[cacheKey] !== undefined) return prev // Already fetching or fetched
+        
+        getRealTimeStock(globalCodeLast, item.toolName, item.type, item.size)
+          .then((stock) => {
+            setStockCache((current) => ({ ...current, [cacheKey]: { stock, loading: false } }))
+          })
+          
+        return { ...prev, [cacheKey]: { stock: null, loading: true } }
+      })
+    })
+  }, [watchedItems, globalCodeLast])
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
@@ -234,12 +248,14 @@ export default function NewHandoverPage() {
                     const currentItem = watchedItems[index]
                     const isStockTracked = STOCK_TRACKED_TOOLS.includes(currentItem?.toolName || "")
                     const isTyped = TYPED_TOOLS.includes(currentItem?.toolName || "")
-                    const mockStock = getMockStock(
-                      currentItem?.toolName || "",
-                      currentItem?.type || "",
-                      currentItem?.size || ""
-                    )
-                    const isOverStock = mockStock !== null && currentItem?.qtyHandover > mockStock
+                    
+                    const cacheKey = `${globalCodeLast}-${currentItem?.toolName}-${currentItem?.type}-${currentItem?.size}`
+                    const stockInfo = stockCache[cacheKey]
+                    const isLoadingStock = stockInfo?.loading ?? false
+                    const realStock = stockInfo?.stock ?? 0
+                    
+                    const isOverStock = isStockTracked && !isLoadingStock && currentItem?.qtyHandover > realStock
+                    const isZeroStock = isStockTracked && !isLoadingStock && realStock === 0
 
                     return (
                       <TableRow key={field.id} className="group">
@@ -338,6 +354,7 @@ export default function NewHandoverPage() {
                                 type="number"
                                 min={0}
                                 placeholder="0"
+                                disabled={isStockTracked && isZeroStock}
                                 value={f.value === 0 ? "" : f.value}
                                 onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
                                 className={`h-9 text-center font-semibold bg-white dark:bg-gray-800 ${
@@ -351,7 +368,7 @@ export default function NewHandoverPage() {
                           {isStockTracked && isOverStock && (
                             <p className="flex items-center gap-1 mt-1 text-[10px] text-red-500 font-medium leading-tight">
                               <AlertTriangle className="w-3 h-3 shrink-0" />
-                              Melebihi stok
+                              Melebihi stok ({realStock})
                             </p>
                           )}
                         </TableCell>
@@ -360,16 +377,20 @@ export default function NewHandoverPage() {
                         <TableCell className="text-center">
                           {isStockTracked ? (
                             currentItem?.size?.trim() ? (
-                              <Badge
-                                variant="outline"
-                                className={`font-mono text-xs px-2 py-1 ${
-                                  mockStock !== null && mockStock > 0
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
-                                    : "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700"
-                                }`}
-                              >
-                                {mockStock ?? 0}
-                              </Badge>
+                              isLoadingStock ? (
+                                <span className="text-[10px] text-slate-400 italic">Loading...</span>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className={`font-mono text-xs px-2 py-1 ${
+                                    realStock > 0
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700"
+                                      : "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700"
+                                  }`}
+                                >
+                                  {realStock}
+                                </Badge>
+                              )
                             ) : (
                               <span className="text-[10px] text-slate-400 italic">Pilih size</span>
                             )
