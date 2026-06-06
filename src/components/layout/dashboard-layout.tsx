@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
@@ -37,7 +37,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Handover", href: "/handover", icon: Send },
   ]
 
-  const navItems = role === "ADMIN" ? adminNavItems : operatorNavItems
+  const superAdminNavItems = [
+    ...adminNavItems,
+    { name: "Account Control", href: "/account-control", icon: ShieldAlert },
+  ]
+
+  const navItems = role === "SUPER_ADMIN" ? superAdminNavItems : (role === "ADMIN" ? adminNavItems : operatorNavItems)
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -91,7 +96,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="mb-4 px-2">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session?.user?.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+                  <p className="text-xs text-gray-500 truncate">{session?.user?.username || session?.user?.email}</p>
                 </div>
                 <form action={logOut}>
                   <button className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors dark:text-red-400 dark:hover:bg-red-900/10">
@@ -145,7 +150,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="mb-4 px-2">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session?.user?.name}</p>
-            <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+            <p className="text-xs text-gray-500 truncate">{session?.user?.username || session?.user?.email}</p>
             <div className="mt-1 flex items-center">
                <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                  {role}

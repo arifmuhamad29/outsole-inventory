@@ -1,61 +1,51 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Seeding Tooling data...')
+  console.log("Seeding database...")
+
+  // 1. Backfill existing users (if any) to have a username based on their email
+  const existingUsers = await prisma.user.findMany({
+    where: { username: null }
+  })
+
+  for (const user of existingUsers) {
+    if (user.email) {
+      const newUsername = user.email.split("@")[0] + "-" + Math.floor(Math.random() * 1000)
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { username: newUsername }
+      })
+      console.log(`Backfilled username for ${user.email} -> ${newUsername}`)
+    }
+  }
+
+  // 2. Create the Super Admin if it doesn't exist
+  const superAdminUsername = "superadmin"
   
-  // Create Shoe Model
-  const model1 = await prisma.shoeModel.upsert({
-    where: { name: 'LITE RACER ADAPT 8.0 I WIDE' },
-    update: {},
-    create: {
-      name: 'LITE RACER ADAPT 8.0 I WIDE',
-    },
+  const existingSuperAdmin = await prisma.user.findFirst({
+    where: { username: superAdminUsername }
   })
 
-  const model2 = await prisma.shoeModel.upsert({
-    where: { name: 'SAMBA OG W' },
-    update: {},
-    create: {
-      name: 'SAMBA OG W',
-    },
-  })
-
-  // Tooling Items for Model 1 (Bottom Tooling)
-  const bTool1 = await prisma.toolingItem.create({
-    data: {
-      modelId: model1.id,
-      category: 'BOTTOM TOOLING',
-      name: 'Gauge top net',
-      remark: 'DRAWING PROCESS',
-      phases: {
-        create: [
-          { phaseType: 'SAMPLE', qty: '1 SET', status: 'VERIFIED', orderDate: new Date('2026-05-01'), targetETA: new Date('2026-05-15'), actualETA: new Date('2026-05-14') },
-          { phaseType: 'EXTREME', qty: '1 SET', status: 'ON PROCESS', orderDate: new Date('2026-06-01'), targetETA: new Date('2026-06-10') },
-          { phaseType: 'FSR', qty: '3 SETS', status: 'ON PROCESS', orderDate: new Date('2026-06-05'), targetETA: new Date('2026-06-20') },
-        ]
+  if (!existingSuperAdmin) {
+    const passwordHash = await bcrypt.hash("SuperAdmin123!", 10)
+    
+    await prisma.user.create({
+      data: {
+        name: "Super Administrator",
+        username: superAdminUsername,
+        passwordHash,
+        role: "SUPER_ADMIN",
       }
-    }
-  })
+    })
+    console.log(`Created Super Admin with username: ${superAdminUsername}`)
+  } else {
+    console.log(`Super Admin already exists.`)
+  }
 
-  // Tooling Items for Model 1 (Assembly Tooling)
-  const aTool1 = await prisma.toolingItem.create({
-    data: {
-      modelId: model1.id,
-      category: 'ASSEMBLY TOOLING',
-      name: '3D Gauge',
-      phases: {
-        create: [
-          { phaseType: 'SAMPLE', qty: '2 PRS', status: 'EXISTING' },
-          { phaseType: 'EXTREME', qty: '2 PRS', status: 'NOT USE' },
-          { phaseType: 'FSR', qty: '10 PRS', status: 'ON PROCESS', targetETA: new Date('2026-05-25') }, // Overdue
-        ]
-      }
-    }
-  })
-
-  console.log('Seeding completed successfully.')
+  console.log("Seeding finished.")
 }
 
 main()

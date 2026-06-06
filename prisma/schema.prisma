@@ -9,6 +9,7 @@ datasource db {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   OPERATOR
 }
@@ -33,9 +34,10 @@ enum AuditAction {
 model User {
   id           String   @id @default(uuid())
   name         String
-  email        String   @unique
+  username     String   @unique
+  email        String?  @unique
   passwordHash String
-  role         UserRole
+  role         UserRole @default(OPERATOR)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

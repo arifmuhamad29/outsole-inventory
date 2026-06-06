@@ -108,6 +108,12 @@ export default auth((req) => {
     }
   }
 
+  if (nextUrl.pathname.startsWith("/account-control")) {
+    if (role !== "SUPER_ADMIN") {
+      return NextResponse.redirect(new URL("/", nextUrl))
+    }
+  }
+
   return NextResponse.next()
 })
 

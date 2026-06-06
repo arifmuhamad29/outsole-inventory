@@ -26,17 +26,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
+          .object({ username: z.string().min(3), password: z.string().min(6) })
           .safeParse(credentials);
 
         if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
-          const user = await prisma.user.findUnique({ where: { email } });
+          const { username, password } = parsedCredentials.data;
+          const user = await prisma.user.findUnique({ where: { username } });
           
           if (!user) return null;
           
@@ -44,7 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (passwordsMatch) {
             return {
               id: user.id,
-              email: user.email,
+              username: user.username,
               name: user.name,
               role: user.role,
             };
