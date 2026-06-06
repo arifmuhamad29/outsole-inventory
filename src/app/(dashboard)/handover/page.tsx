@@ -32,6 +32,7 @@ import { toast } from "sonner"
 type HandoverList = {
   id: string
   date: Date | string
+  createdAt: Date | string
   giver: string
   recipient: string
   codeLast: string | null
@@ -169,7 +170,7 @@ export default function HandoverPage() {
                     <TableCell className="text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {new Date(ho.date).toLocaleDateString('id-ID', {
                         day: '2-digit', month: 'short', year: 'numeric'
-                      })}, {new Date(ho.date).toLocaleTimeString('id-ID', {
+                      })}, {new Date(ho.createdAt).toLocaleTimeString('id-ID', {
                         hour: '2-digit', minute: '2-digit'
                       }).replace('.', ':')} WIB
                     </TableCell>
@@ -208,11 +209,11 @@ export default function HandoverPage() {
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate">
                       {ho.items.filter(item => item.remark && item.remark.trim() !== "").length > 0 ? (
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex flex-col space-y-1 items-start w-full">
                           {ho.items
                             .filter(item => item.remark && item.remark.trim() !== "")
                             .map((item, idx) => (
-                              <span key={idx} className="text-[10px] text-gray-500 dark:text-gray-400 italic truncate" title={item.remark || ""}>
+                              <span key={idx} className="text-[11px] text-gray-500 dark:text-gray-400 italic truncate w-full text-left" title={item.remark || ""}>
                                 - {item.remark}
                               </span>
                             ))}
