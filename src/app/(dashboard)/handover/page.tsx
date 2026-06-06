@@ -162,8 +162,8 @@ export default function HandoverPage() {
               ) : (
                 filtered.map((ho) => (
                   <TableRow key={ho.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <TableCell className="font-mono font-semibold text-sm text-slate-900 dark:text-slate-100">
-                      {ho.id.split('-')[0]}-{ho.id.slice(-6)} {/* Shorten CUID */}
+                    <TableCell className="font-mono font-semibold text-sm text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                      {ho.id}
                     </TableCell>
                     <TableCell className="text-slate-600 dark:text-slate-400">
                       {format(new Date(ho.date), "dd MMM yyyy")}
@@ -186,9 +186,16 @@ export default function HandoverPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-sm">
-                        {ho.items?.length || 0}
-                      </span>
+                      <div className="flex flex-col items-center">
+                        <span className="font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
+                          {ho.items?.length || 0} Alat
+                        </span>
+                        {ho.items && ho.items.length > 0 && (
+                          <span className="text-[10px] text-slate-500 mt-1 max-w-[150px] truncate" title={ho.items.map(item => item.toolName).join(', ')}>
+                            {ho.items.map(item => item.toolName).join(', ')}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">

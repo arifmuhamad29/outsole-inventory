@@ -116,9 +116,27 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
     const { date, recipient, giver = "SYSTEM", modelName, codeLast, items } = data
 
     await prisma.$transaction(async (tx) => {
+      // Generate format: HO-YYYYMMDD-001
+      const today = new Date();
+      const dateString = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+      
+      // Find the last handover of today to increment the counter
+      const lastHandover = await tx.handover.findFirst({
+        where: { id: { startsWith: `HO-${dateString}-` } },
+        orderBy: { id: 'desc' }
+      });
+
+      let sequence = 1;
+      if (lastHandover) {
+        const lastSequence = parseInt(lastHandover.id.split('-')[2], 10);
+        sequence = lastSequence + 1;
+      }
+      const customId = `HO-${dateString}-${sequence.toString().padStart(3, '0')}`;
+
       // 1. Create the master Handover record
       const handover = await tx.handover.create({
         data: {
+          id: customId,
           date: new Date(date),
           recipient,
           giver,

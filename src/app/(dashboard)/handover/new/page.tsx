@@ -79,6 +79,7 @@ type HandoverItem = {
 type FormValues = {
   date: string
   recipient: string
+  giver: string
   modelName: string
   codeLast: string
   items: HandoverItem[]
@@ -375,6 +376,7 @@ export default function NewHandoverPage() {
     defaultValues: {
       date: format(new Date(), "yyyy-MM-dd"),
       recipient: "",
+      giver: "",
       modelName: "",
       codeLast: "",
       items: [{ toolName: "", type: "", size: "", satuan: "SET", qtyHandover: 0, remark: "" }],
@@ -469,7 +471,7 @@ export default function NewHandoverPage() {
             <CardDescription>Isi detail penerima dan Code Last yang akan diserahkan.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Date */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tanggal</label>
@@ -493,6 +495,19 @@ export default function NewHandoverPage() {
                 />
                 {errors.recipient && (
                   <p className="text-xs text-red-500 font-medium">{errors.recipient.message}</p>
+                )}
+              </div>
+
+              {/* Giver */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pemberi</label>
+                <Input
+                  placeholder="e.g. ADMIN TOOLING"
+                  {...register("giver", { required: "Pemberi wajib diisi" })}
+                  className="h-10 bg-white dark:bg-gray-800"
+                />
+                {errors.giver && (
+                  <p className="text-xs text-red-500 font-medium">{errors.giver.message}</p>
                 )}
               </div>
 
