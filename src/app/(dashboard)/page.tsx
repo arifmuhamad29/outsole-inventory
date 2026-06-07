@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { HandoverLineChart, InventoryDistributionPieChart } from "@/components/dashboard/dashboard-charts"
 
 export default async function DashboardPage() {
@@ -28,8 +27,8 @@ export default async function DashboardPage() {
     bpmLowStock,
     todayHandovers,
     recentInbound,
-    criticalOutsoles,
-    criticalBpms
+    recentTransactionsRaw,
+    recentHandoversRaw
   ] = await Promise.all([
     // Total SKUs breakdown
     prisma.outsole.count({ where: { isActive: true } }),
@@ -55,45 +54,54 @@ export default async function DashboardPage() {
       where: { type: 'INBOUND' }
     }),
 
-    // Critical Items Query (< 2 stock)
-    prisma.outsole.findMany({
-      where: { isActive: true, stock: { lt: 2 } },
-      select: { id: true, qrCode: true, model: true, color: true, stock: true },
-      take: 5,
-      orderBy: { stock: 'asc' }
+    // Recent Transactions
+    prisma.transaction.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { name: true } },
+        outsole: { select: { qrCode: true, model: true, color: true } }
+      }
     }),
-    prisma.bpmTfmStock.findMany({
-      where: { devStock: { lt: 2 } },
-      select: { id: true, codeLast: true, toolName: true, devStock: true },
-      take: 5,
-      orderBy: { devStock: 'asc' }
+
+    // Recent Handovers
+    prisma.handover.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: { take: 1, select: { toolName: true } }
+      }
     })
   ])
 
   const totalSkus = outsoleCount + toolingCount + bpmCount
   const lowStockCount = outsoleLowStock + bpmLowStock
 
-  // Format Critical Items for the table
-  const mappedOutsoles = criticalOutsoles.map(item => ({
-    id: item.id,
-    codeLast: item.qrCode, // Outsoles use qrCode as identifier
+  // Format Recent Activity
+  const mappedTransactions = recentTransactionsRaw.map(t => ({
+    id: t.id,
+    codeLast: t.outsole.qrCode,
     category: "Outsole",
-    name: `${item.model} (${item.color})`,
-    qty: item.stock
+    itemName: `${t.outsole.model} (${t.outsole.color})`,
+    type: t.type,
+    operator: t.user.name,
+    createdAt: t.createdAt
   }))
 
-  const mappedBpms = criticalBpms.map(item => ({
-    id: item.id,
-    codeLast: item.codeLast,
+  const mappedHandovers = recentHandoversRaw.map(h => ({
+    id: h.id,
+    codeLast: h.codeLast || "-",
     category: "BPM/TFM",
-    name: item.toolName,
-    qty: item.devStock
+    itemName: h.modelName || h.items[0]?.toolName || "Handover Items",
+    type: "HANDOVER",
+    operator: h.giver,
+    createdAt: h.createdAt
   }))
 
-  // Combine, sort by qty ascending, and take top 5
-  const criticalItems = [...mappedOutsoles, ...mappedBpms]
-    .sort((a, b) => a.qty - b.qty)
-    .slice(0, 5)
+  // Combine, sort by date descending, and take top 10
+  const recentActivity = [...mappedTransactions, ...mappedHandovers]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 10)
 
   return (
     <div className="space-y-8 pb-8">
@@ -171,11 +179,11 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* ACTIONABLE ALERTS AREA (Full width) */}
+      {/* REAL-TIME ACTIVITY FEED AREA (Full width) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            ⚠️ Items Needing Attention (Stock &lt; 2)
+            🕒 Real-time Activity Feed
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -183,22 +191,23 @@ export default async function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[150px]">Code Last</TableHead>
+                  <TableHead className="w-[160px]">QR Code / Last Code</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Item Name</TableHead>
-                  <TableHead className="text-right">Stock Left</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Operator / Admin</TableHead>
+                  <TableHead className="text-right">Date &amp; Time</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {criticalItems.length === 0 ? (
+                {recentActivity.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                      No critical items found. Everything is well stocked!
+                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                      No recent activity found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  criticalItems.map((item) => (
+                  recentActivity.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-mono text-sm">{item.codeLast}</TableCell>
                       <TableCell>
@@ -208,12 +217,28 @@ export default async function DashboardPage() {
                           {item.category}
                         </span>
                       </TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="text-right font-bold text-red-600 dark:text-red-400">{item.qty}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" className="h-8">
-                          Print PO Request
-                        </Button>
+                      <TableCell className="font-medium">{item.itemName}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                          item.type === "INBOUND" ? "text-blue-600 dark:text-blue-400" :
+                          item.type === "OUTBOUND" ? "text-orange-600 dark:text-orange-400" :
+                          item.type === "HANDOVER" ? "text-purple-600 dark:text-purple-400" :
+                          "text-gray-600 dark:text-gray-400"
+                        }`}>
+                          {item.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{item.operator}</TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
+                        {new Date(item.createdAt).toLocaleString('en-GB', { 
+                          timeZone: 'Asia/Jakarta', 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit', 
+                          hour12: false 
+                        })} WIB
                       </TableCell>
                     </TableRow>
                   ))
