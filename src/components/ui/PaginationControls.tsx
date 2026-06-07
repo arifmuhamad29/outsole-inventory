@@ -1,5 +1,6 @@
 "use client"
 
+import { useTransition } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -13,6 +14,7 @@ export function PaginationControls({ totalPages, currentPage }: PaginationContro
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
 
   const createPageUrl = (pageNumber: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -22,7 +24,9 @@ export function PaginationControls({ totalPages, currentPage }: PaginationContro
 
   const handlePageChange = (pageNumber: number) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
-      router.push(createPageUrl(pageNumber))
+      startTransition(() => {
+        router.push(createPageUrl(pageNumber))
+      })
     }
   }
 
@@ -78,7 +82,7 @@ export function PaginationControls({ totalPages, currentPage }: PaginationContro
           variant="outline"
           size="sm"
           onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
+          disabled={isPending || currentPage <= 1}
           className="h-8 px-3 select-none"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
@@ -102,6 +106,7 @@ export function PaginationControls({ totalPages, currentPage }: PaginationContro
                 size="sm"
                 className="h-8 w-8 p-0"
                 onClick={() => handlePageChange(page)}
+                disabled={isPending}
               >
                 {page}
               </Button>
@@ -113,7 +118,7 @@ export function PaginationControls({ totalPages, currentPage }: PaginationContro
           variant="outline"
           size="sm"
           onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
+          disabled={isPending || currentPage >= totalPages}
           className="h-8 px-3 select-none"
         >
           Next

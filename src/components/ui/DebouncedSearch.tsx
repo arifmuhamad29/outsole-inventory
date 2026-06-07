@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ export function DebouncedSearch() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
 
   const [term, setTerm] = useState(searchParams.get("search")?.toString() || "")
 
@@ -22,7 +23,9 @@ export function DebouncedSearch() {
       params.delete("search")
     }
     params.set("page", "1")
-    router.replace(`${pathname}?${params.toString()}`)
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`)
+    })
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +35,9 @@ export function DebouncedSearch() {
       const params = new URLSearchParams(searchParams.toString())
       params.delete("search")
       params.set("page", "1")
-      router.replace(`${pathname}?${params.toString()}`)
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`)
+      })
     }
   }
 
@@ -48,8 +53,12 @@ export function DebouncedSearch() {
           onChange={handleChange}
         />
       </div>
-      <Button type="submit" variant="secondary" className="px-6">
-        Cari
+      <Button type="submit" variant="secondary" className="px-6" disabled={isPending}>
+        {isPending ? (
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        ) : (
+          "Search"
+        )}
       </Button>
     </form>
   )
