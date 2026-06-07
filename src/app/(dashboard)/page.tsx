@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {
-        items: { take: 1, select: { toolName: true } }
+        items: { take: 1, select: { toolName: true, qty: true, satuan: true } }
       }
     })
   ])
@@ -85,6 +85,8 @@ export default async function DashboardPage() {
     itemName: `${t.outsole.model} (${t.outsole.color})`,
     type: t.type,
     operator: t.user.name,
+    qty: t.qty,
+    unit: 'PRS', // Outsoles usually pairs
     createdAt: t.createdAt
   }))
 
@@ -95,6 +97,8 @@ export default async function DashboardPage() {
     itemName: h.modelName || h.items[0]?.toolName || "Handover Items",
     type: "HANDOVER",
     operator: h.giver,
+    qty: h.items.reduce((sum, item) => sum + (item.qty || 0), 0),
+    unit: h.items[0]?.satuan || 'SET',
     createdAt: h.createdAt
   }))
 
@@ -195,6 +199,7 @@ export default async function DashboardPage() {
                   <TableHead>Category</TableHead>
                   <TableHead>Item Name</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>QTY</TableHead>
                   <TableHead>Operator / Admin</TableHead>
                   <TableHead className="text-right">Date &amp; Time</TableHead>
                 </TableRow>
@@ -202,7 +207,7 @@ export default async function DashboardPage() {
               <TableBody>
                 {recentActivity.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                       No recent activity found.
                     </TableCell>
                   </TableRow>
@@ -227,6 +232,13 @@ export default async function DashboardPage() {
                         }`}>
                           {item.type}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {item.type === "INBOUND" ? (
+                          <span className="text-green-600 dark:text-green-400 font-medium text-sm">+ {item.qty} {item.unit}</span>
+                        ) : (
+                          <span className="text-red-600 dark:text-red-400 font-medium text-sm">- {item.qty} {item.unit}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.operator}</TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
