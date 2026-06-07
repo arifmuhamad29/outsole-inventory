@@ -1,8 +1,9 @@
 "use client"
 
-import { useDebouncedCallback } from "use-debounce"
+import { useState } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Search } from "lucide-react"
 
 export function DebouncedSearch() {
@@ -10,7 +11,10 @@ export function DebouncedSearch() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const handleSearch = useDebouncedCallback((term: string) => {
+  const [term, setTerm] = useState(searchParams.get("search")?.toString() || "")
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
     const params = new URLSearchParams(searchParams.toString())
     if (term) {
       params.set("search", term)
@@ -19,18 +23,23 @@ export function DebouncedSearch() {
     }
     params.set("page", "1")
     router.replace(`${pathname}?${params.toString()}`)
-  }, 300)
+  }
 
   return (
-    <div className="relative w-full max-w-md">
-      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-      <Input
-        type="search"
-        placeholder="Search model, article, color, size, PO..."
-        className="pl-9 w-full bg-white dark:bg-gray-800"
-        defaultValue={searchParams.get("search")?.toString() || ""}
-        onChange={(e) => handleSearch(e.target.value)}
-      />
-    </div>
+    <form onSubmit={handleSearch} className="flex w-full max-w-md items-center gap-2">
+      <div className="relative flex-1">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search model, article, color, size, PO..."
+          className="pl-9 w-full bg-white dark:bg-gray-800"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+        />
+      </div>
+      <Button type="submit" variant="secondary" className="px-6">
+        Cari
+      </Button>
+    </form>
   )
 }
