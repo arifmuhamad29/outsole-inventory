@@ -1,17 +1,28 @@
 import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { DashboardSearch } from "@/components/features/dashboard-search"
+import { DebouncedSearch } from "@/components/ui/DebouncedSearch"
+import { StatusFilter } from "@/components/ui/StatusFilter"
+import { PaginationControls } from "@/components/ui/PaginationControls"
 import { Suspense } from "react"
 import { InventoryTable } from "@/components/features/inventory-table"
 
-export default async function InventoryPage(props: { searchParams?: Promise<{ q?: string | string[], status?: string | string[] }> }) {
+export default async function InventoryPage(props: { 
+  searchParams?: Promise<{ 
+    search?: string | string[]
+    page?: string | string[]
+    status?: string | string[] 
+  }> 
+}) {
   const session = await auth()
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN"
   
   const resolvedParams = props.searchParams ? await props.searchParams : {}
-  const rawQuery = resolvedParams.q
-  const query = typeof rawQuery === 'string' ? rawQuery : ""
+  const rawSearch = resolvedParams.search
+  const search = typeof rawSearch === 'string' ? rawSearch : ""
+  
+  const rawPage = resolvedParams.page
+  const currentPage = typeof rawPage === 'string' ? Math.max(1, parseInt(rawPage) || 1) : 1
   
   const rawStatus = resolvedParams.status
   const statusFilter = typeof rawStatus === 'string' ? rawStatus : "all"
@@ -20,19 +31,15 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
     isActive: true,
   }
 
-  if (query) {
-    const normalizedQuery = query.replace(/([a-zA-Z])(\d)/g, '$1 $2').replace(/(\d)([a-zA-Z])/g, '$1 $2')
-    const terms = normalizedQuery.trim().split(/\s+/)
-    whereClause.AND = terms.map(term => ({
-      OR: [
-        { model: { contains: term, mode: "insensitive" } },
-        { article: { contains: term, mode: "insensitive" } },
-        { qrCode: { contains: term, mode: "insensitive" } },
-        { color: { contains: term, mode: "insensitive" } },
-        { poNumber: { contains: term, mode: "insensitive" } },
-        { size: { contains: term, mode: "insensitive" } }
-      ]
-    }))
+  if (search) {
+    whereClause.OR = [
+      { model: { contains: search, mode: "insensitive" } },
+      { article: { contains: search, mode: "insensitive" } },
+      { qrCode: { contains: search, mode: "insensitive" } },
+      { color: { contains: search, mode: "insensitive" } },
+      { poNumber: { contains: search, mode: "insensitive" } },
+      { size: { contains: search, mode: "insensitive" } }
+    ]
   }
 
   if (statusFilter === "lowstock") {
@@ -41,14 +48,33 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
     whereClause.stock = { gt: prisma.outsole.fields.minimumStock }
   }
 
-  const [totalSku, outsolesRaw] = await Promise.all([
-    prisma.outsole.count({ where: { isActive: true } }),
+  const limit = 25
+  const skip = (currentPage - 1) * limit
+
+  // 1. Fetch paginated outsoles and total count concurrently using prisma.$transaction
+  const [outsolesRaw, totalCount] = await prisma.$transaction([
     prisma.outsole.findMany({
       where: whereClause,
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updatedAt: 'desc' },
+      skip,
+      take: limit
+    }),
+    prisma.outsole.count({
+      where: whereClause
     })
   ])
 
+  // 2. Fetch overall SKUs and Stock aggregate in parallel
+  const [totalSku, stockAgg] = await Promise.all([
+    prisma.outsole.count({ where: { isActive: true } }),
+    prisma.outsole.aggregate({
+      _sum: { stock: true },
+      where: { isActive: true }
+    })
+  ])
+  const realTotalStock = stockAgg._sum.stock || 0
+
+  // 3. Fetch transaction details only for the 25 outsoles currently visible
   const outsoleIds = outsolesRaw.map(o => o.id)
 
   const [lastOutbounds, lastInbounds] = await Promise.all([
@@ -73,13 +99,6 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
     return { ...o, transactions }
   })
 
-  const stockAgg = await prisma.outsole.aggregate({
-    _sum: { stock: true },
-    where: { isActive: true }
-  })
-  
-  const realTotalStock = stockAgg._sum.stock || 0
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -89,13 +108,23 @@ export default async function InventoryPage(props: { searchParams?: Promise<{ q?
             Manage all outsole inventory. Total SKUs: {totalSku} | Total Stock: {realTotalStock}
           </p>
         </div>
-        <Suspense fallback={<div className="animate-pulse h-10 w-full max-w-sm bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
-          <DashboardSearch />
-        </Suspense>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
+          <Suspense fallback={<div className="animate-pulse h-9 w-full sm:w-64 bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
+            <DebouncedSearch />
+          </Suspense>
+          <Suspense fallback={<div className="animate-pulse h-9 w-full sm:w-36 bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
+            <StatusFilter />
+          </Suspense>
+        </div>
       </div>
 
       <div className="space-y-4">
         <InventoryTable outsoles={outsoles} isAdmin={isAdmin} readOnly={!isAdmin} />
+        
+        <PaginationControls 
+          totalPages={Math.ceil(totalCount / limit)} 
+          currentPage={currentPage} 
+        />
       </div>
     </div>
   )
