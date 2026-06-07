@@ -67,7 +67,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
           <div className="flex flex-col justify-center">
             <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
-            <span className="text-[10px] text-muted-foreground block">by : Arif Setiawan</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-muted-foreground">
+                by : Arif Setiawan
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
+                v2.0.0
+              </span>
+            </div>
           </div>
         </div>
         
@@ -128,7 +135,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
           <div className="flex flex-col justify-center">
             <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
-            <span className="text-[10px] text-muted-foreground block">by : Arif Setiawan</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-muted-foreground">
+                by : Arif Setiawan
+              </span>
+              <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
+                v2.0.0
+              </span>
+            </div>
           </div>
         </div>
         
