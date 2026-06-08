@@ -12,7 +12,7 @@ import {
 import { DebouncedSearch } from "@/components/ui/DebouncedSearch"
 import { PaginationControls } from "@/components/ui/PaginationControls"
 import { History } from "lucide-react"
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth"
 
 // Types for Raw SQL mapping
 type RawActivity = {
