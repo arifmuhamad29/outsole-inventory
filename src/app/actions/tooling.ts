@@ -80,15 +80,30 @@ export async function updateModelToolingAction(modelId: string, payload: {
         })
       }
 
-      // 2. Update Tooling Items (Name & Remarks)
+      // 2. Update Tooling Items (Name & Remarks) - TWO-PASS TRANSACTION to prevent Swap Collisions
+      // PASS 1: Assign temporary names to bypass unique constraint during swaps
       for (const item of payload.items) {
-        await tx.toolingItem.update({
-          where: { id: item.id },
-          data: {
-            name: item.name,
-            remark: item.remark
-          }
-        })
+        if (item.id) {
+          await tx.toolingItem.update({
+            where: { id: item.id },
+            data: {
+              name: `${item.name}_temp_${Math.random().toString(36).substring(7)}`,
+            }
+          })
+        }
+      }
+
+      // PASS 2: Apply the final actual names and other fields
+      for (const item of payload.items) {
+        if (item.id) {
+          await tx.toolingItem.update({
+            where: { id: item.id },
+            data: {
+              name: item.name,
+              remark: item.remark
+            }
+          })
+        }
       }
 
       // 3. Create new Tooling Items (and nested phases)
