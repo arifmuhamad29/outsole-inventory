@@ -638,24 +638,12 @@ export default function NewHandoverPage() {
         {/* ── ITEMS SECTION: Dynamic Table ── */}
         <Card className="shadow-sm">
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Package className="w-4 h-4 text-primary" />
-                  Daftar Item Handover
-                </CardTitle>
-                <CardDescription>Tambah tool yang akan diserahkan. Stok BPM/TFM/Univ Pad akan dikurangi otomatis.</CardDescription>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ toolName: "", type: "", size: "", satuan: "SET", qtyHandover: 0, remark: "" })}
-                className="gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Item
-              </Button>
+            <div>
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Package className="w-4 h-4 text-primary" />
+                Daftar Item Handover
+              </CardTitle>
+              <CardDescription>Tambah tool yang akan diserahkan. Stok BPM/TFM/Univ Pad akan dikurangi otomatis.</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="p-0">
