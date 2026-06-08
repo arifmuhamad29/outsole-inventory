@@ -47,7 +47,8 @@ export async function updateModelToolingAction(modelId: string, payload: {
     name: string,
     remark: string | null,
     phases: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[]
-  }[]
+  }[],
+  deletedItemIds?: string[]
 }) {
   try {
     const session = await auth()
@@ -141,7 +142,14 @@ export async function updateModelToolingAction(modelId: string, payload: {
         }
       }
 
-      // 4. Update Model lastUpdated timestamp
+      // 4. Delete items marked for deletion
+      if (payload.deletedItemIds && payload.deletedItemIds.length > 0) {
+        await tx.toolingItem.deleteMany({
+          where: { id: { in: payload.deletedItemIds } }
+        })
+      }
+
+      // 5. Update Model lastUpdated timestamp
       await tx.shoeModel.update({
         where: { id: modelId },
         data: { lastUpdated: new Date() }

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save, X, Plus } from "lucide-react"
+import { Loader2, Save, X, Plus, Trash2 } from "lucide-react"
 
 // Types
 type Phase = {
@@ -93,6 +93,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({})
   const [itemNames, setItemNames] = useState<Record<string, string>>({})
   const [newItemsList, setNewItemsList] = useState<Item[]>([])
+  const [deletedItemsList, setDeletedItemsList] = useState<string[]>([])
 
   // Initialize state when model changes
   useEffect(() => {
@@ -119,6 +120,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
       setItemRemarks(newItemRemarks)
       setItemNames(newItemNames)
       setNewItemsList([]) // reset new items
+      setDeletedItemsList([]) // reset deleted items
     }
   }, [model])
 
@@ -179,6 +181,14 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     }))
   }
 
+  const handleDeleteItem = (itemId: string) => {
+    if (itemId.startsWith("new-item-")) {
+      setNewItemsList(prev => prev.filter(i => i.id !== itemId))
+    } else {
+      setDeletedItemsList(prev => [...prev, itemId])
+    }
+  }
+
   const handleSave = () => {
     if (!model) return
 
@@ -212,7 +222,8 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           actualETA: phaseData[p.id]?.actualETA || null,
           status: phaseData[p.id]?.status || "ON PROCESS",
         }))
-      }))
+      })),
+      deletedItemIds: deletedItemsList
     }
 
     startTransition(async () => {
@@ -227,7 +238,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
 
   const renderTable = (category: string, phaseType: string) => {
     const combinedItems = [...model.toolingItems, ...newItemsList]
-    const items = combinedItems.filter((i) => i.category === category)
+    const items = combinedItems.filter((i) => i.category === category && !deletedItemsList.includes(i.id))
 
     const today = startOfDay(new Date())
 
@@ -258,12 +269,13 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                 <TableHead>Actual ETA</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Remark</TableHead>
+                {!isReadOnly && <TableHead className="w-[50px] text-center">Hapus</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-slate-500 py-6">
+                  <TableCell colSpan={isReadOnly ? 7 : 8} className="text-center text-slate-500 py-6">
                     Belum ada data untuk kategori ini.
                   </TableCell>
                 </TableRow>
@@ -380,6 +392,18 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                         />
                       )}
                     </TableCell>
+                    {!isReadOnly && (
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 )
               })}
