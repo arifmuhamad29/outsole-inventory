@@ -56,7 +56,7 @@ export default async function DashboardPage() {
 
     // Recent Transactions
     prisma.transaction.findMany({
-      take: 10,
+      take: 20,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { name: true } },
@@ -66,10 +66,10 @@ export default async function DashboardPage() {
 
     // Recent Handovers
     prisma.handover.findMany({
-      take: 10,
+      take: 20,
       orderBy: { createdAt: 'desc' },
       include: {
-        items: { take: 1, select: { toolName: true, qty: true, satuan: true } }
+        items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true } }
       }
     })
   ])
@@ -87,6 +87,7 @@ export default async function DashboardPage() {
     operator: t.user.name,
     qty: t.qty,
     unit: 'PRS', // Outsoles usually pairs
+    remarks: t.notes || "",
     createdAt: t.createdAt
   }))
 
@@ -99,13 +100,14 @@ export default async function DashboardPage() {
     operator: h.giver,
     qty: h.items.reduce((sum, item) => sum + (item.qty || 0), 0),
     unit: h.items[0]?.satuan || 'SET',
+    remarks: h.items[0]?.remark || "",
     createdAt: h.createdAt
   }))
 
-  // Combine, sort by date descending, and take top 10
+  // Combine, sort by date descending, and take top 20
   const recentActivity = [...mappedTransactions, ...mappedHandovers]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 10)
+    .slice(0, 20)
 
   return (
     <div className="space-y-8 pb-8">
@@ -201,13 +203,14 @@ export default async function DashboardPage() {
                   <TableHead>Type</TableHead>
                   <TableHead>QTY</TableHead>
                   <TableHead>Operator / Admin</TableHead>
+                  <TableHead>Remarks</TableHead>
                   <TableHead className="text-right">Date &amp; Time</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentActivity.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                       No recent activity found.
                     </TableCell>
                   </TableRow>
@@ -241,6 +244,11 @@ export default async function DashboardPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.operator}</TableCell>
+                      <TableCell>
+                        <div className="max-w-[150px] truncate text-sm" title={item.remarks || "No remarks"}>
+                          {item.remarks ? item.remarks : <span className="text-muted-foreground">-</span>}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(item.createdAt).toLocaleString('en-GB', { 
                           timeZone: 'Asia/Jakarta', 
