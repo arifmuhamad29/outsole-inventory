@@ -12,6 +12,7 @@ import {
 import { DebouncedSearch } from "@/components/ui/DebouncedSearch"
 import { PaginationControls } from "@/components/ui/PaginationControls"
 import { History } from "lucide-react"
+import { auth } from "@/auth"
 
 // Types for Raw SQL mapping
 type RawActivity = {
@@ -29,6 +30,18 @@ type RawActivity = {
 }
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const session = await auth()
+  
+  if (!session || (!session.user.permissions?.includes("VIEW_HISTORY") && session.user.role !== "SUPER_ADMIN")) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] space-y-4">
+        <h2 className="text-2xl font-bold text-red-600">Akses Ditolak</h2>
+        <p className="text-slate-600">Anda tidak memiliki izin untuk melihat riwayat transaksi.</p>
+        <p className="text-sm text-slate-500">Hubungi Super Admin jika Anda membutuhkan akses (Permission: VIEW_HISTORY).</p>
+      </div>
+    )
+  }
+
   const params = await searchParams
   const currentPage = parseInt(params.page as string) || 1
   const search = (params.search as string) || ''

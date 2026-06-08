@@ -9,7 +9,8 @@ export const PERMISSIONS = [
   { id: "EDIT_TOOLING_MES", label: "Edit Tooling (MES)" },
   { id: "MANAGE_STOCK_OPNAME", label: "Kelola Stock Opname" },
   { id: "MANAGE_INBOUND", label: "Kelola Inbound (Scan In)" },
-  { id: "MANAGE_OUTBOUND", label: "Kelola Outbound (Scan Out)" }
+  { id: "MANAGE_OUTBOUND", label: "Kelola Outbound (Scan Out)" },
+  { id: "VIEW_HISTORY", label: "Lihat Riwayat Transaksi" }
 ] as const;
 
 export type PermissionId = typeof PERMISSIONS[number]["id"];

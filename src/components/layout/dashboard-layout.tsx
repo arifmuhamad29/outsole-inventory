@@ -52,6 +52,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     baseNavItems = baseNavItems.filter(item => {
       if (item.name === "Inbound" && !permissions.includes("MANAGE_INBOUND")) return false;
       if (item.name === "Outbound" && !permissions.includes("MANAGE_OUTBOUND")) return false;
+      if (item.name === "History / Audit" && !permissions.includes("VIEW_HISTORY")) return false;
       return true;
     });
   }
@@ -74,7 +75,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.0.7
+                v2.0.8
               </span>
             </div>
           </div>
@@ -142,7 +143,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.0.7
+                v2.0.8
               </span>
             </div>
           </div>
