@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "BPM & TFM Stock", href: "/bpm-tfm", icon: Layers },
     { name: "Handover", href: "/handover", icon: Send },
     { name: "Reports", href: "/reports", icon: FileSpreadsheet },
+    { name: "History / Audit", href: "/history", icon: History },
   ]
 
   const operatorNavItems = [
@@ -36,6 +37,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Tooling (MES)", href: "/tooling", icon: Wrench },
     { name: "BPM & TFM Stock", href: "/bpm-tfm", icon: Layers },
     { name: "Handover", href: "/handover", icon: Send },
+    { name: "History / Audit", href: "/history", icon: History },
   ]
 
   const superAdminNavItems = [
@@ -72,7 +74,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.0.6
+                v2.0.7
               </span>
             </div>
           </div>
@@ -140,7 +142,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.0.6
+                v2.0.7
               </span>
             </div>
           </div>
