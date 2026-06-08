@@ -5,7 +5,7 @@ const { auth } = NextAuth(authConfig)
 import { NextResponse } from "next/server"
 
 const publicRoutes = ["/login"]
-const openRoutes = ["/public"]
+const openRoutes = ["/public", "/api/logout"]
 const operatorRoutes = ["/", "/outbound", "/inventory", "/tooling", "/bpm-tfm", "/handover", "/history"]
 
 // Simple in-memory rate limiter for Edge environment

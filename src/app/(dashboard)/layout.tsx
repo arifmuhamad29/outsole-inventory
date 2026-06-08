@@ -26,16 +26,8 @@ export default async function Layout({ children }: { children: React.ReactNode }
   }
 
   if (isZombie) {
-    // Manually wipe auth cookies to prevent infinite redirect loops
-    const cookieStore = await cookies();
-    const allCookies = cookieStore.getAll();
-    for (const cookie of allCookies) {
-      if (cookie.name.includes("authjs") || cookie.name.includes("next-auth")) {
-        cookieStore.delete(cookie.name);
-      }
-    }
-    // Perform clean redirect outside of try-catch
-    redirect("/login");
+    // Redirect to the dedicated API route that has permission to wipe cookies
+    redirect("/api/logout");
   }
 
   return (
