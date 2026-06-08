@@ -1,17 +1,6 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { signOut } from "@/lib/auth";
 
-export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll();
-  
-  // Wipe all NextAuth/Auth.js session cookies
-  for (const cookie of allCookies) {
-    if (cookie.name.includes("authjs") || cookie.name.includes("next-auth")) {
-      cookieStore.delete(cookie.name);
-    }
-  }
-
-  // Redirect to login cleanly
-  return NextResponse.redirect(new URL("/login", request.url));
+export async function GET() {
+  // Use official NextAuth signOut to ensure strict secure cookies are actually destroyed
+  await signOut({ redirectTo: "/login" });
 }
