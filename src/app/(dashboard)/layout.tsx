@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { ZombieCheck } from "@/components/auth/zombie-check"
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -32,6 +33,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
 
   return (
     <AppSessionProvider>
+      <ZombieCheck />
       <DashboardLayout>
         {children}
       </DashboardLayout>
