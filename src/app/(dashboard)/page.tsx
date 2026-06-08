@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { name: true } },
-        outsole: { select: { qrCode: true, model: true, color: true } }
+        outsole: { select: { qrCode: true, model: true, color: true, size: true } }
       }
     }),
 
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       take: 20,
       orderBy: { createdAt: 'desc' },
       include: {
-        items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true } }
+        items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true, size: true } }
       }
     })
   ])
@@ -83,6 +83,7 @@ export default async function DashboardPage() {
     codeLast: t.outsole.qrCode,
     category: "Outsole",
     itemName: `${t.outsole.model} (${t.outsole.color})`,
+    size: t.outsole.size || "-",
     type: t.type,
     operator: t.user.name,
     qty: t.qty,
@@ -96,6 +97,7 @@ export default async function DashboardPage() {
     codeLast: h.codeLast || "-",
     category: "BPM/TFM",
     itemName: h.modelName || h.items[0]?.toolName || "Handover Items",
+    size: h.items[0]?.size || "-",
     type: "HANDOVER",
     operator: h.giver,
     qty: h.items.reduce((sum, item) => sum + (item.qty || 0), 0),
@@ -200,6 +202,7 @@ export default async function DashboardPage() {
                   <TableHead className="w-[160px]">QR Code / Last Code</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Item Name</TableHead>
+                  <TableHead>Size</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>QTY</TableHead>
                   <TableHead>Operator / Admin</TableHead>
@@ -210,7 +213,7 @@ export default async function DashboardPage() {
               <TableBody>
                 {recentActivity.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                       No recent activity found.
                     </TableCell>
                   </TableRow>
@@ -226,6 +229,7 @@ export default async function DashboardPage() {
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">{item.itemName}</TableCell>
+                      <TableCell className="text-slate-600 font-medium">{item.size}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
                           item.type === "INBOUND" ? "text-blue-600 dark:text-blue-400" :
