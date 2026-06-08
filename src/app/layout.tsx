@@ -23,9 +23,14 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Outsole Inventory",
-  description: "Outsole inventory management system with QR scanning for warehouse operations",
+  title: "Outsole Inventory Command Center",
+  description: "Warehouse management system for Bottom/Outsole/Tooling",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
