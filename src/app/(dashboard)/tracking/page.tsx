@@ -686,7 +686,7 @@ export default function TrackingPage() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2 italic">
-                    * Kosongkan kolom atau isi dengan '0' jika ukuran tidak dipesan.
+                    * Kosongkan kolom atau isi dengan &apos;0&apos; jika ukuran tidak dipesan.
                   </p>
                 </div>
 
