@@ -55,16 +55,14 @@ export async function getTrackingEntries(params: {
   // 3. Get the aggregates (Sum of quantity, Count of sizes) for these specific batches
   const batchIds = uniqueBatchesForPage.map((b) => b.batchId)
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let aggregates: any[] = []
-  if (batchIds.length > 0) {
-    aggregates = await prisma.purchaseTracking.groupBy({
-      by: ["batchId"],
-      where: { batchId: { in: batchIds } },
-      _sum: { quantity: true },
-      _count: { size: true },
-    })
-  }
+  const aggregates = batchIds.length > 0
+    ? await prisma.purchaseTracking.groupBy({
+        by: ["batchId"],
+        where: { batchId: { in: batchIds } },
+        _sum: { quantity: true },
+        _count: { size: true },
+      })
+    : []
 
   // 4. Merge the data
   const entries = uniqueBatchesForPage.map((batch) => {
