@@ -38,14 +38,10 @@ export function PublicTrackingView() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      setCurrentPage(1)
     }, 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
@@ -55,17 +51,14 @@ export function PublicTrackingView() {
     try {
       const result = await getPublicTrackingEntries({
         search: debouncedSearch,
-        page: currentPage,
-        limit: 25,
       })
       setEntries(result.entries as unknown as TrackingEntryGrouped[])
-      setTotalPages(result.totalPages)
     } catch (error) {
       console.error("Failed to load tracking data", error)
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, currentPage])
+  }, [debouncedSearch])
 
   useEffect(() => {
     loadData()
@@ -176,31 +169,6 @@ export function PublicTrackingView() {
         </Table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-slate-500 mt-2">
-          <div className="font-medium">Page {currentPage} of {totalPages}</div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || loading}
-              className="bg-white shadow-sm font-medium"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages || loading}
-              className="bg-white shadow-sm font-medium"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
