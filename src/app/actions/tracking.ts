@@ -143,14 +143,14 @@ export async function createTrackingEntry(data: {
     }
 
     if (!data.article.trim() || !data.modelName.trim() || !data.genderCategory.trim()) {
-      return { success: false, message: "Article, Model Name, dan Gender Category wajib diisi" }
+      return { success: false, message: "Article, Model Name, and Gender Category are required" }
     }
 
     // Filter out sizes with 0 or empty quantity
     const validSizes = Object.entries(data.sizes).filter(([_, qty]) => qty > 0)
     
     if (validSizes.length === 0) {
-      return { success: false, message: "Minimal harus ada satu ukuran dengan quantity > 0" }
+      return { success: false, message: "At least one size with quantity > 0 is required" }
     }
 
     const batchId = randomUUID()
@@ -182,10 +182,10 @@ export async function createTrackingEntry(data: {
     ])
 
     revalidatePath("/tracking")
-    return { success: true, message: "Data tracking berhasil ditambahkan!" }
+    return { success: true, message: "Tracking data saved successfully" }
   } catch (error) {
     console.error("Create Tracking Error:", error)
-    return { success: false, message: error instanceof Error ? error.message : "Gagal menambahkan data" }
+    return { success: false, message: error instanceof Error ? error.message : "Failed to save tracking data" }
   }
 }
 
@@ -221,7 +221,7 @@ export async function updateTrackingEntry(
     const validSizes = Object.entries(data.sizes).filter(([_, qty]) => qty > 0)
     
     if (validSizes.length === 0) {
-      return { success: false, message: "Minimal harus ada satu ukuran dengan quantity > 0" }
+      return { success: false, message: "At least one size with quantity > 0 is required" }
     }
 
     const recordsToCreate = validSizes.map(([size, quantity]) => ({
@@ -255,10 +255,10 @@ export async function updateTrackingEntry(
     ])
 
     revalidatePath("/tracking")
-    return { success: true, message: "Data tracking berhasil diperbarui!" }
+    return { success: true, message: "Tracking data updated successfully" }
   } catch (error) {
     console.error("Update Tracking Error:", error)
-    return { success: false, message: error instanceof Error ? error.message : "Gagal memperbarui data" }
+    return { success: false, message: error instanceof Error ? error.message : "Failed to update tracking data" }
   }
 }
 
@@ -277,9 +277,9 @@ export async function deleteTrackingEntry(batchId: string) {
     })
 
     revalidatePath("/tracking")
-    return { success: true, message: "Data tracking berhasil dihapus!" }
+    return { success: true, message: "Tracking data deleted successfully" }
   } catch (error) {
     console.error("Delete Tracking Error:", error)
-    return { success: false, message: error instanceof Error ? error.message : "Gagal menghapus data" }
+    return { success: false, message: error instanceof Error ? error.message : "Failed to delete tracking data" }
   }
 }

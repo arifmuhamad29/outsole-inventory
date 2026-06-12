@@ -155,14 +155,14 @@ function ModelCombobox({
           !value && "text-muted-foreground"
         )}
       >
-        <span className="truncate">{value || "Pilih Model..."}</span>
+        <span className="truncate">{value || "Select Model..."}</span>
         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
           <div className="p-2">
             <Input
-              placeholder="Cari model..."
+              placeholder="Search model..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 text-sm"
@@ -172,7 +172,7 @@ function ModelCombobox({
           <div className="max-h-[200px] overflow-y-auto p-1">
             {filtered.length === 0 ? (
               <p className="px-3 py-2 text-sm text-muted-foreground text-center">
-                Model tidak ditemukan
+                Model not found
               </p>
             ) : (
               filtered.map((name) => (
@@ -287,7 +287,7 @@ export default function TrackingPage() {
       setTotalCount(result.totalCount)
     } catch (error) {
       console.error("Failed to load tracking data", error)
-      toast.error("Gagal memuat data tracking")
+      toast.error("Failed to load tracking data")
     } finally {
       setLoading(false)
     }
@@ -336,7 +336,7 @@ export default function TrackingPage() {
       })
     } catch (error) {
       console.error(error)
-      toast.error("Gagal memuat detail ukuran untuk batch ini")
+      toast.error("Failed to load size details for this batch")
     } finally {
       setIsLoadingBatch(false)
     }
@@ -354,7 +354,7 @@ export default function TrackingPage() {
     })
 
     if (Object.keys(processedSizes).length === 0) {
-      toast.error("Anda harus mengisi minimal satu kuantitas ukuran > 0")
+      toast.error("At least one size with quantity > 0 is required")
       return
     }
 
@@ -416,9 +416,9 @@ export default function TrackingPage() {
             <ShoppingCart className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Tracking Pembelian</h1>
+            <h1 className="text-xl font-bold tracking-tight">Purchase Tracking</h1>
             <p className="text-sm text-muted-foreground">
-              {totalCount} Purchase Orders terdaftar
+              {totalCount} Purchase Orders registered
             </p>
           </div>
         </div>
@@ -428,7 +428,7 @@ export default function TrackingPage() {
           className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Order Baru
+          New Order
         </Button>
       </div>
 
@@ -436,7 +436,7 @@ export default function TrackingPage() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Cari article, model, PO, supplier..."
+          placeholder="Search article, model, PO, supplier..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
@@ -468,7 +468,7 @@ export default function TrackingPage() {
                 <TableHead className="font-semibold text-center">Status</TableHead>
                 <TableHead className="font-semibold">PO / Supplier</TableHead>
                 <TableHead className="font-semibold">ETA</TableHead>
-                <TableHead className="font-semibold text-center w-[90px]">Aksi</TableHead>
+                <TableHead className="font-semibold text-center w-[90px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -477,7 +477,7 @@ export default function TrackingPage() {
                   <TableCell colSpan={12} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
-                      <span className="text-sm text-muted-foreground">Memuat data...</span>
+                      <span className="text-sm text-muted-foreground">Loading data...</span>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -487,7 +487,7 @@ export default function TrackingPage() {
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Package className="h-10 w-10 opacity-30" />
                       <span className="text-sm">
-                        {debouncedSearch ? "Tidak ditemukan data yang cocok" : "Belum ada PO / Order terdaftar"}
+                        {debouncedSearch ? "No matching data found" : "No PO / Order registered yet"}
                       </span>
                     </div>
                   </TableCell>
@@ -549,7 +549,7 @@ export default function TrackingPage() {
                     </TableCell>
                     <TableCell className="text-center font-mono font-semibold text-sm">
                       <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 border-none">
-                        {entry.totalSizes} Ukuran
+                        {entry.totalSizes} Sizes
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center font-bold text-sm">
@@ -611,7 +611,7 @@ export default function TrackingPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t px-4 py-3 bg-muted/30">
             <p className="text-sm text-muted-foreground">
-              Halaman {currentPage} dari {totalPages} ({totalCount} PO terdaftar)
+              Page {currentPage} of {totalPages} ({totalCount} PO registered)
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -620,7 +620,7 @@ export default function TrackingPage() {
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
               >
-                Sebelumnya
+                Previous
               </Button>
               <Button
                 variant="outline"
@@ -628,7 +628,7 @@ export default function TrackingPage() {
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
               >
-                Selanjutnya
+                Next
               </Button>
             </div>
           </div>
@@ -642,17 +642,17 @@ export default function TrackingPage() {
             <DialogHeader className="px-6 py-4 border-b bg-muted/10 shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-violet-500" />
-                {editingBatchId ? "Edit Order Matrix" : "Tambah Order Matrix"}
+                {editingBatchId ? "Edit Order Matrix" : "Add Order Matrix"}
               </DialogTitle>
               <DialogDescription>
-                Pilih kategori gender, lalu isi jumlah pesanan pada kolom ukuran yang sesuai.
+                Select the gender category, then enter the order quantities in the respective sizes.
               </DialogDescription>
             </DialogHeader>
 
             {isLoadingBatch ? (
               <div className="flex flex-col items-center justify-center p-12 gap-4 h-[400px]">
                 <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
-                <p className="text-sm text-muted-foreground">Memuat detail matriks...</p>
+                <p className="text-sm text-muted-foreground">Loading matrix details...</p>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar">
@@ -660,14 +660,14 @@ export default function TrackingPage() {
                 {/* Section: Foto & Identitas */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">1. Foto & Identitas</p>
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">1. Photo & Identity</p>
                     <div className="h-px bg-border" />
                   </div>
 
                   <div className="flex flex-col md:flex-row gap-6">
                     {/* Foto Upload Zone */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <Label className="text-xs font-medium">Foto Sepatu</Label>
+                      <Label className="text-xs font-medium">Shoe Photo</Label>
                       <div className="relative group w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center overflow-hidden cursor-pointer">
                         {watchImageUrl ? (
                           <>
@@ -695,7 +695,7 @@ export default function TrackingPage() {
                           onClick={() => setValue("imageUrl", "")}
                           className="text-[10px] text-red-500 hover:underline text-center w-32"
                         >
-                          Hapus Foto
+                          Remove Photo
                         </button>
                       )}
                     </div>
@@ -730,7 +730,7 @@ export default function TrackingPage() {
                               field.onChange(v)
                             }}>
                               <SelectTrigger>
-                                <SelectValue placeholder="Kategori..." />
+                                <SelectValue placeholder="Category..." />
                               </SelectTrigger>
                               <SelectContent>
                                 {GENDER_CATEGORIES.map((c) => (
@@ -774,36 +774,36 @@ export default function TrackingPage() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2 italic">
-                    * Kosongkan kolom atau isi dengan &apos;0&apos; jika ukuran tidak dipesan.
+                    * Leave blank or enter &apos;0&apos; for sizes that are not ordered.
                   </p>
                 </div>
 
                 {/* Section: Spesifikasi Material */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">3. Spesifikasi Material</p>
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">3. Material Specifications</p>
                     <div className="h-px bg-border" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium">Midsole Material</Label>
-                      <Input placeholder="Phylon, EVA, dll" {...register("midsoleMaterial")} />
+                      <Input placeholder="Phylon, EVA, etc." {...register("midsoleMaterial")} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium">Midsole Color</Label>
-                      <Input placeholder="White, Black, dll" {...register("midsoleColor")} />
+                      <Input placeholder="White, Black, etc." {...register("midsoleColor")} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium">Outsole Material</Label>
-                      <Input placeholder="Rubber, TPU, dll" {...register("outsoleMaterial")} />
+                      <Input placeholder="Rubber, TPU, etc." {...register("outsoleMaterial")} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium">Outsole Color</Label>
-                      <Input placeholder="White, Gum, dll" {...register("outsoleColor")} />
+                      <Input placeholder="White, Gum, etc." {...register("outsoleColor")} />
                     </div>
                   </div>
 
@@ -818,10 +818,10 @@ export default function TrackingPage() {
                           onValueChange={(val) => field.onChange(val === "none" || !val ? "" : String(val))}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Pilih treatment..." />
+                            <SelectValue placeholder="Select treatment..." />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Tidak ada</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {TREATMENT_OPTIONS.map((opt) => (
                               <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                             ))}
@@ -835,15 +835,15 @@ export default function TrackingPage() {
                 {/* Section: Status & PO */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">4. Status Pemesanan</p>
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">4. Order Status</p>
                     <div className="h-px bg-border" />
                   </div>
 
                   <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/10">
                     <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Status Order</Label>
+                      <Label className="text-sm font-medium">Order Status</Label>
                       <p className="text-xs text-muted-foreground">
-                        {watch("isOrdered") ? "✅ Sudah di-order" : "⏳ Belum di-order"}
+                        {watch("isOrdered") ? "✅ Ordered" : "⏳ Not Ordered"}
                       </p>
                     </div>
                     <Controller
@@ -857,12 +857,12 @@ export default function TrackingPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">No. PO</Label>
+                      <Label className="text-xs font-medium">PO Number</Label>
                       <Input placeholder="PO-2026-001" {...register("poNumber")} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium">Supplier</Label>
-                      <Input placeholder="Nama vendor" {...register("supplier")} />
+                      <Input placeholder="Vendor name" {...register("supplier")} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium">ETA Date</Label>
@@ -871,9 +871,9 @@ export default function TrackingPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Catatan / Keterangan</Label>
+                    <Label className="text-xs font-medium">Notes / Remarks</Label>
                     <Textarea
-                      placeholder="Catatan tambahan (opsional)..."
+                      placeholder="Additional notes (optional)..."
                       {...register("notes")}
                       rows={2}
                     />
@@ -885,7 +885,7 @@ export default function TrackingPage() {
 
             <DialogFooter className="px-6 py-4 border-t bg-muted/10 shrink-0">
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} disabled={isPending || isLoadingBatch}>
-                Batal
+                Cancel
               </Button>
               <Button
                 type="submit"
@@ -895,7 +895,7 @@ export default function TrackingPage() {
                 {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  editingBatchId ? "Simpan Perubahan" : "Simpan Matriks"
+                  editingBatchId ? "Save Changes" : "Save Matrix"
                 )}
               </Button>
             </DialogFooter>
@@ -930,19 +930,19 @@ export default function TrackingPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Purchase Order?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Purchase Order?</AlertDialogTitle>
             <AlertDialogDescription>
-              Menghapus data ini akan menghilangkan <b>SELURUH UKURAN</b> di dalam PO ini secara permanen. Yakin ingin melanjutkan?
+              Deleting this will permanently remove <b>ALL SIZES</b> within this PO. Are you sure you want to continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Hapus Semua"}
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete All"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

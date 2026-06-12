@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Handover", href: "/handover", icon: Send },
     { name: "Reports", href: "/reports", icon: FileSpreadsheet },
     { name: "History / Audit", href: "/history", icon: History },
-    { name: "Tracking Pembelian", href: "/tracking", icon: ShoppingCart },
+    { name: "Tracking", href: "/tracking", icon: ShoppingCart },
   ]
 
   const operatorNavItems = [
@@ -39,7 +39,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "BPM & TFM Stock", href: "/bpm-tfm", icon: Layers },
     { name: "Handover", href: "/handover", icon: Send },
     { name: "History / Audit", href: "/history", icon: History },
-    { name: "Tracking Pembelian", href: "/tracking", icon: ShoppingCart },
+    { name: "Tracking", href: "/tracking", icon: ShoppingCart },
   ]
 
   const superAdminNavItems = [
