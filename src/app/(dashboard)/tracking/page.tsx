@@ -479,7 +479,7 @@ export default function TrackingPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, currentPage])
+  }, [debouncedSearch, canView])
 
   useEffect(() => {
     fetchData()
