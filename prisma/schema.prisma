@@ -277,6 +277,7 @@ model PurchaseTracking {
   supplier         String?   // Vendor name
   etaDate          DateTime?
   notes            String?   // Free-form notes
+  sortOrder        Int       @default(0) // Used for custom drag and drop sorting
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

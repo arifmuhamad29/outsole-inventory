@@ -10,17 +10,11 @@ import { randomUUID } from "crypto"
 // ============================
 export async function getTrackingEntries(params: {
   search?: string
-  page?: number
-  limit?: number
 }) {
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Unauthorized")
   }
-
-  const page = params.page || 1
-  const limit = params.limit || 25
-  const skip = (page - 1) * limit
 
   const whereClause: import("@prisma/client").Prisma.PurchaseTrackingWhereInput = {}
 
@@ -34,22 +28,11 @@ export async function getTrackingEntries(params: {
     ]
   }
 
-  // 1. Get total unique batches for pagination
-  // Unfortunately, Prisma doesn't support count with distinct easily, so we query the distinct batchIds
-  const distinctBatches = await prisma.purchaseTracking.findMany({
-    where: whereClause,
-    distinct: ["batchId"],
-    select: { batchId: true },
-  })
-  const totalCount = distinctBatches.length
-
-  // 2. Get the unique batch records for the current page
+  // 1. Get the unique batch records
   const uniqueBatchesForPage = await prisma.purchaseTracking.findMany({
     where: whereClause,
     distinct: ["batchId"],
-    orderBy: { updatedAt: "desc" },
-    skip,
-    take: limit,
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   })
 
   // 3. Get the aggregates (Sum of quantity, Count of sizes) for these specific batches
@@ -76,9 +59,9 @@ export async function getTrackingEntries(params: {
 
   return {
     entries,
-    totalCount,
-    totalPages: Math.ceil(totalCount / limit),
-    currentPage: page,
+    totalCount: entries.length,
+    totalPages: 1,
+    currentPage: 1,
   }
 }
 
@@ -87,13 +70,7 @@ export async function getTrackingEntries(params: {
 // ============================
 export async function getPublicTrackingEntries(params: {
   search?: string
-  page?: number
-  limit?: number
 }) {
-  const page = params.page || 1
-  const limit = params.limit || 25
-  const skip = (page - 1) * limit
-
   const whereClause: import("@prisma/client").Prisma.PurchaseTrackingWhereInput = {}
 
   if (params.search && params.search.trim() !== "") {
@@ -106,19 +83,10 @@ export async function getPublicTrackingEntries(params: {
     ]
   }
 
-  const distinctBatches = await prisma.purchaseTracking.findMany({
-    where: whereClause,
-    distinct: ["batchId"],
-    select: { batchId: true },
-  })
-  const totalCount = distinctBatches.length
-
   const uniqueBatchesForPage = await prisma.purchaseTracking.findMany({
     where: whereClause,
     distinct: ["batchId"],
-    orderBy: { updatedAt: "desc" },
-    skip,
-    take: limit,
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   })
 
   const batchIds = uniqueBatchesForPage.map((b) => b.batchId)
@@ -348,5 +316,29 @@ export async function deleteTrackingEntry(batchId: string) {
   } catch (error) {
     console.error("Delete Tracking Error:", error)
     return { success: false, message: error instanceof Error ? error.message : "Failed to delete tracking data" }
+  }
+}
+
+// ============================
+// UPDATE: Update batch sort order
+// ============================
+export async function updateBatchOrder(orderedBatchIds: string[]) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  try {
+    await prisma.$transaction(
+      orderedBatchIds.map((batchId, index) =>
+        prisma.purchaseTracking.updateMany({
+          where: { batchId },
+          data: { sortOrder: index },
+        })
+      )
+    )
+    revalidatePath("/tracking")
+    return { success: true }
+  } catch (error) {
+    console.error("Failed to update sort order", error)
+    return { success: false, message: "Gagal merubah urutan" }
   }
 }
