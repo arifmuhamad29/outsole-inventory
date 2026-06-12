@@ -111,9 +111,9 @@ export async function getPublicTrackingEntries(params: {
 
   return {
     entries,
-    totalCount,
-    totalPages: Math.ceil(totalCount / limit),
-    currentPage: page,
+    totalCount: entries.length,
+    totalPages: 1,
+    currentPage: 1,
   }
 }
 
