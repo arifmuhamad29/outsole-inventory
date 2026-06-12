@@ -627,7 +627,7 @@ export default function TrackingPage() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Purchase Tracking</h1>
             <p className="text-sm text-muted-foreground">
-              {totalCount} Purchase Orders registered
+              {entries.length} Purchase Orders registered
             </p>
           </div>
         </div>
