@@ -627,7 +627,7 @@ export default function TrackingPage() {
               <Label className="text-xs font-medium">Bottom Treatment</Label>
               <Select
                 value={formData.bottomTreatment}
-                onValueChange={(val) => setFormData({ ...formData, bottomTreatment: val === "none" ? "" : val })}
+                onValueChange={(val) => setFormData({ ...formData, bottomTreatment: val === "none" || !val ? "" : String(val) })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih treatment..." />
