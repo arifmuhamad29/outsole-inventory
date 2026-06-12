@@ -501,10 +501,10 @@ export default function TrackingPage() {
                     <TableCell className="text-center text-muted-foreground text-xs">
                       {(currentPage - 1) * 25 + index + 1}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center p-2">
                       {entry.imageUrl ? (
                         <div 
-                          className="h-10 w-10 mx-auto rounded-md overflow-hidden border shadow-sm cursor-pointer hover:scale-110 transition-transform"
+                          className="h-14 w-14 mx-auto rounded-md overflow-hidden border shadow-sm cursor-pointer hover:scale-110 transition-transform"
                           onClick={() => {
                             setFullScreenImage(entry.imageUrl)
                             setIsImageOpen(true)
@@ -513,8 +513,8 @@ export default function TrackingPage() {
                           <img src={entry.imageUrl} alt={entry.article} className="h-full w-full object-cover" />
                         </div>
                       ) : (
-                        <div className="h-10 w-10 mx-auto rounded-md bg-muted flex items-center justify-center border">
-                          <ImageIcon className="h-5 w-5 text-muted-foreground opacity-50" />
+                        <div className="h-14 w-14 mx-auto rounded-md bg-muted flex items-center justify-center border">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground opacity-50" />
                         </div>
                       )}
                     </TableCell>
