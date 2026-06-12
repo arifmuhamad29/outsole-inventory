@@ -1,13 +1,19 @@
 "use client"
 
-import { useEffect, useState, useTransition, useCallback } from "react"
+import { useEffect, useState, useTransition, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
-import { getTrackingEntries, createTrackingEntry, updateTrackingEntry, deleteTrackingEntry } from "@/app/actions/tracking"
+import {
+  getTrackingEntries,
+  getModelNamesFromTooling,
+  createTrackingEntry,
+  updateTrackingEntry,
+  deleteTrackingEntry,
+} from "@/app/actions/tracking"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import {
   ShoppingCart, Search, Plus, Pencil, Trash2, Loader2,
-  CheckCircle2, Clock, Package, X
+  CheckCircle2, Clock, Package, X, ChevronDown, Check,
 } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead,
@@ -27,17 +33,28 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
+
+// ============ Types ============
 
 type TrackingEntry = {
   id: string
   article: string
   modelName: string
-  specifications: string | null
+  midsoleMaterial: string | null
+  outsoleMaterial: string | null
+  midsoleColor: string | null
+  outsoleColor: string | null
+  bottomTreatment: string | null
+  size: string
+  quantity: number
   isOrdered: boolean
   poNumber: string | null
   supplier: string | null
-  targetQty: number
   etaDate: string | null
   notes: string | null
   createdAt: string
@@ -47,11 +64,16 @@ type TrackingEntry = {
 type FormData = {
   article: string
   modelName: string
-  specifications: string
+  midsoleMaterial: string
+  outsoleMaterial: string
+  midsoleColor: string
+  outsoleColor: string
+  bottomTreatment: string
+  size: string
+  quantity: number
   isOrdered: boolean
   poNumber: string
   supplier: string
-  targetQty: number
   etaDate: string
   notes: string
 }
@@ -59,14 +81,110 @@ type FormData = {
 const emptyForm: FormData = {
   article: "",
   modelName: "",
-  specifications: "",
+  midsoleMaterial: "",
+  outsoleMaterial: "",
+  midsoleColor: "",
+  outsoleColor: "",
+  bottomTreatment: "",
+  size: "",
+  quantity: 0,
   isOrdered: false,
   poNumber: "",
   supplier: "",
-  targetQty: 0,
   etaDate: "",
   notes: "",
 }
+
+const TREATMENT_OPTIONS = ["Spray", "Marble", "Spackle"]
+
+// ============ Model Name Combobox ============
+
+function ModelCombobox({
+  value,
+  onChange,
+  modelNames,
+}: {
+  value: string
+  onChange: (val: string) => void
+  modelNames: string[]
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const filtered = modelNames.filter((m) =>
+    m.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          !value && "text-muted-foreground"
+        )}
+      >
+        <span className="truncate">{value || "Pilih Model..."}</span>
+        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
+          <div className="p-2">
+            <Input
+              placeholder="Cari model..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[200px] overflow-y-auto p-1">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground text-center">
+                Model tidak ditemukan
+              </p>
+            ) : (
+              filtered.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => {
+                    onChange(name)
+                    setOpen(false)
+                    setSearch("")
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-sm px-3 py-1.5 text-sm hover:bg-accent cursor-pointer text-left",
+                    value === name && "bg-accent"
+                  )}
+                >
+                  <Check
+                    className={cn("h-3.5 w-3.5 shrink-0", value === name ? "opacity-100" : "opacity-0")}
+                  />
+                  {name}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============ Main Page ============
 
 export default function TrackingPage() {
   const { data: session } = useSession()
@@ -77,6 +195,7 @@ export default function TrackingPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [modelNames, setModelNames] = useState<string[]>([])
 
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -94,6 +213,13 @@ export default function TrackingPage() {
     }, 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
+
+  // Load model names on mount
+  useEffect(() => {
+    getModelNamesFromTooling()
+      .then(setModelNames)
+      .catch(() => console.error("Failed to load model names"))
+  }, [])
 
   const fetchData = useCallback(async () => {
     try {
@@ -131,21 +257,26 @@ export default function TrackingPage() {
     setFormData({
       article: entry.article,
       modelName: entry.modelName,
-      specifications: entry.specifications || "",
+      midsoleMaterial: entry.midsoleMaterial || "",
+      outsoleMaterial: entry.outsoleMaterial || "",
+      midsoleColor: entry.midsoleColor || "",
+      outsoleColor: entry.outsoleColor || "",
+      bottomTreatment: entry.bottomTreatment || "",
+      size: entry.size,
+      quantity: entry.quantity,
       isOrdered: entry.isOrdered,
       poNumber: entry.poNumber || "",
       supplier: entry.supplier || "",
-      targetQty: entry.targetQty,
       etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
       notes: entry.notes || "",
     })
     setIsFormOpen(true)
   }
 
-  // Submit form (create or update)
+  // Submit form
   const handleSubmit = () => {
-    if (!formData.article.trim() || !formData.modelName.trim()) {
-      toast.error("Article dan Model Name wajib diisi!")
+    if (!formData.article.trim() || !formData.modelName.trim() || !formData.size.trim()) {
+      toast.error("Article, Model Name, dan Size wajib diisi!")
       return
     }
 
@@ -153,11 +284,16 @@ export default function TrackingPage() {
       const payload = {
         article: formData.article,
         modelName: formData.modelName,
-        specifications: formData.specifications || undefined,
+        midsoleMaterial: formData.midsoleMaterial || undefined,
+        outsoleMaterial: formData.outsoleMaterial || undefined,
+        midsoleColor: formData.midsoleColor || undefined,
+        outsoleColor: formData.outsoleColor || undefined,
+        bottomTreatment: formData.bottomTreatment || undefined,
+        size: formData.size,
+        quantity: formData.quantity,
         isOrdered: formData.isOrdered,
         poNumber: formData.poNumber || undefined,
         supplier: formData.supplier || undefined,
-        targetQty: formData.targetQty,
         etaDate: formData.etaDate || undefined,
         notes: formData.notes || undefined,
       }
@@ -176,7 +312,7 @@ export default function TrackingPage() {
     })
   }
 
-  // Delete entry
+  // Delete
   const handleDelete = () => {
     if (!deletingId) return
     startTransition(async () => {
@@ -221,7 +357,7 @@ export default function TrackingPage() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Cari article, model, PO, supplier..."
+          placeholder="Cari article, model, PO, supplier, size..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
@@ -242,22 +378,23 @@ export default function TrackingPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="w-[50px] text-center font-semibold">#</TableHead>
+                <TableHead className="w-[40px] text-center font-semibold">#</TableHead>
                 <TableHead className="font-semibold">Article</TableHead>
                 <TableHead className="font-semibold">Model</TableHead>
+                <TableHead className="font-semibold">Material</TableHead>
+                <TableHead className="font-semibold">Treatment</TableHead>
+                <TableHead className="font-semibold text-center">Size</TableHead>
+                <TableHead className="font-semibold text-center">QTY</TableHead>
                 <TableHead className="font-semibold text-center">Status</TableHead>
-                <TableHead className="font-semibold">PO Number</TableHead>
-                <TableHead className="font-semibold">Supplier</TableHead>
-                <TableHead className="font-semibold text-center">Qty</TableHead>
+                <TableHead className="font-semibold">PO / Supplier</TableHead>
                 <TableHead className="font-semibold">ETA</TableHead>
-                <TableHead className="font-semibold">Catatan</TableHead>
-                <TableHead className="font-semibold text-center w-[100px]">Aksi</TableHead>
+                <TableHead className="font-semibold text-center w-[90px]">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-32 text-center">
+                  <TableCell colSpan={11} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
                       <span className="text-sm text-muted-foreground">Memuat data...</span>
@@ -266,7 +403,7 @@ export default function TrackingPage() {
                 </TableRow>
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-32 text-center">
+                  <TableCell colSpan={11} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Package className="h-10 w-10 opacity-30" />
                       <span className="text-sm">
@@ -287,36 +424,58 @@ export default function TrackingPage() {
                     <TableCell className="font-mono font-semibold text-sm">
                       {entry.article}
                     </TableCell>
-                    <TableCell className="font-medium text-sm max-w-[180px] truncate">
+                    <TableCell className="font-medium text-sm max-w-[150px] truncate">
                       {entry.modelName}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[160px]">
+                      <div className="space-y-0.5">
+                        {entry.midsoleMaterial && (
+                          <div>M/S: <span className="text-foreground">{entry.midsoleMaterial}</span>{entry.midsoleColor && <span className="text-violet-500"> ({entry.midsoleColor})</span>}</div>
+                        )}
+                        {entry.outsoleMaterial && (
+                          <div>O/S: <span className="text-foreground">{entry.outsoleMaterial}</span>{entry.outsoleColor && <span className="text-violet-500"> ({entry.outsoleColor})</span>}</div>
+                        )}
+                        {!entry.midsoleMaterial && !entry.outsoleMaterial && (
+                          <span className="opacity-40">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {entry.bottomTreatment ? (
+                        <Badge variant="outline" className="text-xs font-medium">
+                          {entry.bottomTreatment}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground opacity-40">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center font-mono font-semibold text-sm">
+                      {entry.size}
+                    </TableCell>
+                    <TableCell className="text-center font-semibold text-sm">
+                      {entry.quantity > 0 ? entry.quantity.toLocaleString() : <span className="text-muted-foreground opacity-40">-</span>}
                     </TableCell>
                     <TableCell className="text-center">
                       {entry.isOrdered ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold text-xs">
+                          <CheckCircle2 className="h-3 w-3" />
                           ORDERED
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/15 gap-1 font-semibold">
-                          <Clock className="h-3.5 w-3.5" />
+                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/15 gap-1 font-semibold text-xs">
+                          <Clock className="h-3 w-3" />
                           NOT YET
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {entry.poNumber || <span className="opacity-40">-</span>}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[140px] truncate">
-                      {entry.supplier || <span className="opacity-40">-</span>}
-                    </TableCell>
-                    <TableCell className="text-center font-semibold text-sm">
-                      {entry.targetQty > 0 ? entry.targetQty.toLocaleString() : <span className="text-muted-foreground opacity-40">-</span>}
+                    <TableCell className="text-sm max-w-[140px]">
+                      <div className="space-y-0.5">
+                        <div className="text-muted-foreground truncate">{entry.poNumber || <span className="opacity-40">-</span>}</div>
+                        {entry.supplier && <div className="text-xs text-violet-500 truncate">{entry.supplier}</div>}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate">
-                      {entry.notes || <span className="opacity-40">-</span>}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
@@ -378,7 +537,7 @@ export default function TrackingPage() {
 
       {/* ============ ADD / EDIT DIALOG ============ */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-violet-500" />
@@ -390,7 +549,12 @@ export default function TrackingPage() {
           </DialogHeader>
 
           <div className="grid gap-4 py-2">
-            {/* Row: Article + Model */}
+            {/* Section: Identitas */}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identitas Barang</p>
+              <div className="h-px bg-border" />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="article" className="text-xs font-medium">Article <span className="text-red-500">*</span></Label>
@@ -402,31 +566,119 @@ export default function TrackingPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="modelName" className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
-                <Input
-                  id="modelName"
-                  placeholder="VL COURT 3.0"
+                <Label className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
+                <ModelCombobox
                   value={formData.modelName}
-                  onChange={(e) => setFormData({ ...formData, modelName: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, modelName: val })}
+                  modelNames={modelNames}
                 />
               </div>
             </div>
 
-            {/* Specifications */}
-            <div className="space-y-1.5">
-              <Label htmlFor="specifications" className="text-xs font-medium">Spesifikasi</Label>
-              <Input
-                id="specifications"
-                placeholder="Material, Status Mold, dll"
-                value={formData.specifications}
-                onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
-              />
+            {/* Section: Spesifikasi Material */}
+            <div className="space-y-1 pt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Spesifikasi Material</p>
+              <div className="h-px bg-border" />
             </div>
 
-            {/* Status Toggle */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="midsoleMaterial" className="text-xs font-medium">Midsole Material</Label>
+                <Input
+                  id="midsoleMaterial"
+                  placeholder="Phylon, EVA, dll"
+                  value={formData.midsoleMaterial}
+                  onChange={(e) => setFormData({ ...formData, midsoleMaterial: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="midsoleColor" className="text-xs font-medium">Midsole Color</Label>
+                <Input
+                  id="midsoleColor"
+                  placeholder="White, Black, dll"
+                  value={formData.midsoleColor}
+                  onChange={(e) => setFormData({ ...formData, midsoleColor: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="outsoleMaterial" className="text-xs font-medium">Outsole Material</Label>
+                <Input
+                  id="outsoleMaterial"
+                  placeholder="Rubber, TPU, dll"
+                  value={formData.outsoleMaterial}
+                  onChange={(e) => setFormData({ ...formData, outsoleMaterial: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="outsoleColor" className="text-xs font-medium">Outsole Color</Label>
+                <Input
+                  id="outsoleColor"
+                  placeholder="White, Gum, dll"
+                  value={formData.outsoleColor}
+                  onChange={(e) => setFormData({ ...formData, outsoleColor: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Bottom Treatment</Label>
+              <Select
+                value={formData.bottomTreatment}
+                onValueChange={(val) => setFormData({ ...formData, bottomTreatment: val === "none" ? "" : val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih treatment..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Tidak ada</SelectItem>
+                  {TREATMENT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Section: Size & Quantity */}
+            <div className="space-y-1 pt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size & Quantity</p>
+              <div className="h-px bg-border" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="size" className="text-xs font-medium">Size <span className="text-red-500">*</span></Label>
+                <Input
+                  id="size"
+                  placeholder="42, 8T, dll"
+                  value={formData.size}
+                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="quantity" className="text-xs font-medium">QTY Size</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={formData.quantity || ""}
+                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+
+            {/* Section: Status & PO */}
+            <div className="space-y-1 pt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status Pemesanan</p>
+              <div className="h-px bg-border" />
+            </div>
+
             <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
               <div className="space-y-0.5">
-                <Label className="text-sm font-medium">Status Pemesanan</Label>
+                <Label className="text-sm font-medium">Status Order</Label>
                 <p className="text-xs text-muted-foreground">
                   {formData.isOrdered ? "✅ Sudah di-order" : "⏳ Belum di-order"}
                 </p>
@@ -437,7 +689,6 @@ export default function TrackingPage() {
               />
             </div>
 
-            {/* Row: PO + Supplier */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="poNumber" className="text-xs font-medium">No. PO</Label>
@@ -459,28 +710,14 @@ export default function TrackingPage() {
               </div>
             </div>
 
-            {/* Row: Qty + ETA */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="targetQty" className="text-xs font-medium">Target Qty</Label>
-                <Input
-                  id="targetQty"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formData.targetQty || ""}
-                  onChange={(e) => setFormData({ ...formData, targetQty: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="etaDate" className="text-xs font-medium">ETA Date</Label>
-                <Input
-                  id="etaDate"
-                  type="date"
-                  value={formData.etaDate}
-                  onChange={(e) => setFormData({ ...formData, etaDate: e.target.value })}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="etaDate" className="text-xs font-medium">ETA Date</Label>
+              <Input
+                id="etaDate"
+                type="date"
+                value={formData.etaDate}
+                onChange={(e) => setFormData({ ...formData, etaDate: e.target.value })}
+              />
             </div>
 
             {/* Notes */}
@@ -491,7 +728,7 @@ export default function TrackingPage() {
                 placeholder="Catatan tambahan..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
+                rows={2}
               />
             </div>
           </div>

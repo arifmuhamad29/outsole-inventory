@@ -30,6 +30,7 @@ export async function getTrackingEntries(params: {
       { modelName: { contains: searchTerm, mode: "insensitive" } },
       { poNumber: { contains: searchTerm, mode: "insensitive" } },
       { supplier: { contains: searchTerm, mode: "insensitive" } },
+      { size: { contains: searchTerm, mode: "insensitive" } },
     ]
   }
 
@@ -52,16 +53,38 @@ export async function getTrackingEntries(params: {
 }
 
 // ============================
+// FETCH: Get all model names from ShoeModel (Tooling MES)
+// ============================
+export async function getModelNamesFromTooling() {
+  const session = await auth()
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized")
+  }
+
+  const models = await prisma.shoeModel.findMany({
+    select: { name: true },
+    orderBy: { name: "asc" },
+  })
+
+  return models.map((m) => m.name)
+}
+
+// ============================
 // CREATE: Add a new tracking entry
 // ============================
 export async function createTrackingEntry(data: {
   article: string
   modelName: string
-  specifications?: string
+  midsoleMaterial?: string
+  outsoleMaterial?: string
+  midsoleColor?: string
+  outsoleColor?: string
+  bottomTreatment?: string
+  size: string
+  quantity: number
   isOrdered: boolean
   poNumber?: string
   supplier?: string
-  targetQty: number
   etaDate?: string
   notes?: string
 }) {
@@ -71,19 +94,24 @@ export async function createTrackingEntry(data: {
       return { success: false, message: "Unauthorized" }
     }
 
-    if (!data.article.trim() || !data.modelName.trim()) {
-      return { success: false, message: "Article dan Model Name wajib diisi" }
+    if (!data.article.trim() || !data.modelName.trim() || !data.size.trim()) {
+      return { success: false, message: "Article, Model Name, dan Size wajib diisi" }
     }
 
     await prisma.purchaseTracking.create({
       data: {
         article: data.article.trim().toUpperCase(),
         modelName: data.modelName.trim().toUpperCase(),
-        specifications: data.specifications?.trim() || null,
+        midsoleMaterial: data.midsoleMaterial?.trim() || null,
+        outsoleMaterial: data.outsoleMaterial?.trim() || null,
+        midsoleColor: data.midsoleColor?.trim() || null,
+        outsoleColor: data.outsoleColor?.trim() || null,
+        bottomTreatment: data.bottomTreatment || null,
+        size: data.size.trim(),
+        quantity: data.quantity || 0,
         isOrdered: data.isOrdered,
         poNumber: data.poNumber?.trim() || null,
         supplier: data.supplier?.trim() || null,
-        targetQty: data.targetQty || 0,
         etaDate: data.etaDate ? new Date(data.etaDate) : null,
         notes: data.notes?.trim() || null,
       },
@@ -105,11 +133,16 @@ export async function updateTrackingEntry(
   data: {
     article: string
     modelName: string
-    specifications?: string
+    midsoleMaterial?: string
+    outsoleMaterial?: string
+    midsoleColor?: string
+    outsoleColor?: string
+    bottomTreatment?: string
+    size: string
+    quantity: number
     isOrdered: boolean
     poNumber?: string
     supplier?: string
-    targetQty: number
     etaDate?: string
     notes?: string
   }
@@ -125,11 +158,16 @@ export async function updateTrackingEntry(
       data: {
         article: data.article.trim().toUpperCase(),
         modelName: data.modelName.trim().toUpperCase(),
-        specifications: data.specifications?.trim() || null,
+        midsoleMaterial: data.midsoleMaterial?.trim() || null,
+        outsoleMaterial: data.outsoleMaterial?.trim() || null,
+        midsoleColor: data.midsoleColor?.trim() || null,
+        outsoleColor: data.outsoleColor?.trim() || null,
+        bottomTreatment: data.bottomTreatment || null,
+        size: data.size.trim(),
+        quantity: data.quantity || 0,
         isOrdered: data.isOrdered,
         poNumber: data.poNumber?.trim() || null,
         supplier: data.supplier?.trim() || null,
-        targetQty: data.targetQty || 0,
         etaDate: data.etaDate ? new Date(data.etaDate) : null,
         notes: data.notes?.trim() || null,
       },

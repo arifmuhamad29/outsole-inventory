@@ -259,18 +259,23 @@ model HandoverItem {
 // informational ledger for purchase order status tracking.
 // ============================================================
 model PurchaseTracking {
-  id             String    @id @default(cuid())
-  article        String    // e.g., HQ0170, ID9156
-  modelName      String    // e.g., VL COURT 3.0
-  specifications String?   // Material info, mold status, etc.
-  isOrdered      Boolean   @default(false)
-  poNumber       String?   // PO Number (if ordered)
-  supplier       String?   // Vendor name
-  targetQty      Int       @default(0)
-  etaDate        DateTime?
-  notes          String?   // Free-form notes
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  article          String    // e.g., HQ0170, ID9156
+  modelName        String    // e.g., VL COURT 3.0 (populated from ShoeModel)
+  midsoleMaterial  String?   // Midsole material spec
+  outsoleMaterial  String?   // Outsole material spec
+  midsoleColor     String?   // Midsole color
+  outsoleColor     String?   // Outsole color
+  bottomTreatment  String?   // "Spray", "Marble", "Spackle"
+  size             String    // e.g., "42", "8T"
+  quantity         Int       @default(0) // Quantity for this specific size
+  isOrdered        Boolean   @default(false)
+  poNumber         String?   // PO Number (if ordered)
+  supplier         String?   // Vendor name
+  etaDate          DateTime?
+  notes            String?   // Free-form notes
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([article])
   @@index([modelName])
