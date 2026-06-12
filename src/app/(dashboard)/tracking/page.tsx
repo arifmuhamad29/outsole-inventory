@@ -486,9 +486,9 @@ export default function TrackingPage() {
                 <TableHead className="w-[60px] text-center font-semibold">Visual</TableHead>
                 <TableHead className="font-semibold">Article</TableHead>
                 <TableHead className="font-semibold">Model</TableHead>
-                <TableHead className="font-semibold">Material</TableHead>
-                <TableHead className="font-semibold">Treatment</TableHead>
-                <TableHead className="font-semibold text-center">Sizes</TableHead>
+                <TableHead className="font-semibold">Material / Color</TableHead>
+                <TableHead className="font-semibold text-center">Treatment</TableHead>
+                <TableHead className="font-semibold text-center">Size</TableHead>
                 <TableHead className="font-semibold text-center">Total QTY</TableHead>
                 <TableHead className="font-semibold text-center">Status</TableHead>
                 <TableHead className="font-semibold">PO / Supplier</TableHead>
@@ -550,27 +550,24 @@ export default function TrackingPage() {
                       {entry.modelName}
                       <span className="block text-xs text-muted-foreground">({entry.genderCategory})</span>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[160px]">
-                      <div className="space-y-0.5">
-                        {entry.midsoleMaterial && (
-                          <div>M/S: <span className="text-foreground">{entry.midsoleMaterial}</span>{entry.midsoleColor && <span className="text-violet-500"> ({entry.midsoleColor})</span>}</div>
-                        )}
-                        {entry.outsoleMaterial && (
-                          <div>O/S: <span className="text-foreground">{entry.outsoleMaterial}</span>{entry.outsoleColor && <span className="text-violet-500"> ({entry.outsoleColor})</span>}</div>
-                        )}
-                        {!entry.midsoleMaterial && !entry.outsoleMaterial && (
-                          <span className="opacity-40">-</span>
-                        )}
+                    <TableCell className="text-xs">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-col">
+                          <span className="text-slate-500 font-medium">M/S:</span>
+                          <span className="font-medium text-slate-700">
+                            {entry.midsoleMaterial || "-"} <br/> <span className="text-violet-600">({entry.midsoleColor || "-"})</span>
+                          </span>
+                        </div>
+                        <div className="flex flex-col mt-1">
+                          <span className="text-slate-500 font-medium">O/S:</span>
+                          <span className="font-medium text-slate-700">
+                            {entry.outsoleMaterial || "-"} <br/> <span className="text-violet-600">({entry.outsoleColor || "-"})</span>
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {entry.bottomTreatment ? (
-                        <Badge variant="outline" className="text-xs font-medium">
-                          {entry.bottomTreatment}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground opacity-40">-</span>
-                      )}
+                    <TableCell className="text-center text-sm font-medium">
+                      {entry.bottomTreatment || "-"}
                     </TableCell>
                     <TableCell className="text-center font-mono font-semibold text-sm">
                       <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 border-none">
