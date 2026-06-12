@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useTransition, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
+import { useForm, Controller } from "react-hook-form"
 import {
   getTrackingEntries,
   getModelNamesFromTooling,
+  getBatchSizes,
   createTrackingEntry,
   updateTrackingEntry,
   deleteTrackingEntry,
@@ -39,19 +41,33 @@ import {
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
+// ============ Constants ============
+
+const GENDER_CATEGORIES = ["Men", "Women", "Infant", "Kids/Jr"]
+
+const SIZES_MATRIX: Record<string, string[]> = {
+  "Men": ["5", "5T", "6", "6T", "7", "7T", "8", "8T", "9", "9T", "10", "10T", "11", "11T", "12", "12T", "13", "13T", "14", "14T", "15", "16", "17"],
+  "Women": ["3", "3T", "4", "4T", "5", "5T", "6", "6T", "7", "7T", "8", "8T", "9", "9T", "10"],
+  "Infant": ["3K", "3TK", "4K", "4TK", "5K", "5TK", "6K", "6TK", "7K", "7TK", "8K", "8TK", "9K", "9TK"],
+  "Kids/Jr": ["10K", "10TK", "11K", "11TK", "12K", "12TK", "13K", "13TK", "1", "1T", "2", "2T", "3", "3T", "4", "4T", "5", "5T", "6", "6T"],
+}
+
+const TREATMENT_OPTIONS = ["Spray", "Marble", "Spackle"]
+
 // ============ Types ============
 
-type TrackingEntry = {
-  id: string
+type TrackingEntryGrouped = {
+  batchId: string
   article: string
   modelName: string
+  genderCategory: string
   midsoleMaterial: string | null
   outsoleMaterial: string | null
   midsoleColor: string | null
   outsoleColor: string | null
   bottomTreatment: string | null
-  size: string
-  quantity: number
+  totalSizes: number
+  totalQuantity: number
   isOrdered: boolean
   poNumber: string | null
   supplier: string | null
@@ -61,41 +77,39 @@ type TrackingEntry = {
   updatedAt: string
 }
 
-type FormData = {
+type FormValues = {
   article: string
   modelName: string
+  genderCategory: string
   midsoleMaterial: string
   outsoleMaterial: string
   midsoleColor: string
   outsoleColor: string
   bottomTreatment: string
-  size: string
-  quantity: number
   isOrdered: boolean
   poNumber: string
   supplier: string
   etaDate: string
   notes: string
+  sizes: Record<string, string> // using string for the input to handle empty fields easily
 }
 
-const emptyForm: FormData = {
+const defaultValues: FormValues = {
   article: "",
   modelName: "",
+  genderCategory: "Men",
   midsoleMaterial: "",
   outsoleMaterial: "",
   midsoleColor: "",
   outsoleColor: "",
   bottomTreatment: "",
-  size: "",
-  quantity: 0,
   isOrdered: false,
   poNumber: "",
   supplier: "",
   etaDate: "",
   notes: "",
+  sizes: {},
 }
-
-const TREATMENT_OPTIONS = ["Spray", "Marble", "Spackle"]
 
 // ============ Model Name Combobox ============
 
@@ -112,7 +126,6 @@ function ModelCombobox({
   const [search, setSearch] = useState("")
   const ref = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -188,7 +201,7 @@ function ModelCombobox({
 
 export default function TrackingPage() {
   const { data: session } = useSession()
-  const [entries, setEntries] = useState<TrackingEntry[]>([])
+  const [entries, setEntries] = useState<TrackingEntryGrouped[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -200,10 +213,17 @@ export default function TrackingPage() {
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const [editingEntry, setEditingEntry] = useState<TrackingEntry | null>(null)
+  const [isLoadingBatch, setIsLoadingBatch] = useState(false)
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<FormData>(emptyForm)
   const [isPending, startTransition] = useTransition()
+
+  // Form Hook
+  const { register, handleSubmit, control, reset, watch, setValue } = useForm<FormValues>({
+    defaultValues,
+  })
+
+  const watchCategory = watch("genderCategory")
 
   // Debounce search
   useEffect(() => {
@@ -229,7 +249,7 @@ export default function TrackingPage() {
         page: currentPage,
         limit: 25,
       })
-      setEntries(result.entries as unknown as TrackingEntry[])
+      setEntries(result.entries as unknown as TrackingEntryGrouped[])
       setTotalPages(result.totalPages)
       setTotalCount(result.totalCount)
     } catch (error) {
@@ -246,60 +266,84 @@ export default function TrackingPage() {
 
   // Open Add dialog
   const handleAdd = () => {
-    setEditingEntry(null)
-    setFormData(emptyForm)
+    setEditingBatchId(null)
+    reset(defaultValues)
     setIsFormOpen(true)
   }
 
   // Open Edit dialog
-  const handleEdit = (entry: TrackingEntry) => {
-    setEditingEntry(entry)
-    setFormData({
-      article: entry.article,
-      modelName: entry.modelName,
-      midsoleMaterial: entry.midsoleMaterial || "",
-      outsoleMaterial: entry.outsoleMaterial || "",
-      midsoleColor: entry.midsoleColor || "",
-      outsoleColor: entry.outsoleColor || "",
-      bottomTreatment: entry.bottomTreatment || "",
-      size: entry.size,
-      quantity: entry.quantity,
-      isOrdered: entry.isOrdered,
-      poNumber: entry.poNumber || "",
-      supplier: entry.supplier || "",
-      etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
-      notes: entry.notes || "",
-    })
+  const handleEdit = async (entry: TrackingEntryGrouped) => {
+    setEditingBatchId(entry.batchId)
+    setIsLoadingBatch(true)
     setIsFormOpen(true)
+
+    try {
+      const sizesData = await getBatchSizes(entry.batchId)
+      const sizesRecord = sizesData.reduce((acc, curr) => {
+        acc[curr.size] = curr.quantity.toString()
+        return acc
+      }, {} as Record<string, string>)
+
+      reset({
+        article: entry.article,
+        modelName: entry.modelName,
+        genderCategory: entry.genderCategory || "Men",
+        midsoleMaterial: entry.midsoleMaterial || "",
+        outsoleMaterial: entry.outsoleMaterial || "",
+        midsoleColor: entry.midsoleColor || "",
+        outsoleColor: entry.outsoleColor || "",
+        bottomTreatment: entry.bottomTreatment || "",
+        isOrdered: entry.isOrdered,
+        poNumber: entry.poNumber || "",
+        supplier: entry.supplier || "",
+        etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
+        notes: entry.notes || "",
+        sizes: sizesRecord,
+      })
+    } catch (error) {
+      console.error(error)
+      toast.error("Gagal memuat detail ukuran untuk batch ini")
+    } finally {
+      setIsLoadingBatch(false)
+    }
   }
 
   // Submit form
-  const handleSubmit = () => {
-    if (!formData.article.trim() || !formData.modelName.trim() || !formData.size.trim()) {
-      toast.error("Article, Model Name, dan Size wajib diisi!")
+  const onSubmit = (data: FormValues) => {
+    // Process string sizes to number, filter out 0
+    const processedSizes: Record<string, number> = {}
+    Object.entries(data.sizes).forEach(([size, qtyStr]) => {
+      const qty = parseInt(qtyStr)
+      if (!isNaN(qty) && qty > 0) {
+        processedSizes[size] = qty
+      }
+    })
+
+    if (Object.keys(processedSizes).length === 0) {
+      toast.error("Anda harus mengisi minimal satu kuantitas ukuran > 0")
       return
     }
 
     startTransition(async () => {
       const payload = {
-        article: formData.article,
-        modelName: formData.modelName,
-        midsoleMaterial: formData.midsoleMaterial || undefined,
-        outsoleMaterial: formData.outsoleMaterial || undefined,
-        midsoleColor: formData.midsoleColor || undefined,
-        outsoleColor: formData.outsoleColor || undefined,
-        bottomTreatment: formData.bottomTreatment || undefined,
-        size: formData.size,
-        quantity: formData.quantity,
-        isOrdered: formData.isOrdered,
-        poNumber: formData.poNumber || undefined,
-        supplier: formData.supplier || undefined,
-        etaDate: formData.etaDate || undefined,
-        notes: formData.notes || undefined,
+        article: data.article,
+        modelName: data.modelName,
+        genderCategory: data.genderCategory,
+        midsoleMaterial: data.midsoleMaterial || undefined,
+        outsoleMaterial: data.outsoleMaterial || undefined,
+        midsoleColor: data.midsoleColor || undefined,
+        outsoleColor: data.outsoleColor || undefined,
+        bottomTreatment: data.bottomTreatment || undefined,
+        sizes: processedSizes,
+        isOrdered: data.isOrdered,
+        poNumber: data.poNumber || undefined,
+        supplier: data.supplier || undefined,
+        etaDate: data.etaDate || undefined,
+        notes: data.notes || undefined,
       }
 
-      const result = editingEntry
-        ? await updateTrackingEntry(editingEntry.id, payload)
+      const result = editingBatchId
+        ? await updateTrackingEntry(editingBatchId, payload)
         : await createTrackingEntry(payload)
 
       if (result.success) {
@@ -339,7 +383,7 @@ export default function TrackingPage() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Tracking Pembelian</h1>
             <p className="text-sm text-muted-foreground">
-              {totalCount} total entri terdaftar
+              {totalCount} Purchase Orders terdaftar
             </p>
           </div>
         </div>
@@ -349,7 +393,7 @@ export default function TrackingPage() {
           className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Tambah Data
+          Order Baru
         </Button>
       </div>
 
@@ -357,7 +401,7 @@ export default function TrackingPage() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Cari article, model, PO, supplier, size..."
+          placeholder="Cari article, model, PO, supplier..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
@@ -383,8 +427,8 @@ export default function TrackingPage() {
                 <TableHead className="font-semibold">Model</TableHead>
                 <TableHead className="font-semibold">Material</TableHead>
                 <TableHead className="font-semibold">Treatment</TableHead>
-                <TableHead className="font-semibold text-center">Size</TableHead>
-                <TableHead className="font-semibold text-center">QTY</TableHead>
+                <TableHead className="font-semibold text-center">Sizes</TableHead>
+                <TableHead className="font-semibold text-center">Total QTY</TableHead>
                 <TableHead className="font-semibold text-center">Status</TableHead>
                 <TableHead className="font-semibold">PO / Supplier</TableHead>
                 <TableHead className="font-semibold">ETA</TableHead>
@@ -407,7 +451,7 @@ export default function TrackingPage() {
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Package className="h-10 w-10 opacity-30" />
                       <span className="text-sm">
-                        {debouncedSearch ? "Tidak ditemukan data yang cocok" : "Belum ada data tracking"}
+                        {debouncedSearch ? "Tidak ditemukan data yang cocok" : "Belum ada PO / Order terdaftar"}
                       </span>
                     </div>
                   </TableCell>
@@ -415,7 +459,7 @@ export default function TrackingPage() {
               ) : (
                 entries.map((entry, index) => (
                   <TableRow
-                    key={entry.id}
+                    key={entry.batchId}
                     className="group hover:bg-muted/30 transition-colors"
                   >
                     <TableCell className="text-center text-muted-foreground text-xs">
@@ -426,6 +470,7 @@ export default function TrackingPage() {
                     </TableCell>
                     <TableCell className="font-medium text-sm max-w-[150px] truncate">
                       {entry.modelName}
+                      <span className="block text-xs text-muted-foreground">({entry.genderCategory})</span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-[160px]">
                       <div className="space-y-0.5">
@@ -450,10 +495,12 @@ export default function TrackingPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-center font-mono font-semibold text-sm">
-                      {entry.size}
+                      <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 border-none">
+                        {entry.totalSizes} Ukuran
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-center font-semibold text-sm">
-                      {entry.quantity > 0 ? entry.quantity.toLocaleString() : <span className="text-muted-foreground opacity-40">-</span>}
+                    <TableCell className="text-center font-bold text-sm">
+                      {entry.totalQuantity > 0 ? entry.totalQuantity.toLocaleString() : <span className="text-muted-foreground opacity-40">-</span>}
                     </TableCell>
                     <TableCell className="text-center">
                       {entry.isOrdered ? (
@@ -470,7 +517,7 @@ export default function TrackingPage() {
                     </TableCell>
                     <TableCell className="text-sm max-w-[140px]">
                       <div className="space-y-0.5">
-                        <div className="text-muted-foreground truncate">{entry.poNumber || <span className="opacity-40">-</span>}</div>
+                        <div className="text-muted-foreground font-medium truncate">{entry.poNumber || <span className="opacity-40">-</span>}</div>
                         {entry.supplier && <div className="text-xs text-violet-500 truncate">{entry.supplier}</div>}
                       </div>
                     </TableCell>
@@ -492,7 +539,7 @@ export default function TrackingPage() {
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
                           onClick={() => {
-                            setDeletingId(entry.id)
+                            setDeletingId(entry.batchId)
                             setIsDeleteOpen(true)
                           }}
                         >
@@ -511,7 +558,7 @@ export default function TrackingPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t px-4 py-3 bg-muted/30">
             <p className="text-sm text-muted-foreground">
-              Halaman {currentPage} dari {totalPages} ({totalCount} data)
+              Halaman {currentPage} dari {totalPages} ({totalCount} PO terdaftar)
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -535,223 +582,236 @@ export default function TrackingPage() {
         )}
       </div>
 
-      {/* ============ ADD / EDIT DIALOG ============ */}
+      {/* ============ ADD / EDIT MATRIX DIALOG ============ */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-violet-500" />
-              {editingEntry ? "Edit Tracking" : "Tambah Data Tracking"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingEntry ? "Perbarui informasi pembelian di bawah ini." : "Masukkan informasi tracking pembelian baru."}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="px-6 py-4 border-b bg-muted/10 shrink-0">
+              <DialogTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-violet-500" />
+                {editingBatchId ? "Edit Order Matrix" : "Tambah Order Matrix"}
+              </DialogTitle>
+              <DialogDescription>
+                Pilih kategori gender, lalu isi jumlah pesanan pada kolom ukuran yang sesuai.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-4 py-2">
-            {/* Section: Identitas */}
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identitas Barang</p>
-              <div className="h-px bg-border" />
-            </div>
+            {isLoadingBatch ? (
+              <div className="flex flex-col items-center justify-center p-12 gap-4 h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+                <p className="text-sm text-muted-foreground">Memuat detail matriks...</p>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar">
+                
+                {/* Section: Identitas */}
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">1. Identitas & Model</p>
+                    <div className="h-px bg-border" />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="article" className="text-xs font-medium">Article <span className="text-red-500">*</span></Label>
-                <Input
-                  id="article"
-                  placeholder="HQ0170"
-                  value={formData.article}
-                  onChange={(e) => setFormData({ ...formData, article: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
-                <ModelCombobox
-                  value={formData.modelName}
-                  onChange={(val) => setFormData({ ...formData, modelName: val })}
-                  modelNames={modelNames}
-                />
-              </div>
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Article <span className="text-red-500">*</span></Label>
+                      <Input placeholder="HQ0170" {...register("article", { required: true })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
+                      <Controller
+                        control={control}
+                        name="modelName"
+                        rules={{ required: true }}
+                        render={({ field }) => (
+                          <ModelCombobox
+                            value={field.value}
+                            onChange={field.onChange}
+                            modelNames={modelNames}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Gender Category <span className="text-red-500">*</span></Label>
+                      <Controller
+                        control={control}
+                        name="genderCategory"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={(v) => {
+                            field.onChange(v)
+                            // Optional: Reset sizes matrix when changing category?
+                            // setValue("sizes", {}) 
+                          }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Kategori..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {GENDER_CATEGORIES.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
 
-            {/* Section: Spesifikasi Material */}
-            <div className="space-y-1 pt-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Spesifikasi Material</p>
-              <div className="h-px bg-border" />
-            </div>
+                {/* Section: Size Matrix */}
+                <div className="space-y-4 bg-muted/20 p-4 rounded-xl border">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-foreground tracking-tight">2. Size Run Matrix</p>
+                    <Badge variant="outline" className="text-xs">
+                      {watchCategory} Category
+                    </Badge>
+                  </div>
+                  
+                  {/* Matrix Horizontal Scroll Container */}
+                  <div className="overflow-x-auto custom-scrollbar pb-2 pt-1">
+                    <div className="flex gap-2 min-w-max">
+                      {(SIZES_MATRIX[watchCategory] || SIZES_MATRIX["Men"]).map((sizeLabel) => (
+                        <div key={sizeLabel} className="flex flex-col items-center gap-1.5 w-14">
+                          <div className="h-6 px-2 flex items-center justify-center bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded text-xs font-bold w-full">
+                            {sizeLabel}
+                          </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="-"
+                            className="h-8 text-center px-1 font-mono text-sm shadow-none focus-visible:ring-violet-500"
+                            {...register(`sizes.${sizeLabel}`)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 italic">
+                    * Kosongkan kolom atau isi dengan '0' jika ukuran tidak dipesan.
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="midsoleMaterial" className="text-xs font-medium">Midsole Material</Label>
-                <Input
-                  id="midsoleMaterial"
-                  placeholder="Phylon, EVA, dll"
-                  value={formData.midsoleMaterial}
-                  onChange={(e) => setFormData({ ...formData, midsoleMaterial: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="midsoleColor" className="text-xs font-medium">Midsole Color</Label>
-                <Input
-                  id="midsoleColor"
-                  placeholder="White, Black, dll"
-                  value={formData.midsoleColor}
-                  onChange={(e) => setFormData({ ...formData, midsoleColor: e.target.value })}
-                />
-              </div>
-            </div>
+                {/* Section: Spesifikasi Material */}
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">3. Spesifikasi Material</p>
+                    <div className="h-px bg-border" />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="outsoleMaterial" className="text-xs font-medium">Outsole Material</Label>
-                <Input
-                  id="outsoleMaterial"
-                  placeholder="Rubber, TPU, dll"
-                  value={formData.outsoleMaterial}
-                  onChange={(e) => setFormData({ ...formData, outsoleMaterial: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="outsoleColor" className="text-xs font-medium">Outsole Color</Label>
-                <Input
-                  id="outsoleColor"
-                  placeholder="White, Gum, dll"
-                  value={formData.outsoleColor}
-                  onChange={(e) => setFormData({ ...formData, outsoleColor: e.target.value })}
-                />
-              </div>
-            </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Midsole Material</Label>
+                      <Input placeholder="Phylon, EVA, dll" {...register("midsoleMaterial")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Midsole Color</Label>
+                      <Input placeholder="White, Black, dll" {...register("midsoleColor")} />
+                    </div>
+                  </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Bottom Treatment</Label>
-              <Select
-                value={formData.bottomTreatment}
-                onValueChange={(val) => setFormData({ ...formData, bottomTreatment: val === "none" || !val ? "" : String(val) })}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Outsole Material</Label>
+                      <Input placeholder="Rubber, TPU, dll" {...register("outsoleMaterial")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Outsole Color</Label>
+                      <Input placeholder="White, Gum, dll" {...register("outsoleColor")} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 w-1/2 pr-2">
+                    <Label className="text-xs font-medium">Bottom Treatment</Label>
+                    <Controller
+                      control={control}
+                      name="bottomTreatment"
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={(val) => field.onChange(val === "none" || !val ? "" : String(val))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih treatment..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Tidak ada</SelectItem>
+                            {TREATMENT_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Section: Status & PO */}
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">4. Status Pemesanan</p>
+                    <div className="h-px bg-border" />
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/10">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Status Order</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {watch("isOrdered") ? "✅ Sudah di-order" : "⏳ Belum di-order"}
+                      </p>
+                    </div>
+                    <Controller
+                      control={control}
+                      name="isOrdered"
+                      render={({ field }) => (
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">No. PO</Label>
+                      <Input placeholder="PO-2026-001" {...register("poNumber")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Supplier</Label>
+                      <Input placeholder="Nama vendor" {...register("supplier")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">ETA Date</Label>
+                      <Input type="date" {...register("etaDate")} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Catatan / Keterangan</Label>
+                    <Textarea
+                      placeholder="Catatan tambahan (opsional)..."
+                      {...register("notes")}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            <DialogFooter className="px-6 py-4 border-t bg-muted/10 shrink-0">
+              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} disabled={isPending || isLoadingBatch}>
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isPending || isLoadingBatch}
+                className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 w-32"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih treatment..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Tidak ada</SelectItem>
-                  {TREATMENT_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Section: Size & Quantity */}
-            <div className="space-y-1 pt-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size & Quantity</p>
-              <div className="h-px bg-border" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="size" className="text-xs font-medium">Size <span className="text-red-500">*</span></Label>
-                <Input
-                  id="size"
-                  placeholder="42, 8T, dll"
-                  value={formData.size}
-                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="quantity" className="text-xs font-medium">QTY Size</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formData.quantity || ""}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-            </div>
-
-            {/* Section: Status & PO */}
-            <div className="space-y-1 pt-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status Pemesanan</p>
-              <div className="h-px bg-border" />
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-medium">Status Order</Label>
-                <p className="text-xs text-muted-foreground">
-                  {formData.isOrdered ? "✅ Sudah di-order" : "⏳ Belum di-order"}
-                </p>
-              </div>
-              <Switch
-                checked={formData.isOrdered}
-                onCheckedChange={(checked) => setFormData({ ...formData, isOrdered: checked })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="poNumber" className="text-xs font-medium">No. PO</Label>
-                <Input
-                  id="poNumber"
-                  placeholder="PO-2026-001"
-                  value={formData.poNumber}
-                  onChange={(e) => setFormData({ ...formData, poNumber: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="supplier" className="text-xs font-medium">Supplier</Label>
-                <Input
-                  id="supplier"
-                  placeholder="Nama vendor"
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="etaDate" className="text-xs font-medium">ETA Date</Label>
-              <Input
-                id="etaDate"
-                type="date"
-                value={formData.etaDate}
-                onChange={(e) => setFormData({ ...formData, etaDate: e.target.value })}
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-1.5">
-              <Label htmlFor="notes" className="text-xs font-medium">Catatan</Label>
-              <Textarea
-                id="notes"
-                placeholder="Catatan tambahan..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={2}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isPending}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isPending}
-              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                editingEntry ? "Simpan Perubahan" : "Tambah Data"
-              )}
-            </Button>
-          </DialogFooter>
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  editingBatchId ? "Simpan Perubahan" : "Simpan Matriks"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -759,9 +819,9 @@ export default function TrackingPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Data Tracking?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Purchase Order?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data ini akan dihapus secara permanen dan tidak bisa dikembalikan. Yakin ingin melanjutkan?
+              Menghapus data ini akan menghilangkan <b>SELURUH UKURAN</b> di dalam PO ini secara permanen. Yakin ingin melanjutkan?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -771,14 +831,7 @@ export default function TrackingPage() {
               disabled={isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menghapus...
-                </>
-              ) : (
-                "Hapus"
-              )}
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Hapus Semua"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

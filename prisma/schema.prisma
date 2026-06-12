@@ -260,8 +260,10 @@ model HandoverItem {
 // ============================================================
 model PurchaseTracking {
   id               String    @id @default(cuid())
+  batchId          String    // Groups multiple sizes submitted in one matrix
   article          String    // e.g., HQ0170, ID9156
   modelName        String    // e.g., VL COURT 3.0 (populated from ShoeModel)
+  genderCategory   String    // e.g., "Men", "Women", "Kids"
   midsoleMaterial  String?   // Midsole material spec
   outsoleMaterial  String?   // Outsole material spec
   midsoleColor     String?   // Midsole color
@@ -277,6 +279,7 @@ model PurchaseTracking {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  @@index([batchId])
   @@index([article])
   @@index([modelName])
   @@index([isOrdered])
