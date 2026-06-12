@@ -128,6 +128,7 @@ export async function createTrackingEntry(data: {
   midsoleColor?: string
   outsoleColor?: string
   bottomTreatment?: string
+  imageUrl?: string // new field
   sizes: Record<string, number> // { "5": 100, "5T": 0, "6": 250 }
   isOrdered: boolean
   poNumber?: string
@@ -164,6 +165,7 @@ export async function createTrackingEntry(data: {
       midsoleColor: data.midsoleColor?.trim() || null,
       outsoleColor: data.outsoleColor?.trim() || null,
       bottomTreatment: data.bottomTreatment || null,
+      imageUrl: data.imageUrl || null,
       size: size.trim(),
       quantity: quantity,
       isOrdered: data.isOrdered,
@@ -201,6 +203,7 @@ export async function updateTrackingEntry(
     midsoleColor?: string
     outsoleColor?: string
     bottomTreatment?: string
+    imageUrl?: string // new field
     sizes: Record<string, number>
     isOrdered: boolean
     poNumber?: string
@@ -231,6 +234,7 @@ export async function updateTrackingEntry(
       midsoleColor: data.midsoleColor?.trim() || null,
       outsoleColor: data.outsoleColor?.trim() || null,
       bottomTreatment: data.bottomTreatment || null,
+      imageUrl: data.imageUrl || null,
       size: size.trim(),
       quantity: quantity,
       isOrdered: data.isOrdered,

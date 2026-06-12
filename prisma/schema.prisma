@@ -269,6 +269,7 @@ model PurchaseTracking {
   midsoleColor     String?   // Midsole color
   outsoleColor     String?   // Outsole color
   bottomTreatment  String?   // "Spray", "Marble", "Spackle"
+  imageUrl         String?   // Base64 image data or URL string
   size             String    // e.g., "42", "8T"
   quantity         Int       @default(0) // Quantity for this specific size
   isOrdered        Boolean   @default(false)

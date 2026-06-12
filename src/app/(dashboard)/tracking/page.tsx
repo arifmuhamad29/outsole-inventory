@@ -16,6 +16,7 @@ import { id as localeId } from "date-fns/locale"
 import {
   ShoppingCart, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, Package, X, ChevronDown, Check,
+  ImageIcon, UploadCloud
 } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead,
@@ -40,6 +41,8 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+// Ensure you have an Image component or just use <img> for base64
+import Image from "next/image"
 
 // ============ Constants ============
 
@@ -66,6 +69,7 @@ type TrackingEntryGrouped = {
   midsoleColor: string | null
   outsoleColor: string | null
   bottomTreatment: string | null
+  imageUrl: string | null
   totalSizes: number
   totalQuantity: number
   isOrdered: boolean
@@ -86,12 +90,13 @@ type FormValues = {
   midsoleColor: string
   outsoleColor: string
   bottomTreatment: string
+  imageUrl: string
   isOrdered: boolean
   poNumber: string
   supplier: string
   etaDate: string
   notes: string
-  sizes: Record<string, string> // using string for the input to handle empty fields easily
+  sizes: Record<string, string> 
 }
 
 const defaultValues: FormValues = {
@@ -103,6 +108,7 @@ const defaultValues: FormValues = {
   midsoleColor: "",
   outsoleColor: "",
   bottomTreatment: "",
+  imageUrl: "",
   isOrdered: false,
   poNumber: "",
   supplier: "",
@@ -213,6 +219,9 @@ export default function TrackingPage() {
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isImageOpen, setIsImageOpen] = useState(false)
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null)
+  
   const [isLoadingBatch, setIsLoadingBatch] = useState(false)
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -224,6 +233,30 @@ export default function TrackingPage() {
   })
 
   const watchCategory = watch("genderCategory")
+  const watchImageUrl = watch("imageUrl")
+
+  // Handle Image Upload (Base64)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Quick validation
+    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      toast.error("Format foto harus JPG atau PNG")
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      toast.error("Ukuran foto maksimal 2MB")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setValue("imageUrl", reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Debounce search
   useEffect(() => {
@@ -293,6 +326,7 @@ export default function TrackingPage() {
         midsoleColor: entry.midsoleColor || "",
         outsoleColor: entry.outsoleColor || "",
         bottomTreatment: entry.bottomTreatment || "",
+        imageUrl: entry.imageUrl || "",
         isOrdered: entry.isOrdered,
         poNumber: entry.poNumber || "",
         supplier: entry.supplier || "",
@@ -334,6 +368,7 @@ export default function TrackingPage() {
         midsoleColor: data.midsoleColor || undefined,
         outsoleColor: data.outsoleColor || undefined,
         bottomTreatment: data.bottomTreatment || undefined,
+        imageUrl: data.imageUrl || undefined,
         sizes: processedSizes,
         isOrdered: data.isOrdered,
         poNumber: data.poNumber || undefined,
@@ -423,6 +458,7 @@ export default function TrackingPage() {
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-[40px] text-center font-semibold">#</TableHead>
+                <TableHead className="w-[60px] text-center font-semibold">Visual</TableHead>
                 <TableHead className="font-semibold">Article</TableHead>
                 <TableHead className="font-semibold">Model</TableHead>
                 <TableHead className="font-semibold">Material</TableHead>
@@ -438,7 +474,7 @@ export default function TrackingPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-32 text-center">
+                  <TableCell colSpan={12} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
                       <span className="text-sm text-muted-foreground">Memuat data...</span>
@@ -447,7 +483,7 @@ export default function TrackingPage() {
                 </TableRow>
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-32 text-center">
+                  <TableCell colSpan={12} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Package className="h-10 w-10 opacity-30" />
                       <span className="text-sm">
@@ -464,6 +500,23 @@ export default function TrackingPage() {
                   >
                     <TableCell className="text-center text-muted-foreground text-xs">
                       {(currentPage - 1) * 25 + index + 1}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {entry.imageUrl ? (
+                        <div 
+                          className="h-10 w-10 mx-auto rounded-md overflow-hidden border shadow-sm cursor-pointer hover:scale-110 transition-transform"
+                          onClick={() => {
+                            setFullScreenImage(entry.imageUrl)
+                            setIsImageOpen(true)
+                          }}
+                        >
+                          <img src={entry.imageUrl} alt={entry.article} className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 mx-auto rounded-md bg-muted flex items-center justify-center border">
+                          <ImageIcon className="h-5 w-5 text-muted-foreground opacity-50" />
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="font-mono font-semibold text-sm">
                       {entry.article}
@@ -604,55 +657,90 @@ export default function TrackingPage() {
             ) : (
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar">
                 
-                {/* Section: Identitas */}
+                {/* Section: Foto & Identitas */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">1. Identitas & Model</p>
+                    <p className="text-xs font-semibold text-violet-600 uppercase tracking-wider">1. Foto & Identitas</p>
                     <div className="h-px bg-border" />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Article <span className="text-red-500">*</span></Label>
-                      <Input placeholder="HQ0170" {...register("article", { required: true })} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
-                      <Controller
-                        control={control}
-                        name="modelName"
-                        rules={{ required: true }}
-                        render={({ field }) => (
-                          <ModelCombobox
-                            value={field.value}
-                            onChange={field.onChange}
-                            modelNames={modelNames}
-                          />
+                  <div className="flex flex-col md:flex-row gap-6">
+                    {/* Foto Upload Zone */}
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Label className="text-xs font-medium">Foto Sepatu</Label>
+                      <div className="relative group w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center overflow-hidden cursor-pointer">
+                        {watchImageUrl ? (
+                          <>
+                            <img src={watchImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <UploadCloud className="h-6 w-6 text-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                            <span className="text-[10px] text-muted-foreground font-medium">Upload (Max 2MB)</span>
+                          </>
                         )}
-                      />
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={handleImageUpload}
+                        />
+                      </div>
+                      {watchImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setValue("imageUrl", "")}
+                          className="text-[10px] text-red-500 hover:underline text-center w-32"
+                        >
+                          Hapus Foto
+                        </button>
+                      )}
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Gender Category <span className="text-red-500">*</span></Label>
-                      <Controller
-                        control={control}
-                        name="genderCategory"
-                        render={({ field }) => (
-                          <Select value={field.value} onValueChange={(v) => {
-                            field.onChange(v)
-                            // Optional: Reset sizes matrix when changing category?
-                            // setValue("sizes", {}) 
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Kategori..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {GENDER_CATEGORIES.map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Article <span className="text-red-500">*</span></Label>
+                        <Input placeholder="HQ0170" {...register("article", { required: true })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
+                        <Controller
+                          control={control}
+                          name="modelName"
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <ModelCombobox
+                              value={field.value}
+                              onChange={field.onChange}
+                              modelNames={modelNames}
+                            />
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Label className="text-xs font-medium">Gender Category <span className="text-red-500">*</span></Label>
+                        <Controller
+                          control={control}
+                          name="genderCategory"
+                          render={({ field }) => (
+                            <Select value={field.value} onValueChange={(v) => {
+                              field.onChange(v)
+                            }}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Kategori..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {GENDER_CATEGORIES.map((c) => (
+                                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -812,6 +900,29 @@ export default function TrackingPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============ FULL SCREEN IMAGE DIALOG ============ */}
+      <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
+        <DialogContent className="sm:max-w-3xl p-0 border-none bg-transparent shadow-none">
+          <div className="relative w-full h-auto flex justify-center items-center">
+            {fullScreenImage && (
+              <img 
+                src={fullScreenImage} 
+                alt="Full preview" 
+                className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-4 border-white dark:border-muted"
+              />
+            )}
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute -top-4 -right-4 rounded-full h-10 w-10 shadow-lg"
+              onClick={() => setIsImageOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
