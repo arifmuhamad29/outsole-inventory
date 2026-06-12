@@ -608,7 +608,7 @@ export default function TrackingPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-violet-600 hover:bg-violet-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                            className="h-8 w-8 text-muted-foreground hover:text-violet-600 hover:bg-violet-500/10 transition-all"
                             onClick={() => handleEdit(entry)}
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -616,7 +616,7 @@ export default function TrackingPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 transition-all"
                             onClick={() => {
                               setDeletingId(entry.batchId)
                               setIsDeleteOpen(true)
