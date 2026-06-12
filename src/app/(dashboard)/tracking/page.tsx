@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition, useCallback, useRef } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { useForm, Controller } from "react-hook-form"
 import {
   getTrackingEntries,
@@ -207,6 +208,14 @@ function ModelCombobox({
 
 export default function TrackingPage() {
   const { data: session } = useSession()
+  const router = useRouter()
+  
+  const role = session?.user?.role
+  const permissions = session?.user?.permissions || []
+  const isSuperAdmin = role === "SUPER_ADMIN"
+  const canManage = isSuperAdmin || permissions.includes("MANAGE_TRACKING")
+  const canView = isSuperAdmin || permissions.includes("VIEW_TRACKING") || permissions.includes("MANAGE_TRACKING")
+
   const [entries, setEntries] = useState<TrackingEntryGrouped[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -267,16 +276,30 @@ export default function TrackingPage() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Load model names on mount
   useEffect(() => {
-    getModelNamesFromTooling()
-      .then(setModelNames)
-      .catch(() => console.error("Failed to load model names"))
-  }, [])
+    const fetchModels = async () => {
+      try {
+        const names = await getModelNamesFromTooling()
+        setModelNames(names)
+      } catch (error) {
+        console.error("Failed to load model names", error)
+      }
+    }
+    if (canView) {
+      fetchModels()
+    }
+  }, [canView])
+
+  useEffect(() => {
+    if (session && !canView) {
+      router.replace("/") // Redirect unauthorized users to dashboard
+    }
+  }, [session, canView, router])
 
   const fetchData = useCallback(async () => {
+    if (!canView) return
+    setLoading(true)
     try {
-      setLoading(true)
       const result = await getTrackingEntries({
         search: debouncedSearch,
         page: currentPage,
@@ -423,13 +446,15 @@ export default function TrackingPage() {
           </div>
         </div>
 
-        <Button
-          onClick={handleAdd}
-          className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Order
-        </Button>
+        {canManage && (
+          <Button
+            onClick={handleAdd}
+            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Order
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -468,7 +493,7 @@ export default function TrackingPage() {
                 <TableHead className="font-semibold text-center">Status</TableHead>
                 <TableHead className="font-semibold">PO / Supplier</TableHead>
                 <TableHead className="font-semibold">ETA</TableHead>
-                <TableHead className="font-semibold text-center w-[90px]">Actions</TableHead>
+                {canManage && <TableHead className="font-semibold text-center w-[90px]">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -577,29 +602,31 @@ export default function TrackingPage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-violet-600 hover:bg-violet-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                          onClick={() => handleEdit(entry)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                          onClick={() => {
-                            setDeletingId(entry.batchId)
-                            setIsDeleteOpen(true)
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {canManage && (
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-violet-600 hover:bg-violet-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                            onClick={() => handleEdit(entry)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                            onClick={() => {
+                              setDeletingId(entry.batchId)
+                              setIsDeleteOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

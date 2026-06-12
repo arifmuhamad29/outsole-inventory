@@ -55,6 +55,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       if (item.name === "Inbound" && !permissions.includes("MANAGE_INBOUND")) return false;
       if (item.name === "Outbound" && !permissions.includes("MANAGE_OUTBOUND")) return false;
       if (item.name === "History / Audit" && !permissions.includes("VIEW_HISTORY")) return false;
+      if (item.name === "Tracking" && !permissions.includes("VIEW_TRACKING") && !permissions.includes("MANAGE_TRACKING")) return false;
       return true;
     });
   }
