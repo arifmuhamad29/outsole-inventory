@@ -236,7 +236,7 @@ function SortableRow({
   entry: TrackingEntryGrouped
   index: number
   canManage: boolean
-  setFullScreenImage: (url: string) => void
+  setFullScreenImage: (url: string | null) => void
   setIsImageOpen: (open: boolean) => void
   handleEdit: (entry: TrackingEntryGrouped) => void
   setDeletingId: (id: string) => void
