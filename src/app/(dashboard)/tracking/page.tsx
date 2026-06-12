@@ -941,14 +941,6 @@ export default function TrackingPage() {
                 className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-4 border-white dark:border-muted"
               />
             )}
-            <Button
-              variant="secondary"
-              size="icon"
-              className="absolute -top-4 -right-4 rounded-full h-10 w-10 shadow-lg"
-              onClick={() => setIsImageOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
