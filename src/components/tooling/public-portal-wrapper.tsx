@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { PublicToolingView } from "@/components/tooling/public-tooling-view"
 import { PublicBpmTfmView } from "@/components/bpm-tfm/public-bpm-tfm-view"
-import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers } from "lucide-react"
+import { PublicTrackingView } from "@/components/tracking/public-tracking-view"
+import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers, ShoppingCart } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -74,6 +75,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
                 <Layers className="w-4 h-4 shrink-0" />
                 BPM & TFM Stock
               </button>
+              <button
+                onClick={() => handleTabChange("tracking")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "tracking" 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4 shrink-0" />
+                Purchase Tracking
+              </button>
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -115,6 +127,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
             <Layers className="w-4 h-4 shrink-0" />
             BPM & TFM Stock
           </button>
+          <button
+            onClick={() => handleTabChange("tracking")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "tracking" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4 shrink-0" />
+            Purchase Tracking
+          </button>
         </nav>
       </div>
 
@@ -128,6 +151,9 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
         </div>
         <div className={activeTab === "bpm-tfm" ? "block" : "hidden"}>
           <PublicBpmTfmView />
+        </div>
+        <div className={activeTab === "tracking" ? "block animate-in fade-in zoom-in-95 duration-300" : "hidden"}>
+          <PublicTrackingView />
         </div>
       </div>
     </div>

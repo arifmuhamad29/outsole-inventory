@@ -83,6 +83,73 @@ export async function getTrackingEntries(params: {
 }
 
 // ============================
+// FETCH: Get public tracking entries (No Auth)
+// ============================
+export async function getPublicTrackingEntries(params: {
+  search?: string
+  page?: number
+  limit?: number
+}) {
+  const page = params.page || 1
+  const limit = params.limit || 25
+  const skip = (page - 1) * limit
+
+  const whereClause: import("@prisma/client").Prisma.PurchaseTrackingWhereInput = {}
+
+  if (params.search && params.search.trim() !== "") {
+    const searchTerm = params.search.trim()
+    whereClause.OR = [
+      { article: { contains: searchTerm, mode: "insensitive" } },
+      { modelName: { contains: searchTerm, mode: "insensitive" } },
+      { poNumber: { contains: searchTerm, mode: "insensitive" } },
+      { supplier: { contains: searchTerm, mode: "insensitive" } },
+    ]
+  }
+
+  const distinctBatches = await prisma.purchaseTracking.findMany({
+    where: whereClause,
+    distinct: ["batchId"],
+    select: { batchId: true },
+  })
+  const totalCount = distinctBatches.length
+
+  const uniqueBatchesForPage = await prisma.purchaseTracking.findMany({
+    where: whereClause,
+    distinct: ["batchId"],
+    orderBy: { updatedAt: "desc" },
+    skip,
+    take: limit,
+  })
+
+  const batchIds = uniqueBatchesForPage.map((b) => b.batchId)
+  
+  const aggregates = batchIds.length > 0
+    ? await prisma.purchaseTracking.groupBy({
+        by: ["batchId"],
+        where: { batchId: { in: batchIds } },
+        _sum: { quantity: true },
+        _count: { size: true },
+      })
+    : []
+
+  const entries = uniqueBatchesForPage.map((batch) => {
+    const agg = aggregates.find((a) => a.batchId === batch.batchId)
+    return {
+      ...batch,
+      totalQuantity: agg?._sum?.quantity || 0,
+      totalSizes: agg?._count?.size || 0,
+    }
+  })
+
+  return {
+    entries,
+    totalCount,
+    totalPages: Math.ceil(totalCount / limit),
+    currentPage: page,
+  }
+}
+
+// ============================
 // FETCH: Get all model names from ShoeModel
 // ============================
 export async function getModelNamesFromTooling() {
