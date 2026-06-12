@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Handover", href: "/handover", icon: Send },
     { name: "Reports", href: "/reports", icon: FileSpreadsheet },
     { name: "History / Audit", href: "/history", icon: History },
+    { name: "Tracking Pembelian", href: "/tracking", icon: ShoppingCart },
   ]
 
   const operatorNavItems = [
@@ -38,6 +39,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "BPM & TFM Stock", href: "/bpm-tfm", icon: Layers },
     { name: "Handover", href: "/handover", icon: Send },
     { name: "History / Audit", href: "/history", icon: History },
+    { name: "Tracking Pembelian", href: "/tracking", icon: ShoppingCart },
   ]
 
   const superAdminNavItems = [

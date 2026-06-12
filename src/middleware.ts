@@ -6,7 +6,7 @@ import { NextResponse } from "next/server"
 
 const publicRoutes = ["/login"]
 const openRoutes = ["/public", "/api/logout"]
-const operatorRoutes = ["/", "/outbound", "/inventory", "/tooling", "/bpm-tfm", "/handover", "/history"]
+const operatorRoutes = ["/", "/outbound", "/inventory", "/tooling", "/bpm-tfm", "/handover", "/history", "/tracking"]
 
 // Simple in-memory rate limiter for Edge environment
 type RateLimitInfo = { count: number; expiresAt: number }
