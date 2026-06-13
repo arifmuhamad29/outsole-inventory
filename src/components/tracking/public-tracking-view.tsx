@@ -12,6 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
 } from "@/components/ui/table"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 // Simplified Types
 type TrackingEntryGrouped = {
@@ -38,6 +39,8 @@ export function PublicTrackingView() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,7 +122,15 @@ export function PublicTrackingView() {
                     {entry.imageUrl ? (
                       <div className="h-12 w-12 mx-auto rounded-md border border-slate-200 overflow-hidden bg-white shadow-sm">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={entry.imageUrl} alt={entry.article} className="h-full w-full object-cover" />
+                        <img 
+                          src={entry.imageUrl} 
+                          alt={entry.article} 
+                          className="h-full w-full object-cover cursor-pointer hover:scale-105 transition" 
+                          onClick={() => {
+                            setSelectedImage(entry.imageUrl)
+                            setIsImageModalOpen(true)
+                          }}
+                        />
                       </div>
                     ) : (
                       <div className="h-12 w-12 mx-auto rounded-md border border-dashed border-slate-300 flex items-center justify-center bg-slate-50">
@@ -169,6 +180,18 @@ export function PublicTrackingView() {
         </Table>
       </div>
 
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="max-w-3xl border-none bg-transparent shadow-none">
+          {selectedImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img 
+              src={selectedImage} 
+              alt="Full Size Preview" 
+              className="w-full h-auto rounded-lg object-contain" 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
