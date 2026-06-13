@@ -65,6 +65,12 @@ import Image from "next/image"
 
 // ============ Constants ============
 
+const SHOE_SIZE_ORDER = [
+  '3K','3TK','4K','4TK','5K','5TK','6K','6TK','7K','7TK','8K','8TK','9K','9TK', // Infant
+  '10K','10TK','11K','11TK','12K','12TK','13K','13TK','1','1T','2','2T','3','3T','4','4T', // Kids/Jr
+  '5','5T','6','6T','7','7T','8','8T','9','9T','10','10T','11','11T','12','12T','13','13T','14','14T','15','16','17' // Men/Women
+];
+
 const GENDER_CATEGORIES = ["Men", "Women", "Infant", "Kids/Jr"]
 
 const SIZES_MATRIX: Record<string, string[]> = {
