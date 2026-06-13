@@ -92,9 +92,8 @@ export function PublicTrackingView() {
               <TableHead className="w-[60px] text-center">Visual</TableHead>
               <TableHead className="font-semibold text-slate-700">Article</TableHead>
               <TableHead className="font-semibold text-slate-700">Model Name</TableHead>
-              <TableHead className="font-semibold text-slate-700">Material / Color</TableHead>
+              <TableHead className="font-semibold text-slate-700 w-[180px] align-top">Material / Color</TableHead>
               <TableHead className="text-center font-semibold text-slate-700">Size</TableHead>
-              <TableHead className="text-center font-semibold text-slate-700">Total QTY</TableHead>
               <TableHead className="text-center font-semibold text-slate-700">Status</TableHead>
               <TableHead className="font-semibold text-slate-700">PO / Supplier</TableHead>
               <TableHead className="font-semibold text-slate-700">ETA</TableHead>
@@ -153,21 +152,18 @@ export function PublicTrackingView() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center font-mono font-semibold text-sm">
-                    <div className="flex flex-wrap gap-1.5 max-w-[400px]">
+                    <div className="flex flex-wrap gap-1 w-full">
                       {entry.sizesData?.map((sd) => (
-                        <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1.5 py-0.5 bg-muted/30 min-w-[32px]">
-                          <span className="text-[10px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-0.5">
+                        <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
+                          <span className="text-[9px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-[1px] leading-[14px]">
                             {sd.size}
                           </span>
-                          <span className="text-[11px] font-medium text-foreground pt-0.5">
+                          <span className="text-[10px] font-medium text-foreground pt-[1px] leading-[14px]">
                             {sd.quantity}
                           </span>
                         </div>
                       ))}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center font-mono font-extrabold text-[15px] text-slate-800">
-                    {entry.totalQuantity.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-center">
                     {entry.isOrdered ? (
