@@ -259,6 +259,15 @@ export async function updateTrackingEntry(
       return { success: false, message: "At least one size with quantity > 0 is required" }
     }
 
+    // Preserve existing sort order and creation date to prevent table jumping
+    const existingBatch = await prisma.purchaseTracking.findFirst({
+      where: { batchId },
+      select: { sortOrder: true, createdAt: true },
+    })
+    
+    const preservedSortOrder = existingBatch?.sortOrder ?? 0
+    const preservedCreatedAt = existingBatch?.createdAt ?? new Date()
+
     const recordsToCreate = validSizes.map(([size, quantity]) => ({
       batchId,
       article: data.article.trim().toUpperCase(),
@@ -277,6 +286,8 @@ export async function updateTrackingEntry(
       supplier: data.supplier?.trim() || null,
       etaDate: data.etaDate ? new Date(data.etaDate) : null,
       notes: data.notes?.trim() || null,
+      sortOrder: preservedSortOrder,
+      createdAt: preservedCreatedAt,
     }))
 
     // Delete and recreate atomically
