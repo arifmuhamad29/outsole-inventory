@@ -318,7 +318,7 @@ function SortableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-center text-sm font-medium">
+      <TableCell className="text-left text-sm font-medium">
         {entry.bottomTreatment || "-"}
       </TableCell>
       <TableCell className="text-center font-mono font-semibold text-sm">
@@ -681,8 +681,8 @@ export default function TrackingPage() {
                 <TableHead className="w-[60px] text-center font-semibold">Visual</TableHead>
                 <TableHead className="font-semibold">Article</TableHead>
                 <TableHead className="font-semibold">Model</TableHead>
-                <TableHead className="font-semibold w-[180px] align-top">Material / Color</TableHead>
-                <TableHead className="font-semibold text-center w-[100px] align-top">Treatment</TableHead>
+                <TableHead className="font-semibold align-top max-w-[150px]">Material / Color</TableHead>
+                <TableHead className="font-semibold text-left align-top whitespace-nowrap">Treatment</TableHead>
                 <TableHead className="font-semibold text-center">Size</TableHead>
                 <TableHead className="font-semibold text-center">Status</TableHead>
                 <TableHead className="font-semibold">PO / Supplier</TableHead>

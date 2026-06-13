@@ -92,7 +92,7 @@ export function PublicTrackingView() {
               <TableHead className="w-[60px] text-center">Visual</TableHead>
               <TableHead className="font-semibold text-slate-700">Article</TableHead>
               <TableHead className="font-semibold text-slate-700">Model Name</TableHead>
-              <TableHead className="font-semibold text-slate-700 w-[180px] align-top">Material / Color</TableHead>
+              <TableHead className="font-semibold text-slate-700 align-top max-w-[150px]">Material / Color</TableHead>
               <TableHead className="text-center font-semibold text-slate-700">Size</TableHead>
               <TableHead className="text-center font-semibold text-slate-700">Status</TableHead>
               <TableHead className="font-semibold text-slate-700">PO / Supplier</TableHead>
