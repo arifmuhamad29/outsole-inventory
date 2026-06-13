@@ -299,7 +299,7 @@ function SortableRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="font-mono font-semibold text-sm">
+      <TableCell className="min-w-[120px] font-mono font-semibold text-sm">
         {entry.article}
       </TableCell>
       <TableCell className="font-medium text-sm min-w-[150px] max-w-[200px] whitespace-normal break-words">
@@ -308,7 +308,7 @@ function SortableRow({
         </div>
         <span className="block text-xs text-muted-foreground mt-1">({entry.genderCategory})</span>
       </TableCell>
-      <TableCell className="w-[200px] align-top text-xs">
+      <TableCell className="w-[200px] min-w-[220px] align-top text-xs">
         <div className="flex flex-col gap-1">
           <div className="flex flex-col">
             <span className="text-slate-500 font-medium">M/S:</span>
@@ -324,10 +324,10 @@ function SortableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="w-[90px] align-top text-left text-sm font-medium">
+      <TableCell className="w-[90px] min-w-[90px] align-top text-left text-sm font-medium">
         {entry.bottomTreatment || "-"}
       </TableCell>
-      <TableCell className="w-full align-top text-center font-mono font-semibold text-sm">
+      <TableCell className="w-full min-w-[320px] align-top text-center font-mono font-semibold text-sm">
         <div className="flex flex-wrap gap-1 w-full">
           {(() => {
             const sortedSizes = [...(entry.sizesData || [])].sort((a, b) => {
@@ -350,7 +350,7 @@ function SortableRow({
           })()}
         </div>
       </TableCell>
-      <TableCell className="text-center">
+      <TableCell className="text-center min-w-[100px]">
         {entry.isOrdered ? (
           <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold text-xs">
             <CheckCircle2 className="h-3 w-3" />
@@ -363,13 +363,13 @@ function SortableRow({
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-sm max-w-[140px]">
+      <TableCell className="text-sm min-w-[100px] max-w-[140px]">
         <div className="space-y-0.5">
           <div className="text-muted-foreground font-medium truncate">{entry.poNumber || <span className="opacity-40">-</span>}</div>
           {entry.supplier && <div className="text-xs text-violet-500 truncate">{entry.supplier}</div>}
         </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="text-sm text-muted-foreground min-w-[100px]">
         {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
       </TableCell>
       {canManage && (
@@ -693,16 +693,16 @@ export default function TrackingPage() {
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-[40px] text-center font-semibold whitespace-nowrap align-middle">#</TableHead>
-                <TableHead className="w-[60px] text-center font-semibold whitespace-nowrap align-middle">Visual</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap align-middle">Article</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap align-middle">Model</TableHead>
-                <TableHead className="font-semibold w-[200px] whitespace-nowrap align-middle">Material / Color</TableHead>
-                <TableHead className="font-semibold w-[90px] whitespace-nowrap align-middle text-left">Treatment</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap align-middle text-center">Size</TableHead>
-                <TableHead className="font-semibold text-center whitespace-nowrap align-middle">Status</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap align-middle">PO / Supplier</TableHead>
-                <TableHead className="font-semibold whitespace-nowrap align-middle">ETA</TableHead>
-                {canManage && <TableHead className="font-semibold text-center w-[90px] whitespace-nowrap align-middle">Actions</TableHead>}
+                <TableHead className="min-w-[60px] text-center font-semibold whitespace-nowrap align-middle">Visual</TableHead>
+                <TableHead className="min-w-[120px] font-semibold whitespace-nowrap align-middle">Article</TableHead>
+                <TableHead className="min-w-[150px] font-semibold whitespace-nowrap align-middle">Model</TableHead>
+                <TableHead className="min-w-[220px] w-[220px] font-semibold whitespace-nowrap align-middle">Material / Color</TableHead>
+                <TableHead className="min-w-[90px] w-[90px] font-semibold whitespace-nowrap align-middle text-left">Treatment</TableHead>
+                <TableHead className="min-w-[320px] w-full font-semibold whitespace-nowrap align-middle text-center">Size</TableHead>
+                <TableHead className="min-w-[100px] font-semibold text-center whitespace-nowrap align-middle">Status</TableHead>
+                <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">PO / Supplier</TableHead>
+                <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">ETA</TableHead>
+                {canManage && <TableHead className="min-w-[100px] font-semibold text-center w-[90px] whitespace-nowrap align-middle">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

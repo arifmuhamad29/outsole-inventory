@@ -95,14 +95,14 @@ export function PublicTrackingView() {
         <Table className="text-sm">
           <TableHeader className="bg-slate-50/80">
             <TableRow>
-              <TableHead className="w-[60px] text-center whitespace-nowrap align-middle">Visual</TableHead>
-              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
-              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
-              <TableHead className="font-semibold text-slate-700 w-[200px] whitespace-nowrap align-middle">Material / Color</TableHead>
-              <TableHead className="text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
-              <TableHead className="text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
-              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
-              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">ETA</TableHead>
+              <TableHead className="min-w-[60px] text-center whitespace-nowrap align-middle">Visual</TableHead>
+              <TableHead className="min-w-[120px] font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
+              <TableHead className="min-w-[150px] font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
+              <TableHead className="min-w-[220px] w-[220px] font-semibold text-slate-700 whitespace-nowrap align-middle">Material / Color</TableHead>
+              <TableHead className="min-w-[320px] w-full text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
+              <TableHead className="min-w-[100px] text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
+              <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
+              <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">ETA</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,12 +144,12 @@ export function PublicTrackingView() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{entry.article}</TableCell>
+                  <TableCell className="min-w-[120px] font-medium">{entry.article}</TableCell>
                   <TableCell className="min-w-[150px] max-w-[200px] whitespace-normal break-words">
                     <div className="font-bold text-slate-800 leading-tight">{entry.modelName}</div>
                     <div className="text-[11px] font-medium text-slate-500 mt-1">({entry.genderCategory})</div>
                   </TableCell>
-                  <TableCell className="w-[200px] align-top text-xs">
+                  <TableCell className="w-[200px] min-w-[220px] align-top text-xs">
                     <div className="grid grid-cols-[30px_1fr] gap-x-1 gap-y-1 items-center">
                       <span className="text-slate-400 font-medium text-[10px]">MID:</span>
                       <span className="font-semibold text-slate-700 truncate">{entry.midsoleMaterial || "-"} / {entry.midsoleColor || "-"}</span>
@@ -157,7 +157,7 @@ export function PublicTrackingView() {
                       <span className="font-semibold text-slate-700 truncate">{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="w-full align-top text-center font-mono font-semibold text-sm">
+                  <TableCell className="w-full min-w-[320px] align-top text-center font-mono font-semibold text-sm">
                     <div className="flex flex-wrap gap-1 w-full">
                       {(() => {
                         const sortedSizes = [...(entry.sizesData || [])].sort((a, b) => {
@@ -180,18 +180,18 @@ export function PublicTrackingView() {
                       })()}
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center min-w-[100px]">
                     {entry.isOrdered ? (
                       <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-sm font-bold">ORDERED</Badge>
                     ) : (
                       <Badge className="bg-amber-50 text-amber-600 border border-amber-200 shadow-sm font-bold">PENDING</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="text-sm min-w-[100px]">
                     <div className="font-bold text-slate-800">{entry.poNumber || "-"}</div>
                     <div className="text-xs text-slate-500 truncate max-w-[120px] font-medium">{entry.supplier || "-"}</div>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500 font-medium">
+                  <TableCell className="text-sm text-slate-500 font-medium min-w-[100px]">
                     {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
                   </TableCell>
                 </TableRow>
