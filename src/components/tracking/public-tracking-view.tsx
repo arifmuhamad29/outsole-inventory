@@ -128,9 +128,9 @@ export function PublicTrackingView() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{entry.article}</TableCell>
-                  <TableCell>
-                    <div className="font-bold text-slate-800">{entry.modelName}</div>
-                    <div className="text-[11px] font-medium text-slate-500 mt-0.5">{entry.genderCategory}</div>
+                  <TableCell className="min-w-[150px] max-w-[200px] whitespace-normal break-words">
+                    <div className="font-bold text-slate-800 leading-tight">{entry.modelName}</div>
+                    <div className="text-[11px] font-medium text-slate-500 mt-1">({entry.genderCategory})</div>
                   </TableCell>
                   <TableCell className="text-xs">
                     <div className="grid grid-cols-[30px_1fr] gap-x-1 gap-y-1 items-center">

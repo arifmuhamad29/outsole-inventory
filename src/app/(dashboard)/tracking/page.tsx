@@ -295,9 +295,11 @@ function SortableRow({
       <TableCell className="font-mono font-semibold text-sm">
         {entry.article}
       </TableCell>
-      <TableCell className="font-medium text-sm max-w-[150px] truncate">
-        {entry.modelName}
-        <span className="block text-xs text-muted-foreground">({entry.genderCategory})</span>
+      <TableCell className="font-medium text-sm min-w-[150px] max-w-[200px] whitespace-normal break-words">
+        <div className="leading-tight">
+          {entry.modelName}
+        </div>
+        <span className="block text-xs text-muted-foreground mt-1">({entry.genderCategory})</span>
       </TableCell>
       <TableCell className="text-xs">
         <div className="flex flex-col gap-1">
