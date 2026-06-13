@@ -14,6 +14,12 @@ import {
 } from "@/components/ui/table"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 
+const SHOE_SIZE_ORDER = [
+  '3K','3TK','4K','4TK','5K','5TK','6K','6TK','7K','7TK','8K','8TK','9K','9TK', // Infant
+  '10K','10TK','11K','11TK','12K','12TK','13K','13TK','1','1T','2','2T','3','3T','4','4T', // Kids/Jr
+  '5','5T','6','6T','7','7T','8','8T','9','9T','10','10T','11','11T','12','12T','13','13T','14','14T','15','16','17' // Men/Women
+];
+
 // Simplified Types
 type TrackingEntryGrouped = {
   batchId: string
@@ -153,16 +159,25 @@ export function PublicTrackingView() {
                   </TableCell>
                   <TableCell className="w-full align-top text-center font-mono font-semibold text-sm">
                     <div className="flex flex-wrap gap-1 w-full">
-                      {entry.sizesData?.map((sd) => (
-                        <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
-                          <span className="text-[9px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-[1px] leading-[14px]">
-                            {sd.size}
-                          </span>
-                          <span className="text-[10px] font-medium text-foreground pt-[1px] leading-[14px]">
-                            {sd.quantity}
-                          </span>
-                        </div>
-                      ))}
+                      {(() => {
+                        const sortedSizes = [...(entry.sizesData || [])].sort((a, b) => {
+                          const indexA = SHOE_SIZE_ORDER.indexOf(a.size);
+                          const indexB = SHOE_SIZE_ORDER.indexOf(b.size);
+                          if (indexA === -1) return 1;
+                          if (indexB === -1) return -1;
+                          return indexA - indexB;
+                        });
+                        return sortedSizes.map((sd) => (
+                          <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
+                            <span className="text-[9px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-[1px] leading-[14px]">
+                              {sd.size}
+                            </span>
+                            <span className="text-[10px] font-medium text-foreground pt-[1px] leading-[14px]">
+                              {sd.quantity}
+                            </span>
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell className="text-center">

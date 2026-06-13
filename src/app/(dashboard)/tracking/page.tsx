@@ -323,16 +323,25 @@ function SortableRow({
       </TableCell>
       <TableCell className="w-full align-top text-center font-mono font-semibold text-sm">
         <div className="flex flex-wrap gap-1 w-full">
-          {entry.sizesData?.map((sd) => (
-            <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
-              <span className="text-[9px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-[1px] leading-[14px]">
-                {sd.size}
-              </span>
-              <span className="text-[10px] font-medium text-foreground pt-[1px] leading-[14px]">
-                {sd.quantity}
-              </span>
-            </div>
-          ))}
+          {(() => {
+            const sortedSizes = [...(entry.sizesData || [])].sort((a, b) => {
+              const indexA = SHOE_SIZE_ORDER.indexOf(a.size);
+              const indexB = SHOE_SIZE_ORDER.indexOf(b.size);
+              if (indexA === -1) return 1;
+              if (indexB === -1) return -1;
+              return indexA - indexB;
+            });
+            return sortedSizes.map((sd) => (
+              <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
+                <span className="text-[9px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-[1px] leading-[14px]">
+                  {sd.size}
+                </span>
+                <span className="text-[10px] font-medium text-foreground pt-[1px] leading-[14px]">
+                  {sd.quantity}
+                </span>
+              </div>
+            ));
+          })()}
         </div>
       </TableCell>
       <TableCell className="text-center">
