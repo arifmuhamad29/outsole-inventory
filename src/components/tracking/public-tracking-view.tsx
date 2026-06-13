@@ -89,14 +89,14 @@ export function PublicTrackingView() {
         <Table className="text-sm">
           <TableHeader className="bg-slate-50/80">
             <TableRow>
-              <TableHead className="w-[60px] text-center">Visual</TableHead>
-              <TableHead className="font-semibold text-slate-700">Article</TableHead>
-              <TableHead className="font-semibold text-slate-700">Model Name</TableHead>
-              <TableHead className="font-semibold text-slate-700 align-top max-w-[150px]">Material / Color</TableHead>
-              <TableHead className="text-center font-semibold text-slate-700">Size</TableHead>
-              <TableHead className="text-center font-semibold text-slate-700">Status</TableHead>
-              <TableHead className="font-semibold text-slate-700">PO / Supplier</TableHead>
-              <TableHead className="font-semibold text-slate-700">ETA</TableHead>
+              <TableHead className="w-[60px] text-center whitespace-nowrap align-middle">Visual</TableHead>
+              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
+              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
+              <TableHead className="font-semibold text-slate-700 w-[200px] whitespace-nowrap align-middle">Material / Color</TableHead>
+              <TableHead className="text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
+              <TableHead className="text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
+              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
+              <TableHead className="font-semibold text-slate-700 whitespace-nowrap align-middle">ETA</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -143,7 +143,7 @@ export function PublicTrackingView() {
                     <div className="font-bold text-slate-800 leading-tight">{entry.modelName}</div>
                     <div className="text-[11px] font-medium text-slate-500 mt-1">({entry.genderCategory})</div>
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="w-[200px] align-top text-xs">
                     <div className="grid grid-cols-[30px_1fr] gap-x-1 gap-y-1 items-center">
                       <span className="text-slate-400 font-medium text-[10px]">MID:</span>
                       <span className="font-semibold text-slate-700 truncate">{entry.midsoleMaterial || "-"} / {entry.midsoleColor || "-"}</span>
@@ -151,7 +151,7 @@ export function PublicTrackingView() {
                       <span className="font-semibold text-slate-700 truncate">{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center font-mono font-semibold text-sm">
+                  <TableCell className="w-full align-top text-center font-mono font-semibold text-sm">
                     <div className="flex flex-wrap gap-1 w-full">
                       {entry.sizesData?.map((sd) => (
                         <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">

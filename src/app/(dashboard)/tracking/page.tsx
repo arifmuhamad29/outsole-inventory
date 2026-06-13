@@ -302,7 +302,7 @@ function SortableRow({
         </div>
         <span className="block text-xs text-muted-foreground mt-1">({entry.genderCategory})</span>
       </TableCell>
-      <TableCell className="text-xs">
+      <TableCell className="w-[200px] align-top text-xs">
         <div className="flex flex-col gap-1">
           <div className="flex flex-col">
             <span className="text-slate-500 font-medium">M/S:</span>
@@ -318,10 +318,10 @@ function SortableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-left text-sm font-medium">
+      <TableCell className="w-[90px] align-top text-left text-sm font-medium">
         {entry.bottomTreatment || "-"}
       </TableCell>
-      <TableCell className="text-center font-mono font-semibold text-sm">
+      <TableCell className="w-full align-top text-center font-mono font-semibold text-sm">
         <div className="flex flex-wrap gap-1 w-full">
           {entry.sizesData?.map((sd) => (
             <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
@@ -677,17 +677,17 @@ export default function TrackingPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="w-[40px] text-center font-semibold">#</TableHead>
-                <TableHead className="w-[60px] text-center font-semibold">Visual</TableHead>
-                <TableHead className="font-semibold">Article</TableHead>
-                <TableHead className="font-semibold">Model</TableHead>
-                <TableHead className="font-semibold align-top max-w-[150px]">Material / Color</TableHead>
-                <TableHead className="font-semibold text-left align-top whitespace-nowrap">Treatment</TableHead>
-                <TableHead className="font-semibold text-center">Size</TableHead>
-                <TableHead className="font-semibold text-center">Status</TableHead>
-                <TableHead className="font-semibold">PO / Supplier</TableHead>
-                <TableHead className="font-semibold">ETA</TableHead>
-                {canManage && <TableHead className="font-semibold text-center w-[90px]">Actions</TableHead>}
+                <TableHead className="w-[40px] text-center font-semibold whitespace-nowrap align-middle">#</TableHead>
+                <TableHead className="w-[60px] text-center font-semibold whitespace-nowrap align-middle">Visual</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap align-middle">Article</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap align-middle">Model</TableHead>
+                <TableHead className="font-semibold w-[200px] whitespace-nowrap align-middle">Material / Color</TableHead>
+                <TableHead className="font-semibold w-[90px] whitespace-nowrap align-middle text-left">Treatment</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap align-middle text-center">Size</TableHead>
+                <TableHead className="font-semibold text-center whitespace-nowrap align-middle">Status</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap align-middle">PO / Supplier</TableHead>
+                <TableHead className="font-semibold whitespace-nowrap align-middle">ETA</TableHead>
+                {canManage && <TableHead className="font-semibold text-center w-[90px] whitespace-nowrap align-middle">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
