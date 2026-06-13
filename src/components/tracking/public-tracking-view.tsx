@@ -28,6 +28,7 @@ type TrackingEntryGrouped = {
   imageUrl: string | null
   totalSizes: number
   totalQuantity: number
+  sizesData?: { size: string; quantity: number }[]
   isOrdered: boolean
   poNumber: string | null
   supplier: string | null
@@ -152,9 +153,18 @@ export function PublicTrackingView() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center font-mono font-semibold text-sm">
-                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 border-none font-bold">
-                      {entry.totalSizes} Size
-                    </Badge>
+                    <div className="flex flex-wrap gap-1.5 max-w-[400px]">
+                      {entry.sizesData?.map((sd) => (
+                        <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1.5 py-0.5 bg-muted/30 min-w-[32px]">
+                          <span className="text-[10px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-0.5">
+                            {sd.size}
+                          </span>
+                          <span className="text-[11px] font-medium text-foreground pt-0.5">
+                            {sd.quantity}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center font-mono font-extrabold text-[15px] text-slate-800">
                     {entry.totalQuantity.toLocaleString()}

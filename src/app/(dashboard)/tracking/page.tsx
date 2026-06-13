@@ -91,6 +91,7 @@ type TrackingEntryGrouped = {
   imageUrl: string | null
   totalSizes: number
   totalQuantity: number
+  sizesData?: { size: string; quantity: number }[]
   isOrdered: boolean
   poNumber: string | null
   supplier: string | null
@@ -321,9 +322,18 @@ function SortableRow({
         {entry.bottomTreatment || "-"}
       </TableCell>
       <TableCell className="text-center font-mono font-semibold text-sm">
-        <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 border-none">
-          {entry.totalSizes} Sizes
-        </Badge>
+        <div className="flex flex-wrap gap-1.5 max-w-[400px]">
+          {entry.sizesData?.map((sd) => (
+            <div key={sd.size} className="flex flex-col items-center justify-center border rounded px-1.5 py-0.5 bg-muted/30 min-w-[32px]">
+              <span className="text-[10px] font-bold text-muted-foreground border-b border-slate-200 w-full text-center pb-0.5">
+                {sd.size}
+              </span>
+              <span className="text-[11px] font-medium text-foreground pt-0.5">
+                {sd.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
       </TableCell>
       <TableCell className="text-center font-bold text-sm">
         {entry.totalQuantity > 0 ? entry.totalQuantity.toLocaleString() : <span className="text-muted-foreground opacity-40">-</span>}

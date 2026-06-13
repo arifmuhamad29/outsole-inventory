@@ -47,11 +47,24 @@ export async function getTrackingEntries(params: {
       })
     : []
 
+  // Get all rows to extract detailed sizes
+  const allBatchRows = batchIds.length > 0
+    ? await prisma.purchaseTracking.findMany({
+        where: { batchId: { in: batchIds } },
+        select: { batchId: true, size: true, quantity: true },
+      })
+    : []
+
   // 4. Merge the data
   const entries = uniqueBatchesForPage.map((batch) => {
     const agg = aggregates.find((a) => a.batchId === batch.batchId)
+    const sizesData = allBatchRows
+      .filter((r) => r.batchId === batch.batchId)
+      .map(r => ({ size: r.size, quantity: r.quantity }))
+
     return {
       ...batch,
+      sizesData,
       totalQuantity: agg?._sum?.quantity || 0,
       totalSizes: agg?._count?.size || 0,
     }
@@ -100,10 +113,22 @@ export async function getPublicTrackingEntries(params: {
       })
     : []
 
+  const allBatchRows = batchIds.length > 0
+    ? await prisma.purchaseTracking.findMany({
+        where: { batchId: { in: batchIds } },
+        select: { batchId: true, size: true, quantity: true },
+      })
+    : []
+
   const entries = uniqueBatchesForPage.map((batch) => {
     const agg = aggregates.find((a) => a.batchId === batch.batchId)
+    const sizesData = allBatchRows
+      .filter((r) => r.batchId === batch.batchId)
+      .map(r => ({ size: r.size, quantity: r.quantity }))
+
     return {
       ...batch,
+      sizesData,
       totalQuantity: agg?._sum?.quantity || 0,
       totalSizes: agg?._count?.size || 0,
     }
