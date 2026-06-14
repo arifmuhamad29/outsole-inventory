@@ -37,6 +37,34 @@ export async function createSeason(name: string) {
   })
 }
 
+export async function updateSeason(id: string, newName: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+  
+  return await prisma.season.update({
+    where: { id },
+    data: { name: newName }
+  })
+}
+
+export async function deleteSeason(id: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  // SAFETY CHECK: Check if any tracking entries are still using this season
+  const linkedEntriesCount = await prisma.purchaseTracking.count({
+    where: { seasonId: id }
+  })
+
+  if (linkedEntriesCount > 0) {
+    throw new Error("Tidak dapat menghapus season yang masih memiliki data Purchase Order aktif. Pindahkan data PO terlebih dahulu.")
+  }
+
+  return await prisma.season.delete({
+    where: { id }
+  })
+}
+
 // ============================
 // FETCH: Get tracking entries (Grouped by Batch)
 // ============================

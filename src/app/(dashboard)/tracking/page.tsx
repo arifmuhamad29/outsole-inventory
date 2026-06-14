@@ -14,13 +14,15 @@ import {
   updateBatchOrder,
   getSeasons,
   createSeason,
+  updateSeason,
+  deleteSeason,
 } from "@/app/actions/tracking"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import {
   ShoppingCart, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, Package, X, ChevronDown, Check,
-  ImageIcon, UploadCloud, GripVertical
+  ImageIcon, UploadCloud, GripVertical, Settings
 } from "lucide-react"
 import {
   DndContext,
@@ -443,6 +445,9 @@ export default function TrackingPage() {
   const [isAddSeasonOpen, setIsAddSeasonOpen] = useState(false)
   const [newSeasonName, setNewSeasonName] = useState("")
   const [isAddingSeason, setIsAddingSeason] = useState(false)
+  const [isManageSeasonsOpen, setIsManageSeasonsOpen] = useState(false)
+  const [editingSeasonId, setEditingSeasonId] = useState<string | null>(null)
+  const [editSeasonName, setEditSeasonName] = useState("")
 
   // Form Hook
   const { register, handleSubmit, control, reset, watch, setValue } = useForm<FormValues>({
@@ -562,16 +567,44 @@ export default function TrackingPage() {
     if (!newSeasonName.trim()) return
     setIsAddingSeason(true)
     try {
-      const newSeason = await createSeason(newSeasonName.trim().toUpperCase())
-      setSeasons([...seasons, newSeason])
-      setActiveSeasonId(newSeason.id)
+      await createSeason(newSeasonName.trim())
+      toast.success("Season berhasil ditambahkan")
       setNewSeasonName("")
       setIsAddSeasonOpen(false)
-      toast.success("Season created successfully")
+      const data = await getSeasons()
+      setSeasons(data)
     } catch (error) {
-      toast.error("Failed to create season")
+      toast.error("Gagal menambahkan season")
+      console.error(error)
     } finally {
       setIsAddingSeason(false)
+    }
+  }
+
+  const handleUpdateSeason = async (id: string) => {
+    if (!editSeasonName.trim()) return
+    try {
+      await updateSeason(id, editSeasonName)
+      toast.success("Season updated successfully")
+      setEditingSeasonId(null)
+      const data = await getSeasons()
+      setSeasons(data)
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update season")
+    }
+  }
+
+  const handleDeleteSeason = async (id: string) => {
+    try {
+      await deleteSeason(id)
+      toast.success("Season deleted successfully")
+      const data = await getSeasons()
+      setSeasons(data)
+      if (activeSeasonId === id && data.length > 0) {
+        setActiveSeasonId(data[0].id)
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete season")
     }
   }
 
@@ -732,14 +765,24 @@ export default function TrackingPage() {
             </Button>
           ))}
           {canManage && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddSeasonOpen(true)}
-              className="rounded-full border-dashed text-muted-foreground hover:text-foreground"
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add Season
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddSeasonOpen(true)}
+                className="rounded-full border-dashed text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add Season
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsManageSeasonsOpen(true)}
+                className="rounded-full border-dashed text-muted-foreground hover:text-foreground"
+              >
+                <Settings className="h-4 w-4 mr-1" /> Kelola Season
+              </Button>
+            </>
           )}
         </div>
 
@@ -1195,6 +1238,66 @@ export default function TrackingPage() {
               {isAddingSeason ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Season"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ============ MANAGE SEASONS DIALOG ============ */}
+      <Dialog open={isManageSeasonsOpen} onOpenChange={setIsManageSeasonsOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Kelola Season</DialogTitle>
+            <DialogDescription>
+              Edit atau hapus daftar season yang ada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {seasons.map((season) => (
+              <div key={season.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                {editingSeasonId === season.id ? (
+                  <div className="flex items-center gap-2 flex-1 mr-4">
+                    <Input 
+                      value={editSeasonName} 
+                      onChange={(e) => setEditSeasonName(e.target.value)} 
+                      className="h-8"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleUpdateSeason(season.id)
+                        if (e.key === 'Escape') setEditingSeasonId(null)
+                      }}
+                    />
+                    <Button size="sm" onClick={() => handleUpdateSeason(season.id)} className="h-8">Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingSeasonId(null)} className="h-8">Cancel</Button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-medium text-sm">{season.name}</span>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 text-slate-500 hover:text-blue-600"
+                        onClick={() => {
+                          setEditingSeasonId(season.id)
+                          setEditSeasonName(season.name)
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteSeason(season.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+            {seasons.length === 0 && (
+              <p className="text-center text-muted-foreground text-sm py-4">Belum ada season tersimpan.</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
