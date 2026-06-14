@@ -51,7 +51,7 @@ export function PublicTrackingView() {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
   // Seasons
-  const [seasons, setSeasons] = useState<Season[]>([])
+  const [seasons, setSeasons] = useState<any[]>([])
   const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
 
   useEffect(() => {

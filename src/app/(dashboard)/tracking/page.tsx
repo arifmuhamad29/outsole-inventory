@@ -438,7 +438,7 @@ export default function TrackingPage() {
   const [isPending, startTransition] = useTransition()
 
   // Seasons
-  const [seasons, setSeasons] = useState<Season[]>([])
+  const [seasons, setSeasons] = useState<any[]>([])
   const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
   const [isAddSeasonOpen, setIsAddSeasonOpen] = useState(false)
   const [newSeasonName, setNewSeasonName] = useState("")
@@ -925,7 +925,7 @@ export default function TrackingPage() {
                           name="seasonId"
                           rules={{ required: true }}
                           render={({ field }) => (
-                            <Select value={field.value || activeSeasonId || ""} onValueChange={field.onChange}>
+                            <Select value={field?.value || activeSeasonId || ""} onValueChange={field.onChange}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select Season..." />
                               </SelectTrigger>
