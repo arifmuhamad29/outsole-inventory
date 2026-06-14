@@ -1249,54 +1249,83 @@ export default function TrackingPage() {
               Edit atau hapus daftar season yang ada.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {seasons.map((season) => (
-              <div key={season.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
-                {editingSeasonId === season.id ? (
-                  <div className="flex items-center gap-2 flex-1 mr-4">
-                    <Input 
-                      value={editSeasonName} 
-                      onChange={(e) => setEditSeasonName(e.target.value)} 
-                      className="h-8"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleUpdateSeason(season.id)
-                        if (e.key === 'Escape') setEditingSeasonId(null)
-                      }}
-                    />
-                    <Button size="sm" onClick={() => handleUpdateSeason(season.id)} className="h-8">Save</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingSeasonId(null)} className="h-8">Cancel</Button>
-                  </div>
-                ) : (
-                  <>
-                    <span className="font-medium text-sm">{season.name}</span>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-slate-500 hover:text-blue-600"
-                        onClick={() => {
-                          setEditingSeasonId(season.id)
-                          setEditSeasonName(season.name)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => handleDeleteSeason(season.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-            {seasons.length === 0 && (
-              <p className="text-center text-muted-foreground text-sm py-4">Belum ada season tersimpan.</p>
-            )}
+          <div className="py-4 space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex flex-col space-y-2 mt-2">
+              {seasons.map((season) => (
+                <div 
+                  key={season.id} 
+                  className="flex flex-row items-center justify-between p-3 border rounded-md bg-background hover:bg-accent/50 transition-colors"
+                >
+                  {editingSeasonId === season.id ? (
+                    <>
+                      <div className="flex-1 mr-4">
+                        <Input 
+                          value={editSeasonName} 
+                          onChange={(e) => setEditSeasonName(e.target.value)} 
+                          className="h-8"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleUpdateSeason(season.id)
+                            if (e.key === 'Escape') setEditingSeasonId(null)
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => handleUpdateSeason(season.id)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setEditingSeasonId(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* LEFT SIDE: Season Name */}
+                      <div className="font-medium text-sm">
+                        {season.name}
+                      </div>
+
+                      {/* RIGHT SIDE: Action Buttons */}
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditingSeasonId(season.id)
+                            setEditSeasonName(season.name)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleDeleteSeason(season.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+              {seasons.length === 0 && (
+                <p className="text-center text-muted-foreground text-sm py-4">Belum ada season tersimpan.</p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
