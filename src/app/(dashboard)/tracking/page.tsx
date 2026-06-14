@@ -15,6 +15,7 @@ import {
   getSeasons,
   createSeason,
 } from "@/app/actions/tracking"
+import { Season } from "@prisma/client"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import {
@@ -437,7 +438,7 @@ export default function TrackingPage() {
   const [isPending, startTransition] = useTransition()
 
   // Seasons
-  const [seasons, setSeasons] = useState<{id: string, name: string}[]>([])
+  const [seasons, setSeasons] = useState<Season[]>([])
   const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
   const [isAddSeasonOpen, setIsAddSeasonOpen] = useState(false)
   const [newSeasonName, setNewSeasonName] = useState("")
