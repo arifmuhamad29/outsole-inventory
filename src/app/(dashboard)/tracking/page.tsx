@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 // Ensure you have an Image component or just use <img> for base64
 import Image from "next/image"
 
@@ -708,14 +709,21 @@ export default function TrackingPage() {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={12} className="h-32 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
-                      <span className="text-sm text-muted-foreground">Loading data...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    <TableCell className="text-center"><Skeleton className="h-4 w-6 mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-12 w-12 rounded-md mx-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><div className="space-y-1"><Skeleton className="h-3 w-32" /><Skeleton className="h-3 w-28" /></div></TableCell>
+                    <TableCell><Skeleton className="h-4 w-14" /></TableCell>
+                    <TableCell><div className="flex gap-1"><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /></div></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 mx-auto rounded-full" /></TableCell>
+                    <TableCell><div className="space-y-1"><Skeleton className="h-3 w-20" /><Skeleton className="h-3 w-16" /></div></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    {canManage && <TableCell><div className="flex gap-1 justify-center"><Skeleton className="h-7 w-7 rounded" /><Skeleton className="h-7 w-7 rounded" /></div></TableCell>}
+                  </TableRow>
+                ))
               ) : entries.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={12} className="h-32 text-center">

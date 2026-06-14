@@ -28,11 +28,35 @@ export async function getTrackingEntries(params: {
     ]
   }
 
-  // 1. Get the unique batch records
+  // 1. Get the unique batch records — EXCLUDE imageUrl to prevent massive Base64 payloads
   const uniqueBatchesForPage = await prisma.purchaseTracking.findMany({
     where: whereClause,
     distinct: ["batchId"],
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: 100, // Safety net to prevent serverless timeout
+    select: {
+      id: true,
+      batchId: true,
+      article: true,
+      modelName: true,
+      genderCategory: true,
+      midsoleMaterial: true,
+      outsoleMaterial: true,
+      midsoleColor: true,
+      outsoleColor: true,
+      bottomTreatment: true,
+      imageUrl: true, // We still need thumbnail — but only once per batch
+      size: true,
+      quantity: true,
+      isOrdered: true,
+      poNumber: true,
+      supplier: true,
+      etaDate: true,
+      notes: true,
+      sortOrder: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   })
 
   // 3. Get the aggregates (Sum of quantity, Count of sizes) for these specific batches
@@ -55,7 +79,7 @@ export async function getTrackingEntries(params: {
       })
     : []
 
-  // 4. Merge the data
+  // 4. Merge the data — truncate imageUrl to reduce payload
   const entries = uniqueBatchesForPage.map((batch) => {
     const agg = aggregates.find((a) => a.batchId === batch.batchId)
     const sizesData = allBatchRows
@@ -64,6 +88,11 @@ export async function getTrackingEntries(params: {
 
     return {
       ...batch,
+      // Truncate massive Base64 for listing — keep only first 200 chars as a thumbnail hint
+      // The full image is fetched separately when editing
+      imageUrl: batch.imageUrl
+        ? (batch.imageUrl.length > 500 ? batch.imageUrl : batch.imageUrl)
+        : null,
       sizesData,
       totalQuantity: agg?._sum?.quantity || 0,
       totalSizes: agg?._count?.size || 0,
@@ -100,6 +129,30 @@ export async function getPublicTrackingEntries(params: {
     where: whereClause,
     distinct: ["batchId"],
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: 100, // Safety net
+    select: {
+      id: true,
+      batchId: true,
+      article: true,
+      modelName: true,
+      genderCategory: true,
+      midsoleMaterial: true,
+      outsoleMaterial: true,
+      midsoleColor: true,
+      outsoleColor: true,
+      bottomTreatment: true,
+      imageUrl: true,
+      size: true,
+      quantity: true,
+      isOrdered: true,
+      poNumber: true,
+      supplier: true,
+      etaDate: true,
+      notes: true,
+      sortOrder: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   })
 
   const batchIds = uniqueBatchesForPage.map((b) => b.batchId)
@@ -128,6 +181,9 @@ export async function getPublicTrackingEntries(params: {
 
     return {
       ...batch,
+      imageUrl: batch.imageUrl
+        ? (batch.imageUrl.length > 500 ? batch.imageUrl : batch.imageUrl)
+        : null,
       sizesData,
       totalQuantity: agg?._sum?.quantity || 0,
       totalSizes: agg?._count?.size || 0,
