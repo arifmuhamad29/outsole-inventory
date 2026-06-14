@@ -444,22 +444,6 @@ export default function TrackingPage() {
   const [newSeasonName, setNewSeasonName] = useState("")
   const [isAddingSeason, setIsAddingSeason] = useState(false)
 
-  useEffect(() => {
-    const fetchInitialSeasons = async () => {
-      try {
-        const fetchedSeasons = await getSeasons();
-        setSeasons(fetchedSeasons);
-        if (fetchedSeasons.length > 0 && !activeSeasonId) {
-          setActiveSeasonId(fetchedSeasons[0].id);
-        }
-      } catch (error) {
-        console.error("Failed to fetch seasons:", error);
-      }
-    };
-    fetchInitialSeasons();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Form Hook
   const { register, handleSubmit, control, reset, watch, setValue } = useForm<FormValues>({
     defaultValues,

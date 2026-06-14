@@ -9,9 +9,23 @@ import { randomUUID } from "crypto"
 // SEASONS
 // ============================
 export async function getSeasons() {
-  return await prisma.season.findMany({
+  let seasons = await prisma.season.findMany({
     orderBy: { createdAt: "asc" }
   })
+  
+  if (seasons.length === 0) {
+    try {
+      const ss27 = await prisma.season.create({ data: { name: "SS27" } })
+      seasons = [ss27]
+    } catch (error) {
+      // If it failed, it might have been created concurrently
+      seasons = await prisma.season.findMany({
+        orderBy: { createdAt: "asc" }
+      })
+    }
+  }
+  
+  return seasons
 }
 
 export async function createSeason(name: string) {
