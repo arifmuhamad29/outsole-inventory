@@ -951,7 +951,14 @@ export default function TrackingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
                       <div className="space-y-1.5">
                         <Label className="text-xs font-medium">Article <span className="text-red-500">*</span></Label>
-                        <Input placeholder="HQ0170" {...register("article", { required: true })} />
+                        <Input 
+                          placeholder="HQ0170" 
+                          className="uppercase"
+                          {...register("article", { 
+                            required: true,
+                            onChange: (e) => e.target.value = e.target.value.toUpperCase()
+                          })} 
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs font-medium">Model Name <span className="text-red-500">*</span></Label>
@@ -1237,8 +1244,8 @@ export default function TrackingPage() {
               id="seasonName"
               placeholder="e.g. FW27"
               value={newSeasonName}
-              onChange={(e) => setNewSeasonName(e.target.value)}
-              className="mt-2"
+              onChange={(e) => setNewSeasonName(e.target.value.toUpperCase())}
+              className="mt-2 uppercase"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1278,8 +1285,8 @@ export default function TrackingPage() {
                       <div className="flex-1 mr-4">
                         <Input 
                           value={editSeasonName} 
-                          onChange={(e) => setEditSeasonName(e.target.value)} 
-                          className="h-8"
+                          onChange={(e) => setEditSeasonName(e.target.value.toUpperCase())} 
+                          className="h-8 uppercase"
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleUpdateSeason(season.id)
