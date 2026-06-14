@@ -244,13 +244,19 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                       />
                     </TableCell>
                   )}
-                  <TableCell
-                    className="font-mono text-xs text-blue-600 hover:underline cursor-pointer font-semibold transition-colors hover:text-blue-800"
-                    onClick={() => handleViewHistory(item.id, item.qrCode)}
-                    title="Click to view transaction history"
-                  >
-                    {item.qrCode}
-                  </TableCell>
+                  {readOnly ? (
+                    <TableCell className="font-mono text-xs font-semibold text-foreground">
+                      {item.qrCode}
+                    </TableCell>
+                  ) : (
+                    <TableCell
+                      className="font-mono text-xs text-blue-600 hover:underline cursor-pointer font-semibold transition-colors hover:text-blue-800"
+                      onClick={() => handleViewHistory(item.id, item.qrCode)}
+                      title="Click to view transaction history"
+                    >
+                      {item.qrCode}
+                    </TableCell>
+                  )}
                   <TableCell>{item.poNumber || "-"}</TableCell>
                   <TableCell>{item.model}</TableCell>
                   <TableCell>{item.article}</TableCell>
@@ -291,17 +297,18 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
       </div>
 
       {/* Transaction History Dialog */}
-      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="h-5 w-5 text-blue-500" />
-              Transaction History
-            </DialogTitle>
-            <DialogDescription>
-              Full activity log for <span className="font-mono font-bold text-foreground">{selectedQrCode}</span>
-            </DialogDescription>
-          </DialogHeader>
+      {!readOnly && (
+        <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <History className="h-5 w-5 text-blue-500" />
+                Transaction History
+              </DialogTitle>
+              <DialogDescription>
+                Full activity log for <span className="font-mono font-bold text-foreground">{selectedQrCode}</span>
+              </DialogDescription>
+            </DialogHeader>
 
           <div className="mt-4">
             {isHistoryLoading ? (
@@ -381,6 +388,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   )
 }
