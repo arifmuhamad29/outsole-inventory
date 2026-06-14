@@ -17,7 +17,7 @@ export async function getSeasons() {
     try {
       const ss27 = await prisma.season.create({ data: { name: "SS27" } })
       seasons = [ss27]
-    } catch (error) {
+    } catch (_) {
       // If it failed, it might have been created concurrently
       seasons = await prisma.season.findMany({
         orderBy: { createdAt: "asc" }

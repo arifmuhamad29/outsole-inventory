@@ -589,8 +589,8 @@ export default function TrackingPage() {
       setEditingSeasonId(null)
       const data = await getSeasons()
       setSeasons(data)
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update season")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update season")
     }
   }
 
@@ -603,8 +603,8 @@ export default function TrackingPage() {
       if (activeSeasonId === id && data.length > 0) {
         setActiveSeasonId(data[0].id)
       }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete season")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete season")
     }
   }
 
