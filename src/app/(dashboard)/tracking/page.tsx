@@ -448,6 +448,7 @@ export default function TrackingPage() {
   const [isManageSeasonsOpen, setIsManageSeasonsOpen] = useState(false)
   const [editingSeasonId, setEditingSeasonId] = useState<string | null>(null)
   const [editSeasonName, setEditSeasonName] = useState("")
+  const [deletingSeasonId, setDeletingSeasonId] = useState<string | null>(null)
 
   // Form Hook
   const { register, handleSubmit, control, reset, watch, setValue } = useForm<FormValues>({
@@ -594,10 +595,14 @@ export default function TrackingPage() {
     }
   }
 
-  const handleDeleteSeason = async (id: string) => {
+  const handleDeleteSeason = async (id: string, name: string) => {
+    const hasConfirmed = window.confirm(`Apakah Anda yakin ingin menghapus season "${name}"? Tindakan ini tidak dapat dibatalkan.`)
+    if (!hasConfirmed) return
+    
+    setDeletingSeasonId(id)
     try {
       await deleteSeason(id)
-      toast.success("Season deleted successfully")
+      toast.success(`Season "${name}" berhasil dihapus`)
       const data = await getSeasons()
       setSeasons(data)
       if (activeSeasonId === id && data.length > 0) {
@@ -605,6 +610,8 @@ export default function TrackingPage() {
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete season")
+    } finally {
+      setDeletingSeasonId(null)
     }
   }
 
@@ -1312,10 +1319,15 @@ export default function TrackingPage() {
                         <Button 
                           variant="destructive" 
                           size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleDeleteSeason(season.id)}
+                          className={cn("h-8 w-8 transition-all", deletingSeasonId === season.id && "opacity-50")}
+                          disabled={deletingSeasonId !== null}
+                          onClick={() => handleDeleteSeason(season.id, season.name)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deletingSeasonId === season.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </>
