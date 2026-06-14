@@ -35,6 +35,7 @@ type OutsoleWithTransactions = Outsole & {
 type HistoryLog = {
   id: string
   type: string
+  size: string
   qty: number
   notes: string | null
   operatorName: string
@@ -337,6 +338,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                     <TableRow>
                       <TableHead className="whitespace-nowrap text-xs font-semibold">Date & Time</TableHead>
                       <TableHead className="text-xs font-semibold">Type</TableHead>
+                      <TableHead className="text-xs font-semibold text-center">Size</TableHead>
                       <TableHead className="text-xs font-semibold text-right">Qty (PRS)</TableHead>
                       <TableHead className="text-xs font-semibold">Operator</TableHead>
                       <TableHead className="text-xs font-semibold">Remarks</TableHead>
@@ -362,6 +364,9 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                             {getTypeIcon(log.type)}
                             {log.type}
                           </span>
+                        </TableCell>
+                        <TableCell className="font-semibold text-center text-xs">
+                          {log.size || "-"}
                         </TableCell>
                         <TableCell className="text-right text-sm">
                           {getQtyDisplay(log.type, log.qty)}

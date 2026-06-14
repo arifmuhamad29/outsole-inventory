@@ -238,6 +238,7 @@ export async function getItemTransactionHistory(outsoleId: string) {
     orderBy: { createdAt: "desc" },
     include: {
       user: { select: { name: true } },
+      outsole: { select: { size: true } },
     },
   })
 
@@ -245,6 +246,7 @@ export async function getItemTransactionHistory(outsoleId: string) {
   return transactions.map((t) => ({
     id: t.id,
     type: t.type,
+    size: t.outsole.size,
     qty: t.qty,
     notes: t.notes,
     operatorName: t.user.name,
