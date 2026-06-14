@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { getPublicTrackingEntries, getSeasons } from "@/app/actions/tracking"
-import { Season } from "@prisma/client"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import { Search, Loader2, ShoppingCart } from "lucide-react"
@@ -51,6 +50,7 @@ export function PublicTrackingView() {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
   // Seasons
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [seasons, setSeasons] = useState<any[]>([])
   const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
 
