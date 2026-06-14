@@ -1348,7 +1348,7 @@ export default function TrackingPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Season?</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus season <b>"{seasonToDelete?.name}"</b>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus season <b>&quot;{seasonToDelete?.name}&quot;</b>? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
