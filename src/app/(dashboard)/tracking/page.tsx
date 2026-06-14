@@ -449,6 +449,7 @@ export default function TrackingPage() {
   const [editingSeasonId, setEditingSeasonId] = useState<string | null>(null)
   const [editSeasonName, setEditSeasonName] = useState("")
   const [deletingSeasonId, setDeletingSeasonId] = useState<string | null>(null)
+  const [seasonToDelete, setSeasonToDelete] = useState<{id: string, name: string} | null>(null)
 
   // Form Hook
   const { register, handleSubmit, control, reset, watch, setValue } = useForm<FormValues>({
@@ -595,23 +596,22 @@ export default function TrackingPage() {
     }
   }
 
-  const handleDeleteSeason = async (id: string, name: string) => {
-    const hasConfirmed = window.confirm(`Apakah Anda yakin ingin menghapus season "${name}"? Tindakan ini tidak dapat dibatalkan.`)
-    if (!hasConfirmed) return
-    
-    setDeletingSeasonId(id)
+  const confirmDeleteSeason = async () => {
+    if (!seasonToDelete) return
+    setDeletingSeasonId(seasonToDelete.id)
     try {
-      await deleteSeason(id)
-      toast.success(`Season "${name}" berhasil dihapus`)
+      await deleteSeason(seasonToDelete.id)
+      toast.success(`Season "${seasonToDelete.name}" berhasil dihapus`)
       const data = await getSeasons()
       setSeasons(data)
-      if (activeSeasonId === id && data.length > 0) {
+      if (activeSeasonId === seasonToDelete.id && data.length > 0) {
         setActiveSeasonId(data[0].id)
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete season")
     } finally {
       setDeletingSeasonId(null)
+      setSeasonToDelete(null)
     }
   }
 
@@ -1321,7 +1321,7 @@ export default function TrackingPage() {
                           size="icon" 
                           className={cn("h-8 w-8 transition-all", deletingSeasonId === season.id && "opacity-50")}
                           disabled={deletingSeasonId !== null}
-                          onClick={() => handleDeleteSeason(season.id, season.name)}
+                          onClick={() => setSeasonToDelete({ id: season.id, name: season.name })}
                         >
                           {deletingSeasonId === season.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1341,6 +1341,31 @@ export default function TrackingPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ============ DELETE SEASON CONFIRMATION ============ */}
+      <AlertDialog open={seasonToDelete !== null} onOpenChange={(open) => !open && setSeasonToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Season?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus season <b>"{seasonToDelete?.name}"</b>? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingSeasonId !== null}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                confirmDeleteSeason()
+              }}
+              disabled={deletingSeasonId !== null}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingSeasonId !== null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
