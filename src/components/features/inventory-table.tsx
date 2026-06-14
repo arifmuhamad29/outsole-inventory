@@ -12,14 +12,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Outsole, Transaction } from "@prisma/client"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Printer } from "lucide-react"
+import { Printer, Loader2, History, ArrowUpCircle, ArrowDownCircle, Settings2 } from "lucide-react"
 import { PrintableLabel } from "@/components/ui/printable-label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import { getItemTransactionHistory } from "@/app/actions/inventory"
 
 type OutsoleWithTransactions = Outsole & {
   transactions?: Transaction[]
+}
+
+type HistoryLog = {
+  id: string
+  type: string
+  qty: number
+  notes: string | null
+  operatorName: string
+  createdAt: string
 }
 
 export interface InventoryTableProps {
@@ -32,6 +51,12 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
   const [selectedItems, setSelectedItems] = useState<OutsoleWithTransactions[]>([])
   const [isPrinting, setIsPrinting] = useState(false)
   const [mounted, setMounted] = useState(false)
+
+  // History Dialog state
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null)
+  const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([])
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -62,6 +87,21 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }, 150)
   }
 
+  const handleViewHistory = async (outsoleId: string, qrCode: string) => {
+    setSelectedQrCode(qrCode)
+    setIsHistoryOpen(true)
+    setIsHistoryLoading(true)
+    setHistoryLogs([])
+    try {
+      const data = await getItemTransactionHistory(outsoleId)
+      setHistoryLogs(data)
+    } catch {
+      toast.error("Failed to load transaction history")
+    } finally {
+      setIsHistoryLoading(false)
+    }
+  }
+
   const allSelected = outsoles.length > 0 && selectedItems.length === outsoles.length
 
   const chunkArray = <T,>(arr: T[], size: number): T[][] => {
@@ -72,6 +112,47 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     return chunks
   }
   const barcodePages = chunkArray(selectedItems, 6)
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "INBOUND":
+        return <ArrowDownCircle className="h-3.5 w-3.5 text-blue-500" />
+      case "OUTBOUND":
+        return <ArrowUpCircle className="h-3.5 w-3.5 text-orange-500" />
+      case "ADJUSTMENT":
+        return <Settings2 className="h-3.5 w-3.5 text-amber-500" />
+      default:
+        return null
+    }
+  }
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "INBOUND":
+        return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+      case "OUTBOUND":
+        return "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
+      case "ADJUSTMENT":
+        return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+      case "STOCK_OPNAME":
+        return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200"
+    }
+  }
+
+  const getQtyDisplay = (type: string, qty: number) => {
+    switch (type) {
+      case "INBOUND":
+        return <span className="text-green-600 dark:text-green-400 font-semibold">+{qty}</span>
+      case "OUTBOUND":
+        return <span className="text-red-600 dark:text-red-400 font-semibold">-{qty}</span>
+      case "ADJUSTMENT":
+        return <span className="text-amber-600 dark:text-amber-400 font-semibold">~{qty}</span>
+      default:
+        return <span className="font-semibold">{qty}</span>
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -163,7 +244,13 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                       />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">{item.qrCode}</TableCell>
+                  <TableCell
+                    className="font-mono text-xs text-blue-600 hover:underline cursor-pointer font-semibold transition-colors hover:text-blue-800"
+                    onClick={() => handleViewHistory(item.id, item.qrCode)}
+                    title="Click to view transaction history"
+                  >
+                    {item.qrCode}
+                  </TableCell>
                   <TableCell>{item.poNumber || "-"}</TableCell>
                   <TableCell>{item.model}</TableCell>
                   <TableCell>{item.article}</TableCell>
@@ -202,6 +289,98 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           </TableBody>
         </Table>
       </div>
+
+      {/* Transaction History Dialog */}
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-blue-500" />
+              Transaction History
+            </DialogTitle>
+            <DialogDescription>
+              Full activity log for <span className="font-mono font-bold text-foreground">{selectedQrCode}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4">
+            {isHistoryLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-10" />
+                    <Skeleton className="h-5 w-28" />
+                    <Skeleton className="h-5 w-32 flex-1" />
+                  </div>
+                ))}
+              </div>
+            ) : historyLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <History className="h-10 w-10 opacity-30 mb-3" />
+                <p className="text-sm font-medium">No transaction records found</p>
+                <p className="text-xs mt-1">This item has no recorded movements yet.</p>
+              </div>
+            ) : (
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50/80 dark:bg-slate-900/50">
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap text-xs font-semibold">Date & Time</TableHead>
+                      <TableHead className="text-xs font-semibold">Type</TableHead>
+                      <TableHead className="text-xs font-semibold text-right">Qty (PRS)</TableHead>
+                      <TableHead className="text-xs font-semibold">Operator</TableHead>
+                      <TableHead className="text-xs font-semibold">Remarks</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historyLogs.map((log) => (
+                      <TableRow key={log.id} className="hover:bg-muted/40 transition-colors">
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString("en-GB", {
+                            timeZone: "Asia/Jakarta",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })}{" "}
+                          WIB
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${getTypeColor(log.type)}`}>
+                            {getTypeIcon(log.type)}
+                            {log.type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {getQtyDisplay(log.type, log.qty)}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {log.operatorName}
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[180px]">
+                          <div className="truncate" title={log.notes || "-"}>
+                            {log.notes || <span className="text-muted-foreground">-</span>}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {!isHistoryLoading && historyLogs.length > 0 && (
+              <div className="text-center text-xs text-muted-foreground mt-3 pt-3 border-t">
+                Showing all {historyLogs.length} transaction record{historyLogs.length > 1 ? "s" : ""}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

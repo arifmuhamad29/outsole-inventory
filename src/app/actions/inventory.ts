@@ -224,3 +224,30 @@ export async function processBulkInboundAction(rows: unknown[]) {
   }
 }
 
+// ============================
+// FETCH: Get full transaction history for a specific outsole
+// ============================
+export async function getItemTransactionHistory(outsoleId: string) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized")
+  }
+
+  const transactions = await prisma.transaction.findMany({
+    where: { outsoleId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { name: true } },
+    },
+  })
+
+  // Serialize dates for client consumption
+  return transactions.map((t) => ({
+    id: t.id,
+    type: t.type,
+    qty: t.qty,
+    notes: t.notes,
+    operatorName: t.user.name,
+    createdAt: t.createdAt.toISOString(),
+  }))
+}
