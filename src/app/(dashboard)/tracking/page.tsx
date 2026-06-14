@@ -928,10 +928,14 @@ export default function TrackingPage() {
                               <SelectTrigger>
                                 <SelectValue placeholder="Select Season..." />
                               </SelectTrigger>
-                              <SelectContent>
-                                {seasons.map((s) => (
-                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                ))}
+                              <SelectContent className="z-[9999]">
+                                {seasons && seasons.length > 0 ? (
+                                  seasons.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="empty" disabled>Belum ada season</SelectItem>
+                                )}
                               </SelectContent>
                             </Select>
                           )}
