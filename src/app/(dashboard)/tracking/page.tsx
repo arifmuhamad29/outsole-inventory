@@ -672,8 +672,8 @@ export default function TrackingPage() {
       }
     })
 
-    if (Object.keys(processedSizes).length === 0) {
-      toast.error("At least one size with quantity > 0 is required")
+    if (data.isOrdered && Object.keys(processedSizes).length === 0) {
+      toast.error("Untuk status 'Ordered', Size Run wajib diisi minimal 1 ukuran!")
       return
     }
 

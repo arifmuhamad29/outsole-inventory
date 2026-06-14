@@ -352,10 +352,15 @@ export async function createTrackingEntry(data: {
     }
 
     // Filter out sizes with 0 or empty quantity
-    const validSizes = Object.entries(data.sizes).filter(([_, qty]) => qty > 0)
+    let validSizes = Object.entries(data.sizes).filter(([_key, qty]) => qty > 0)
     
     if (validSizes.length === 0) {
-      return { success: false, message: "At least one size with quantity > 0 is required" }
+      if (data.isOrdered) {
+        return { success: false, message: "Untuk status 'Ordered', minimal 1 ukuran dengan kuantitas > 0 wajib diisi" }
+      } else {
+        // Allow empty sizes for draft/planned POs by inserting a placeholder
+        validSizes = [["TBD", 0]]
+      }
     }
 
     const batchId = randomUUID()
@@ -425,10 +430,14 @@ export async function updateTrackingEntry(
       return { success: false, message: "Unauthorized" }
     }
 
-    const validSizes = Object.entries(data.sizes).filter(([_, qty]) => qty > 0)
+    let validSizes = Object.entries(data.sizes).filter(([_key, qty]) => qty > 0)
     
     if (validSizes.length === 0) {
-      return { success: false, message: "At least one size with quantity > 0 is required" }
+      if (data.isOrdered) {
+        return { success: false, message: "Untuk status 'Ordered', minimal 1 ukuran dengan kuantitas > 0 wajib diisi" }
+      } else {
+        validSizes = [["TBD", 0]]
+      }
     }
 
     // Preserve existing sort order and creation date to prevent table jumping
