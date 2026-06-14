@@ -278,6 +278,9 @@ model PurchaseTracking {
   etaDate          DateTime?
   notes            String?   // Free-form notes
   sortOrder        Int       @default(0) // Used for custom drag and drop sorting
+  seasonId         String?
+  season           Season?   @relation(fields: [seasonId], references: [id])
+
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -285,4 +288,12 @@ model PurchaseTracking {
   @@index([article])
   @@index([modelName])
   @@index([isOrdered])
+  @@index([seasonId])
+}
+
+model Season {
+  id        String             @id @default(cuid())
+  name      String             @unique // e.g., "SS27", "FW27"
+  entries   PurchaseTracking[]
+  createdAt DateTime           @default(now())
 }

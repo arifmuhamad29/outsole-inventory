@@ -6,17 +6,58 @@ import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 
 // ============================
+// SEASONS
+// ============================
+export async function getSeasons() {
+  return await prisma.season.findMany({
+    orderBy: { createdAt: "asc" }
+  })
+}
+
+export async function createSeason(name: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+  
+  return await prisma.season.create({
+    data: { name }
+  })
+}
+
+// ============================
 // FETCH: Get tracking entries (Grouped by Batch)
 // ============================
 export async function getTrackingEntries(params: {
   search?: string
+  seasonId?: string
 }) {
   const session = await auth()
   if (!session?.user?.id) {
     throw new Error("Unauthorized")
   }
 
+  // --- AUTO MIGRATION LOGIC ---
+  // If any PurchaseTracking record has no seasonId, assign it to a default "SS27" season.
+  const nullSeasonsCount = await prisma.purchaseTracking.count({
+    where: { seasonId: null }
+  })
+
+  if (nullSeasonsCount > 0) {
+    // Find or create SS27
+    let defaultSeason = await prisma.season.findUnique({ where: { name: "SS27" } })
+    if (!defaultSeason) {
+      defaultSeason = await prisma.season.create({ data: { name: "SS27" } })
+    }
+    await prisma.purchaseTracking.updateMany({
+      where: { seasonId: null },
+      data: { seasonId: defaultSeason.id }
+    })
+  }
+
   const whereClause: import("@prisma/client").Prisma.PurchaseTrackingWhereInput = {}
+
+  if (params.seasonId) {
+    whereClause.seasonId = params.seasonId
+  }
 
   if (params.search && params.search.trim() !== "") {
     const searchTerm = params.search.trim()
@@ -112,8 +153,13 @@ export async function getTrackingEntries(params: {
 // ============================
 export async function getPublicTrackingEntries(params: {
   search?: string
+  seasonId?: string
 }) {
   const whereClause: import("@prisma/client").Prisma.PurchaseTrackingWhereInput = {}
+
+  if (params.seasonId) {
+    whereClause.seasonId = params.seasonId
+  }
 
   if (params.search && params.search.trim() !== "") {
     const searchTerm = params.search.trim()
@@ -251,6 +297,7 @@ export async function createTrackingEntry(data: {
   supplier?: string
   etaDate?: string
   notes?: string
+  seasonId?: string
 }) {
   try {
     const session = await auth()
@@ -289,6 +336,7 @@ export async function createTrackingEntry(data: {
       supplier: data.supplier?.trim() || null,
       etaDate: data.etaDate ? new Date(data.etaDate) : null,
       notes: data.notes?.trim() || null,
+      seasonId: data.seasonId || null,
     }))
 
     await prisma.$transaction([
@@ -326,6 +374,7 @@ export async function updateTrackingEntry(
     supplier?: string
     etaDate?: string
     notes?: string
+    seasonId?: string
   }
 ) {
   try {
@@ -367,6 +416,7 @@ export async function updateTrackingEntry(
       supplier: data.supplier?.trim() || null,
       etaDate: data.etaDate ? new Date(data.etaDate) : null,
       notes: data.notes?.trim() || null,
+      seasonId: data.seasonId || null,
       sortOrder: preservedSortOrder,
       createdAt: preservedCreatedAt,
     }))

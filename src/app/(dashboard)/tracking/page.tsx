@@ -12,6 +12,8 @@ import {
   updateTrackingEntry,
   deleteTrackingEntry,
   updateBatchOrder,
+  getSeasons,
+  createSeason,
 } from "@/app/actions/tracking"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
@@ -104,6 +106,7 @@ type TrackingEntryGrouped = {
   supplier: string | null
   etaDate: string | null
   notes: string | null
+  seasonId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -123,6 +126,7 @@ type FormValues = {
   supplier: string
   etaDate: string
   notes: string
+  seasonId: string
   sizes: Record<string, string> 
 }
 
@@ -141,6 +145,7 @@ const defaultValues: FormValues = {
   supplier: "",
   etaDate: "",
   notes: "",
+  seasonId: "",
   sizes: {},
 }
 
@@ -431,6 +436,13 @@ export default function TrackingPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  // Seasons
+  const [seasons, setSeasons] = useState<{id: string, name: string}[]>([])
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
+  const [isAddSeasonOpen, setIsAddSeasonOpen] = useState(false)
+  const [newSeasonName, setNewSeasonName] = useState("")
+  const [isAddingSeason, setIsAddingSeason] = useState(false)
+
   // Form Hook
   const { register, handleSubmit, control, reset, watch, setValue } = useForm<FormValues>({
     defaultValues,
@@ -479,8 +491,21 @@ export default function TrackingPage() {
         console.error("Failed to load model names", error)
       }
     }
+    const loadSeasons = async () => {
+      try {
+        const data = await getSeasons()
+        setSeasons(data)
+        if (data.length > 0) {
+          const ss27 = data.find(s => s.name === "SS27") || data[0]
+          setActiveSeasonId(prev => prev || ss27.id)
+        }
+      } catch (error) {
+        console.error("Failed to load seasons", error)
+      }
+    }
     if (canView) {
       fetchModels()
+      loadSeasons()
     }
   }, [canView])
 
@@ -491,11 +516,12 @@ export default function TrackingPage() {
   }, [session, canView, router])
 
   const fetchData = useCallback(async () => {
-    if (!canView) return
+    if (!canView || !activeSeasonId) return
     setLoading(true)
     try {
       const result = await getTrackingEntries({
         search: debouncedSearch,
+        seasonId: activeSeasonId,
       })
       setEntries(result.entries as unknown as TrackingEntryGrouped[])
     } catch (error) {
@@ -504,7 +530,7 @@ export default function TrackingPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, canView])
+  }, [debouncedSearch, canView, activeSeasonId])
 
   useEffect(() => {
     fetchData()
@@ -529,6 +555,23 @@ export default function TrackingPage() {
 
     const orderedBatchIds = newEntries.map((e) => e.batchId)
     await updateBatchOrder(orderedBatchIds)
+  }
+
+  const handleAddSeason = async () => {
+    if (!newSeasonName.trim()) return
+    setIsAddingSeason(true)
+    try {
+      const newSeason = await createSeason(newSeasonName.trim().toUpperCase())
+      setSeasons([...seasons, newSeason])
+      setActiveSeasonId(newSeason.id)
+      setNewSeasonName("")
+      setIsAddSeasonOpen(false)
+      toast.success("Season created successfully")
+    } catch (error) {
+      toast.error("Failed to create season")
+    } finally {
+      setIsAddingSeason(false)
+    }
   }
 
   // Open Add dialog
@@ -566,6 +609,7 @@ export default function TrackingPage() {
         supplier: entry.supplier || "",
         etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
         notes: entry.notes || "",
+        seasonId: entry.seasonId || "",
         sizes: sizesRecord,
       })
     } catch (error) {
@@ -609,6 +653,7 @@ export default function TrackingPage() {
         supplier: data.supplier || undefined,
         etaDate: data.etaDate || undefined,
         notes: data.notes || undefined,
+        seasonId: data.seasonId || activeSeasonId || undefined,
       }
 
       const result = editingBatchId
@@ -668,23 +713,52 @@ export default function TrackingPage() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search article, model, PO, supplier..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      {/* Seasons Tabs & Search */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto">
+          {seasons.map((season) => (
+            <Button
+              key={season.id}
+              variant={activeSeasonId === season.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSeasonId(season.id)}
+              className={cn(
+                "rounded-full whitespace-nowrap",
+                activeSeasonId === season.id ? "bg-violet-600 hover:bg-violet-700 text-white border-violet-600 shadow-md" : ""
+              )}
+            >
+              {season.name}
+            </Button>
+          ))}
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddSeasonOpen(true)}
+              className="rounded-full border-dashed text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add Season
+            </Button>
+          )}
+        </div>
+
+        <div className="relative w-full sm:w-auto sm:min-w-[300px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search article, model, PO..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -843,7 +917,27 @@ export default function TrackingPage() {
                           )}
                         />
                       </div>
-                      <div className="space-y-1.5 md:col-span-2">
+                      <div className="space-y-1.5 md:col-span-1">
+                        <Label className="text-xs font-medium">Season <span className="text-red-500">*</span></Label>
+                        <Controller
+                          control={control}
+                          name="seasonId"
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <Select value={field.value || activeSeasonId || ""} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Season..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {seasons.map((s) => (
+                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-1">
                         <Label className="text-xs font-medium">Gender Category <span className="text-red-500">*</span></Label>
                         <Controller
                           control={control}
@@ -1062,6 +1156,42 @@ export default function TrackingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ============ ADD SEASON DIALOG ============ */}
+      <Dialog open={isAddSeasonOpen} onOpenChange={setIsAddSeasonOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add New Season</DialogTitle>
+            <DialogDescription>
+              Create a new season grouping (e.g., SS27, FW27)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="seasonName">Season Name</Label>
+            <Input
+              id="seasonName"
+              placeholder="e.g. FW27"
+              value={newSeasonName}
+              onChange={(e) => setNewSeasonName(e.target.value)}
+              className="mt-2"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleAddSeason()
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddSeasonOpen(false)} disabled={isAddingSeason}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddSeason} disabled={isAddingSeason || !newSeasonName.trim()} className="bg-violet-600 hover:bg-violet-700 text-white">
+              {isAddingSeason ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Season"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

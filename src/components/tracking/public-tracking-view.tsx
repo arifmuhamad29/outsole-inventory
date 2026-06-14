@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { getPublicTrackingEntries } from "@/app/actions/tracking"
+import { getPublicTrackingEntries, getSeasons } from "@/app/actions/tracking"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
 import { Search, Loader2, ShoppingCart } from "lucide-react"
@@ -49,6 +49,26 @@ export function PublicTrackingView() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
+  // Seasons
+  const [seasons, setSeasons] = useState<{id: string, name: string}[]>([])
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchSeasons = async () => {
+      try {
+        const data = await getSeasons()
+        setSeasons(data)
+        if (data.length > 0) {
+          const ss27 = data.find(s => s.name === "SS27") || data[0]
+          setActiveSeasonId(ss27.id)
+        }
+      } catch (error) {
+        console.error("Failed to load seasons", error)
+      }
+    }
+    fetchSeasons()
+  }, [])
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
@@ -57,10 +77,12 @@ export function PublicTrackingView() {
   }, [searchQuery])
 
   const loadData = useCallback(async () => {
+    if (!activeSeasonId) return
     setLoading(true)
     try {
       const result = await getPublicTrackingEntries({
         search: debouncedSearch,
+        seasonId: activeSeasonId,
       })
       setEntries(result.entries as unknown as TrackingEntryGrouped[])
     } catch (error) {
@@ -68,7 +90,7 @@ export function PublicTrackingView() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch])
+  }, [debouncedSearch, activeSeasonId])
 
   useEffect(() => {
     loadData()
@@ -81,14 +103,30 @@ export function PublicTrackingView() {
         <p className="text-slate-500 text-sm">Public overview of purchase tracking entries and their delivery status.</p>
       </div>
 
-      <div className="relative w-full sm:w-96">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input 
-          placeholder="Search article, model, PO..." 
-          className="pl-9 h-10"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto">
+          {seasons.map((season) => (
+            <Button
+              key={season.id}
+              variant={activeSeasonId === season.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveSeasonId(season.id)}
+              className={activeSeasonId === season.id ? "bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-md" : "rounded-full"}
+            >
+              {season.name}
+            </Button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input 
+            placeholder="Search article, model, PO..." 
+            className="pl-9 h-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
