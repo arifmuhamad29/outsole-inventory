@@ -650,7 +650,7 @@ export default function TrackingPage() {
         supplier: entry.supplier || "",
         etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
         notes: entry.notes || "",
-        seasonId: typeof entry.seasonId === "string" ? entry.seasonId : ((entry as any).season?.id || activeSeasonId || ""),
+        seasonId: typeof entry.seasonId === "string" ? entry.seasonId : ((entry as unknown as { season?: { id: string } }).season?.id || activeSeasonId || ""),
         sizes: sizesRecord,
       })
     } catch (error) {
@@ -976,7 +976,7 @@ export default function TrackingPage() {
                           rules={{ required: true }}
                           render={({ field }) => (
                             <Select 
-                              value={typeof field?.value === 'string' ? field.value : ((field?.value as any)?.id || activeSeasonId || "")} 
+                              value={typeof field?.value === 'string' ? field.value : ((field?.value as unknown as { id?: string })?.id || activeSeasonId || "")} 
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
