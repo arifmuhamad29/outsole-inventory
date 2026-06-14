@@ -198,7 +198,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                   recentActivity.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-mono text-sm">
-                        {item.category === "Outsole" ? item.codeLast : item.id.split('-')[0].toUpperCase()}
+                        {item.category === "Outsole" ? item.codeLast : item.id}
                       </TableCell>
                       <TableCell className="font-medium">{item.itemName}</TableCell>
                       <TableCell>
