@@ -650,7 +650,7 @@ export default function TrackingPage() {
         supplier: entry.supplier || "",
         etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
         notes: entry.notes || "",
-        seasonId: entry.seasonId || "",
+        seasonId: typeof entry.seasonId === "string" ? entry.seasonId : ((entry as any).season?.id || activeSeasonId || ""),
         sizes: sizesRecord,
       })
     } catch (error) {
@@ -975,7 +975,10 @@ export default function TrackingPage() {
                           name="seasonId"
                           rules={{ required: true }}
                           render={({ field }) => (
-                            <Select value={field?.value || activeSeasonId || ""} onValueChange={field.onChange}>
+                            <Select 
+                              value={typeof field?.value === 'string' ? field.value : ((field?.value as any)?.id || activeSeasonId || "")} 
+                              onValueChange={field.onChange}
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select Season..." />
                               </SelectTrigger>

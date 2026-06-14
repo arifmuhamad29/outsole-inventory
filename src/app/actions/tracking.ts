@@ -136,6 +136,7 @@ export async function getTrackingEntries(params: {
       supplier: true,
       etaDate: true,
       notes: true,
+      seasonId: true,
       sortOrder: true,
       createdAt: true,
       updatedAt: true,
