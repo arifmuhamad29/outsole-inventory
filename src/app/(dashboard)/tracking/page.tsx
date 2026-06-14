@@ -974,25 +974,32 @@ export default function TrackingPage() {
                           control={control}
                           name="seasonId"
                           rules={{ required: true }}
-                          render={({ field }) => (
-                            <Select 
-                              value={typeof field?.value === 'string' ? field.value : ((field?.value as unknown as { id?: string })?.id || activeSeasonId || "")} 
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Season..." />
-                              </SelectTrigger>
-                              <SelectContent className="z-[9999]">
-                                {seasons && seasons.length > 0 ? (
-                                  seasons.map((s) => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="empty" disabled>Belum ada season</SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          )}
+                          render={({ field }) => {
+                            const selectedVal = typeof field?.value === 'string' ? field.value : ((field?.value as unknown as { id?: string })?.id || activeSeasonId || "");
+                            const selectedSeason = seasons?.find((s) => s.id === selectedVal);
+                            
+                            return (
+                              <Select 
+                                value={selectedVal} 
+                                onValueChange={field.onChange}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Season...">
+                                    {selectedSeason ? selectedSeason.name : "Select Season..."}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className="z-[9999]">
+                                  {seasons && seasons.length > 0 ? (
+                                    seasons.map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))
+                                  ) : (
+                                    <SelectItem value="empty" disabled>Belum ada season</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            );
+                          }}
                         />
                       </div>
                       <div className="space-y-1.5 md:col-span-1">
