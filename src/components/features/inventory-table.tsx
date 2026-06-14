@@ -55,6 +55,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
   // History Dialog state
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null)
+  const [selectedItemName, setSelectedItemName] = useState<string | null>(null)
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([])
   const [isHistoryLoading, setIsHistoryLoading] = useState(false)
 
@@ -87,8 +88,9 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }, 150)
   }
 
-  const handleViewHistory = async (outsoleId: string, qrCode: string) => {
+  const handleViewHistory = async (outsoleId: string, qrCode: string, itemName: string) => {
     setSelectedQrCode(qrCode)
+    setSelectedItemName(itemName)
     setIsHistoryOpen(true)
     setIsHistoryLoading(true)
     setHistoryLogs([])
@@ -251,7 +253,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                   ) : (
                     <TableCell
                       className="font-mono text-xs text-blue-600 hover:underline cursor-pointer font-semibold transition-colors hover:text-blue-800"
-                      onClick={() => handleViewHistory(item.id, item.qrCode)}
+                      onClick={() => handleViewHistory(item.id, item.qrCode, `${item.model} (${item.color})`)}
                       title="Click to view transaction history"
                     >
                       {item.qrCode}
@@ -301,12 +303,11 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
         <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
           <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <History className="h-5 w-5 text-blue-500" />
-                Transaction History
+              <DialogTitle className="text-lg font-bold text-foreground">
+                Riwayat Transaksi: {selectedItemName}
               </DialogTitle>
-              <DialogDescription>
-                Full activity log for <span className="font-mono font-bold text-foreground">{selectedQrCode}</span>
+              <DialogDescription className="text-xs font-mono text-muted-foreground">
+                QR Code / Handover ID: {selectedQrCode}
               </DialogDescription>
             </DialogHeader>
 
