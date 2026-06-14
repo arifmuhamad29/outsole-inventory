@@ -175,37 +175,30 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/50">
-                  <TableHead className="whitespace-nowrap">Date &amp; Time</TableHead>
+                  <TableHead className="w-[180px]">QR Code / Handover ID</TableHead>
                   <TableHead>Item Name</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead className="w-[160px]">QR Code / Last Code</TableHead>
+                  <TableHead>Last Code</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>QTY</TableHead>
+                  <TableHead>Qty</TableHead>
                   <TableHead>Operator / Admin</TableHead>
                   <TableHead>Remarks</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Date &amp; Time</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentActivity.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center h-32 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center h-32 text-muted-foreground">
                       {search ? "No records match your search." : "No history found."}
                     </TableCell>
                   </TableRow>
                 ) : (
                   recentActivity.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {new Date(item.createdAt).toLocaleString('en-GB', { 
-                          timeZone: 'Asia/Jakarta', 
-                          day: '2-digit', 
-                          month: 'short', 
-                          year: 'numeric', 
-                          hour: '2-digit', 
-                          minute: '2-digit', 
-                          hour12: false 
-                        })} WIB
+                      <TableCell className="font-mono text-sm">
+                        {item.category === "Outsole" ? item.codeLast : item.id.split('-')[0].toUpperCase()}
                       </TableCell>
                       <TableCell className="font-medium">{item.itemName}</TableCell>
                       <TableCell>
@@ -215,7 +208,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                           {item.category}
                         </span>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{item.codeLast}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {item.category === "Outsole" ? <span className="text-muted-foreground">-</span> : item.codeLast}
+                      </TableCell>
                       <TableCell className="text-slate-600 font-medium">{item.size}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
@@ -242,6 +237,17 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                         <div className="max-w-[150px] truncate text-sm" title={item.remarks || "No remarks"}>
                           {item.remarks ? item.remarks : <span className="text-muted-foreground">-</span>}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
+                        {new Date(item.createdAt).toLocaleString('en-GB', { 
+                          timeZone: 'Asia/Jakarta', 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit', 
+                          hour12: false 
+                        })} WIB
                       </TableCell>
                     </TableRow>
                   ))
