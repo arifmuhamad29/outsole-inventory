@@ -6,6 +6,8 @@ import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { ZombieCheck } from "@/components/auth/zombie-check"
 
+import { GlobalSearch } from "@/components/GlobalSearch"
+
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   let isZombie = false;
@@ -37,6 +39,8 @@ export default async function Layout({ children }: { children: React.ReactNode }
       <DashboardLayout>
         {children}
       </DashboardLayout>
+      <GlobalSearch />
     </AppSessionProvider>
   )
 }
+
