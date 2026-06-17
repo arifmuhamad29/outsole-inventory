@@ -44,7 +44,17 @@ export async function globalSearchAll(query: string) {
   ]);
 
   // 2. Normalize and format the results into a single universal array
-  const results = [];
+  type UnifiedSearchResult = {
+    id: string;
+    originalId: string;
+    title: string;
+    subtitle: string;
+    module: string;
+    badgeColor: string;
+    url: string;
+  };
+  
+  const results: UnifiedSearchResult[] = [];
 
   trackingData.forEach((item) => {
     results.push({
