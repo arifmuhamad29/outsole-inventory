@@ -5,18 +5,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from "lucide-react";
-import { globalSearchPO } from "@/app/actions/search";
+import { globalSearchAll } from "@/app/actions/search";
 import { useRouter } from "next/navigation";
-import { PurchaseTracking, Season } from "@prisma/client";
 
-type SearchResult = PurchaseTracking & {
-  season?: Season | null;
+// The new unified search result type
+type UnifiedSearchResult = {
+  id: string;
+  originalId: string;
+  title: string;
+  subtitle: string;
+  module: string;
+  badgeColor: string;
+  url: string;
 };
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<UnifiedSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -39,7 +45,7 @@ export function GlobalSearch() {
 
     setIsLoading(true);
     try {
-      const data = await globalSearchPO(query);
+      const data = await globalSearchAll(query);
       setResults(data);
     } catch (error) {
       console.error("Search failed:", error);
@@ -48,11 +54,9 @@ export function GlobalSearch() {
     }
   };
 
-  const navigateToResult = (batchId: string) => {
+  const navigateToResult = (url: string) => {
     setOpen(false);
-    // Adjust this route to where you want the user to go (e.g., focus on the item in tracking page)
-    // using batchId because tracking groups by batchId
-    router.push(`/tracking?highlight=${batchId}`);
+    router.push(url);
   };
 
   return (
@@ -83,15 +87,15 @@ export function GlobalSearch() {
           {results.map((item) => (
             <div 
               key={item.id} 
-              onClick={() => navigateToResult(item.batchId)}
+              onClick={() => navigateToResult(item.url)}
               className="flex justify-between items-center p-3 border rounded-md hover:bg-accent cursor-pointer transition-colors"
             >
               <div>
-                <p className="font-semibold text-sm">{item.article} - {item.modelName}</p>
-                <p className="text-xs text-muted-foreground">PO: {item.poNumber || "Belum ada"} | Season: {item.season?.name || "-"}</p>
+                <p className="font-semibold text-sm">{item.title}</p>
+                <p className="text-xs text-muted-foreground">{item.subtitle}</p>
               </div>
-              <div className="text-xs font-medium px-2 py-1 bg-primary/10 text-primary rounded-full">
-                {item.isOrdered ? "ORDERED" : "PENDING"}
+              <div className={`text-xs font-medium px-2 py-1 rounded-full ${item.badgeColor}`}>
+                {item.module}
               </div>
             </div>
           ))}
