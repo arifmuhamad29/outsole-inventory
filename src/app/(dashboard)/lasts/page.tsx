@@ -166,7 +166,7 @@ export default function ShoeLastPage() {
     try {
       const result = await getShoeLasts();
       setData(
-        result.map((r) => ({
+        result.map((r: any) => ({
           ...r,
           sizes: (r.sizes as Record<string, number>) || {},
         }))
