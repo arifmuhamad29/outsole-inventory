@@ -4,7 +4,8 @@ import { useState } from "react"
 import { PublicToolingView } from "@/components/tooling/public-tooling-view"
 import { PublicBpmTfmView } from "@/components/bpm-tfm/public-bpm-tfm-view"
 import { PublicTrackingView } from "@/components/tracking/public-tracking-view"
-import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers, ShoppingCart } from "lucide-react"
+import { PublicShoeLastView } from "@/components/lasts/public-lasts-view"
+import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers, ShoppingCart, Footprints } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -86,6 +87,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
                 <ShoppingCart className="w-4 h-4 shrink-0" />
                 Purchase Tracking
               </button>
+              <button
+                onClick={() => handleTabChange("lasts")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "lasts" 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Footprints className="w-4 h-4 shrink-0" />
+                Shoe Last
+              </button>
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -138,6 +150,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
             <ShoppingCart className="w-4 h-4 shrink-0" />
             Purchase Tracking
           </button>
+          <button
+            onClick={() => handleTabChange("lasts")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "lasts" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <Footprints className="w-4 h-4 shrink-0" />
+            Shoe Last
+          </button>
         </nav>
       </div>
 
@@ -154,6 +177,9 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
         </div>
         <div className={activeTab === "tracking" ? "block animate-in fade-in zoom-in-95 duration-300" : "hidden"}>
           <PublicTrackingView />
+        </div>
+        <div className={activeTab === "lasts" ? "block animate-in fade-in zoom-in-95 duration-300" : "hidden"}>
+          <PublicShoeLastView />
         </div>
       </div>
     </div>
