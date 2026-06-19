@@ -355,9 +355,32 @@ export default function ShoeLastPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {activeSizeSummary(row.sizes)}
-                        </span>
+                        <div className="flex flex-wrap gap-1 min-w-[280px]">
+                          {(() => {
+                            const activeSizes = Object.entries(row.sizes).filter(([, q]) => q > 0);
+                            if (activeSizes.length === 0) return <span className="text-muted-foreground">—</span>;
+                            
+                            // Sort using ALL_SIZES order
+                            activeSizes.sort((a, b) => {
+                              const indexA = ALL_SIZES.indexOf(a[0]);
+                              const indexB = ALL_SIZES.indexOf(b[0]);
+                              if (indexA === -1) return 1;
+                              if (indexB === -1) return -1;
+                              return indexA - indexB;
+                            });
+
+                            return activeSizes.map(([size, quantity]) => (
+                              <div key={size} className="flex flex-col items-center justify-center border rounded px-1 min-w-[26px] bg-muted/30">
+                                <span className="text-[9px] font-bold text-muted-foreground border-b border-slate-200 dark:border-slate-700 w-full text-center pb-[1px] leading-[14px]">
+                                  {size}
+                                </span>
+                                <span className="text-[10px] font-medium text-foreground pt-[1px] leading-[14px]">
+                                  {quantity}
+                                </span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge className={`font-bold text-xs ${total > 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"}`}>
