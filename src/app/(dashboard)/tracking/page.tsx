@@ -315,18 +315,32 @@ function SortableRow({
         <span className="block text-xs text-muted-foreground mt-1">({entry.genderCategory})</span>
       </TableCell>
       <TableCell className="w-[260px] min-w-[260px] align-top text-[10px]">
-        <div className="flex flex-col gap-1">
-          <div className="leading-tight">
-            <span className="text-muted-foreground font-medium text-[9px] mr-1">MID:</span>
-            <span className="font-semibold text-foreground whitespace-normal break-words">
-              {entry.midsoleMaterial || "-"} {entry.midsoleColor && entry.midsoleColor !== "-" ? `/ ${entry.midsoleColor}` : ""}
-            </span>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start">
+            <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[1px]">MID:</span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-semibold text-foreground whitespace-normal break-words">
+                {entry.midsoleMaterial || "-"}
+              </span>
+              {entry.midsoleColor && entry.midsoleColor !== "-" && (
+                <span className="font-semibold text-violet-600 whitespace-normal break-words">
+                  {entry.midsoleColor}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="leading-tight">
-            <span className="text-muted-foreground font-medium text-[9px] mr-1">OUT:</span>
-            <span className="font-semibold text-foreground whitespace-normal break-words">
-              {entry.outsoleMaterial || "-"} {entry.outsoleColor && entry.outsoleColor !== "-" ? `/ ${entry.outsoleColor}` : ""}
-            </span>
+          <div className="flex items-start">
+            <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[1px]">OUT:</span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-semibold text-foreground whitespace-normal break-words">
+                {entry.outsoleMaterial || "-"}
+              </span>
+              {entry.outsoleColor && entry.outsoleColor !== "-" && (
+                <span className="font-semibold text-violet-600 whitespace-normal break-words">
+                  {entry.outsoleColor}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </TableCell>
