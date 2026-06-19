@@ -22,6 +22,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -76,6 +83,7 @@ interface ShoeLastRow {
   id: string;
   code: string;
   models: string;
+  status: string;
   sizes: Record<string, number>;
   createdAt: Date;
   updatedAt: Date;
@@ -85,6 +93,7 @@ interface FormData {
   id?: string;
   code: string;
   models: string;
+  status: string;
   sizes: Record<string, number>;
 }
 
@@ -161,6 +170,7 @@ export default function ShoeLastPage() {
   const [formData, setFormData] = useState<FormData>({
     code: "",
     models: "",
+    status: "EXISTING",
     sizes: buildEmptySizes(),
   });
 
@@ -198,7 +208,7 @@ export default function ShoeLastPage() {
 
   // ── FORM HELPERS ───────────────────────────────────────────
   const openNew = () => {
-    setFormData({ code: "", models: "", sizes: buildEmptySizes() });
+    setFormData({ code: "", models: "", status: "EXISTING", sizes: buildEmptySizes() });
     setDialogOpen(true);
   };
 
@@ -208,7 +218,7 @@ export default function ShoeLastPage() {
     Object.entries(row.sizes).forEach(([k, v]) => {
       if (k in merged) merged[k] = v;
     });
-    setFormData({ id: row.id, code: row.code, models: row.models, sizes: merged });
+    setFormData({ id: row.id, code: row.code, models: row.models, status: row.status || "EXISTING", sizes: merged });
     setDialogOpen(true);
   };
 
@@ -241,6 +251,7 @@ export default function ShoeLastPage() {
           id: formData.id,
           code: formData.code.trim(),
           models: formData.models.trim(),
+          status: formData.status,
           sizes: cleanSizes,
         });
         toast.success(formData.id ? "Shoe Last berhasil diupdate" : "Shoe Last berhasil ditambahkan");
@@ -346,7 +357,12 @@ export default function ShoeLastPage() {
                         {idx + 1}
                       </TableCell>
                       <TableCell>
-                        <span className="font-bold text-sm text-foreground">{row.code}</span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="font-bold text-sm text-foreground">{row.code}</span>
+                          <Badge variant={row.status === "NEW" ? "default" : "outline"} className={`text-[9px] px-1.5 py-0 ${row.status === "NEW" ? "bg-blue-500 hover:bg-blue-600" : ""}`}>
+                            {row.status || "EXISTING"}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -425,7 +441,7 @@ export default function ShoeLastPage() {
 
           <div className="flex-1 overflow-y-auto space-y-5 pr-1 pb-4">
             {/* Code & Models */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="last-code" className="text-xs font-semibold">
                   Code <span className="text-destructive">*</span>
@@ -451,6 +467,20 @@ export default function ShoeLastPage() {
                     setFormData((prev) => ({ ...prev, models: e.target.value }))
                   }
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Status
+                </Label>
+                <Select value={formData.status} onValueChange={(val) => setFormData((prev) => ({ ...prev, status: val }))}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EXISTING">EXISTING</SelectItem>
+                    <SelectItem value="NEW">NEW</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

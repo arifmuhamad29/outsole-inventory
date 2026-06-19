@@ -307,6 +307,7 @@ model ShoeLast {
   id        String   @id @default(cuid())
   code      String   @unique // e.g., "41TUR"
   models    String   // e.g., "ADVANTAGE, GRANDCOURT"
+  status    String   @default("EXISTING") // "NEW" or "EXISTING"
   sizes     Json     // {"2K": 0, "7": 15, "7.5": 20, ...}
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

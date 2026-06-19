@@ -13,6 +13,7 @@ export async function saveShoeLast(data: {
   id?: string;
   code: string;
   models: string;
+  status: string;
   sizes: Record<string, number>;
 }) {
   if (data.id) {
@@ -21,6 +22,7 @@ export async function saveShoeLast(data: {
       data: {
         code: data.code,
         models: data.models,
+        status: data.status,
         sizes: data.sizes,
       },
     });
@@ -29,6 +31,7 @@ export async function saveShoeLast(data: {
       data: {
         code: data.code,
         models: data.models,
+        status: data.status,
         sizes: data.sizes,
       },
     });
