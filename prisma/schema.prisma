@@ -314,3 +314,20 @@ model ShoeLast {
 
   @@index([code])
 }
+
+// ============================================================
+// Notification System
+// Stores real-time notifications triggered by user actions
+// (inbound, handover, tracking, etc.)
+// ============================================================
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   @default("info") // "info", "warning", "success", "urgent"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}

@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
+import { createNotification } from "./notification"
 
 export async function getBpmTfmStocks() {
   const data = await prisma.bpmTfmStock.findMany({
@@ -79,6 +80,13 @@ export async function importBpmTfmFlatCSVAction(
     })
 
     revalidatePath("/dashboard/bpm-tfm")
+
+    await createNotification(
+      "Import Stok BPM/TFM",
+      `${validRecords.length} data stok BPM/TFM berhasil diimpor via CSV.`,
+      "success"
+    );
+
     return { success: true, message: `Berhasil mengimpor ${validRecords.length} data stok!` }
   } catch (error) {
     console.error("BPM/TFM CSV Import Error:", error)
@@ -147,6 +155,13 @@ export async function addBpmTfmBatchAction(
     })
 
     revalidatePath("/bpm-tfm")
+
+    await createNotification(
+      "BPM/TFM Ditambahkan",
+      `${validItems.length} tool untuk Code Last ${codeLast} berhasil disimpan.`,
+      "success"
+    );
+
     return { success: true, message: `Berhasil menyimpan ${validItems.length} tool untuk Code Last ${codeLast}.` }
   } catch (error) {
     console.error("Add BPM/TFM Batch Error:", error)

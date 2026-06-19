@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import prisma from "@/lib/prisma"
 import { Prisma, TransactionType } from "@prisma/client"
 import crypto from "crypto"
+import { createNotification } from "./notification"
 
 function generateShortId() {
   return crypto.randomBytes(4).toString("hex").toUpperCase()
@@ -42,6 +43,12 @@ export async function processInboundAction(formData: FormData) {
     revalidatePath("/")
     revalidatePath("/inbound")
 
+    await createNotification(
+      "Stok Masuk (Inbound)",
+      `${parsed.data.qty} pcs ${parsed.data.model} (${parsed.data.color}, size ${parsed.data.size}) telah masuk oleh ${session.user.name || "Operator"}.`,
+      "info"
+    );
+
     return { success: true, message: "Inbound processed successfully", data: { ...result, notes: parsed.data.notes } }
   } catch (error) {
     console.error("Inbound Error:", error)
@@ -73,6 +80,12 @@ export async function processAdjustmentAction(formData: FormData) {
     const result = await InventoryService.processAdjustment(parsed.data, session.user.id)
     revalidatePath("/")
     revalidatePath("/adjustment")
+
+    await createNotification(
+      "Stok Adjustment",
+      `Stok disesuaikan menjadi ${parsed.data.newStock} pcs oleh ${session.user.name || "Admin"}.`,
+      "warning"
+    );
 
     return { success: true, message: "Stock adjusted successfully", data: result }
   } catch (error) {
@@ -208,6 +221,12 @@ export async function processBulkInboundAction(rows: unknown[]) {
     revalidatePath("/")
     revalidatePath("/inbound")
     revalidatePath("/inventory")
+
+    await createNotification(
+      "Bulk Import",
+      `${validatedRows.length} item outsole berhasil diimpor oleh ${session.user.name || "Operator"}.`,
+      "success"
+    );
 
     return {
       success: true,

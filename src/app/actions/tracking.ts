@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { createNotification } from "./notification"
 import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
 
@@ -394,6 +395,13 @@ export async function createTrackingEntry(data: {
     ])
 
     revalidatePath("/tracking")
+
+    await createNotification(
+      "Tracking Baru",
+      `Tracking ${data.article} (${data.modelName}) ditambahkan dengan ${Object.keys(data.sizes).filter(k => data.sizes[k] > 0).length} ukuran.`,
+      "info"
+    );
+
     return { success: true, message: "Tracking data saved successfully" }
   } catch (error) {
     console.error("Create Tracking Error:", error)

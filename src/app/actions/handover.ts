@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
+import { createNotification } from "./notification"
 
 export async function getRealTimeStock(
   codeLast: string,
@@ -208,6 +209,12 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
 
     revalidatePath("/(dashboard)/handover")
     revalidatePath("/(dashboard)/bpm-tfm")
+
+    await createNotification(
+      "Handover Baru",
+      `Handover ke ${data.recipient} (${data.items.length} item) berhasil dilakukan oleh ${session?.user?.name || "System"}.`,
+      "success"
+    );
     
     return { success: true, message: "Handover berhasil disimpan" }
   } catch (error: unknown) {
@@ -287,6 +294,12 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
 
     revalidatePath("/(dashboard)/handover")
     revalidatePath("/(dashboard)/bpm-tfm")
+
+    await createNotification(
+      "Handover Dihapus",
+      `Handover "${id}" telah dihapus dan stok dikembalikan.`,
+      "warning"
+    );
     
     return { success: true, message: "Handover berhasil dihapus dan stok dikembalikan" }
   } catch (error: unknown) {

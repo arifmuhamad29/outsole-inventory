@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "./notification";
 
 export async function getShoeLasts() {
   return await prisma.shoeLast.findMany({
@@ -37,9 +38,22 @@ export async function saveShoeLast(data: {
     });
   }
   revalidatePath("/lasts");
+
+  await createNotification(
+    data.id ? "Shoe Last Diupdate" : "Shoe Last Baru",
+    `Shoe Last "${data.code}" (${data.models}) berhasil ${data.id ? "diupdate" : "ditambahkan"}.`,
+    data.id ? "info" : "success"
+  );
 }
 
 export async function deleteShoeLast(id: string) {
+  const last = await prisma.shoeLast.findUnique({ where: { id } });
   await prisma.shoeLast.delete({ where: { id } });
   revalidatePath("/lasts");
+
+  await createNotification(
+    "Shoe Last Dihapus",
+    `Shoe Last "${last?.code || id}" telah dihapus.`,
+    "warning"
+  );
 }
