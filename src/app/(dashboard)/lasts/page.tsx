@@ -166,6 +166,7 @@ export default function ShoeLastPage() {
     try {
       const result = await getShoeLasts();
       setData(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         result.map((r: any) => ({
           ...r,
           sizes: (r.sizes as Record<string, number>) || {},
