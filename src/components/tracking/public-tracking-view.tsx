@@ -139,6 +139,7 @@ export function PublicTrackingView() {
               <TableHead className="min-w-[120px] font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
               <TableHead className="min-w-[150px] font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
               <TableHead className="min-w-[220px] w-[220px] font-semibold text-slate-700 whitespace-nowrap align-middle">Material / Color</TableHead>
+              <TableHead className="min-w-[90px] w-[90px] font-semibold text-slate-700 whitespace-nowrap align-middle text-left">Treatment</TableHead>
               <TableHead className="min-w-[320px] w-full text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
               <TableHead className="min-w-[100px] text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
               <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
@@ -149,7 +150,7 @@ export function PublicTrackingView() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-48 text-center">
+                <TableCell colSpan={11} className="h-48 text-center">
                   <div className="flex flex-col items-center justify-center text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin mb-3 text-indigo-500" />
                     Memuat data...
@@ -158,7 +159,7 @@ export function PublicTrackingView() {
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-48 text-center text-slate-500">
+                <TableCell colSpan={11} className="h-48 text-center text-slate-500">
                   Tidak ada data tracking ditemukan.
                 </TableCell>
               </TableRow>
@@ -197,6 +198,9 @@ export function PublicTrackingView() {
                       <span className="text-slate-400 font-medium text-[10px]">OUT:</span>
                       <span className="font-semibold text-slate-700 truncate">{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
                     </div>
+                  </TableCell>
+                  <TableCell className="text-sm font-medium text-slate-700 align-top min-w-[90px]">
+                    {entry.bottomTreatment || "-"}
                   </TableCell>
                   <TableCell className="w-full min-w-[320px] align-top text-center font-mono font-semibold text-sm">
                     <div className="flex flex-wrap gap-1 w-full">
