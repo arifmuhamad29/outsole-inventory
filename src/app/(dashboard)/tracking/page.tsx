@@ -307,32 +307,22 @@ function SortableRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="min-w-[120px] font-mono font-semibold text-sm">
-        {entry.article}
-      </TableCell>
-      <TableCell className="font-medium text-sm min-w-[150px] max-w-[200px] whitespace-normal break-words">
+      <TableCell className="min-w-[100px] font-medium">{entry.article}</TableCell>
+      <TableCell className="min-w-[130px] max-w-[180px] whitespace-normal break-words">
         <div className="leading-tight">
           {entry.modelName}
         </div>
         <span className="block text-xs text-muted-foreground mt-1">({entry.genderCategory})</span>
       </TableCell>
-      <TableCell className="w-[200px] min-w-[220px] align-top text-xs">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-col">
-            <span className="text-slate-500 font-medium">M/S:</span>
-            <span className="font-medium text-slate-700">
-              {entry.midsoleMaterial || "-"} <br/> <span className="text-violet-600">({entry.midsoleColor || "-"})</span>
-            </span>
-          </div>
-          <div className="flex flex-col mt-1">
-            <span className="text-slate-500 font-medium">O/S:</span>
-            <span className="font-medium text-slate-700">
-              {entry.outsoleMaterial || "-"} <br/> <span className="text-violet-600">({entry.outsoleColor || "-"})</span>
-            </span>
-          </div>
+      <TableCell className="w-[180px] min-w-[180px] align-top text-xs">
+        <div className="grid grid-cols-[30px_1fr] gap-x-1 gap-y-1 items-center">
+          <span className="text-muted-foreground font-medium text-[10px]">MID:</span>
+          <span className="font-semibold text-foreground truncate" title={`${entry.midsoleMaterial || "-"} / ${entry.midsoleColor || "-"}`}>{entry.midsoleMaterial || "-"} / {entry.midsoleColor || "-"}</span>
+          <span className="text-muted-foreground font-medium text-[10px]">OUT:</span>
+          <span className="font-semibold text-foreground truncate" title={`${entry.outsoleMaterial || "-"} / ${entry.outsoleColor || "-"}`}>{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
         </div>
       </TableCell>
-      <TableCell className="w-[90px] min-w-[90px] align-top text-left text-sm font-medium">
+      <TableCell className="text-sm font-medium min-w-[70px] max-w-[80px] truncate" title={entry.bottomTreatment || "-"}>
         {entry.bottomTreatment || "-"}
       </TableCell>
       <TableCell className="w-full min-w-[320px] align-top text-center font-mono font-semibold text-sm">
@@ -358,29 +348,29 @@ function SortableRow({
           })()}
         </div>
       </TableCell>
-      <TableCell className="text-center min-w-[100px]">
+      <TableCell className="text-center min-w-[80px]">
         {entry.isOrdered ? (
-          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold text-xs">
+          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold text-[10px] px-1 py-0">
             <CheckCircle2 className="h-3 w-3" />
             ORDERED
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/15 gap-1 font-semibold text-xs">
+          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/15 gap-1 font-semibold text-[10px] px-1 py-0">
             <Clock className="h-3 w-3" />
             NOT YET
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-sm min-w-[100px] max-w-[140px]">
+      <TableCell className="text-sm min-w-[90px] max-w-[120px]">
         <div className="space-y-0.5">
           <div className="text-muted-foreground font-medium truncate">{entry.poNumber || <span className="opacity-40">-</span>}</div>
-          {entry.supplier && <div className="text-xs text-violet-500 truncate">{entry.supplier}</div>}
+          {entry.supplier && <div className="text-[10px] text-violet-500 truncate">{entry.supplier}</div>}
         </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground min-w-[100px]">
-        {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
+      <TableCell className="text-xs text-muted-foreground min-w-[80px]">
+        {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yy", { locale: localeId }) : <span className="opacity-40">-</span>}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground min-w-[150px] max-w-[200px]">
+      <TableCell className="text-xs text-muted-foreground min-w-[100px] max-w-[150px]">
         <div className="truncate" title={entry.notes || ""}>
           {entry.notes || <span className="opacity-40">-</span>}
         </div>
@@ -825,16 +815,16 @@ export default function TrackingPage() {
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-[40px] text-center font-semibold whitespace-nowrap align-middle">#</TableHead>
                 <TableHead className="min-w-[60px] text-center font-semibold whitespace-nowrap align-middle">Visual</TableHead>
-                <TableHead className="min-w-[120px] font-semibold whitespace-nowrap align-middle">Article</TableHead>
-                <TableHead className="min-w-[150px] font-semibold whitespace-nowrap align-middle">Model</TableHead>
-                <TableHead className="min-w-[220px] w-[220px] font-semibold whitespace-nowrap align-middle">Material / Color</TableHead>
-                <TableHead className="min-w-[90px] w-[90px] font-semibold whitespace-nowrap align-middle text-left">Treatment</TableHead>
-                <TableHead className="min-w-[320px] w-full font-semibold whitespace-nowrap align-middle text-center">Size</TableHead>
-                <TableHead className="min-w-[100px] font-semibold text-center whitespace-nowrap align-middle">Status</TableHead>
-                <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">PO / Supplier</TableHead>
-                <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">ETA</TableHead>
-                <TableHead className="min-w-[150px] font-semibold whitespace-nowrap align-middle">Remarks</TableHead>
-                {canManage && <TableHead className="min-w-[100px] font-semibold text-center w-[90px] whitespace-nowrap align-middle">Actions</TableHead>}
+                <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">Article</TableHead>
+                <TableHead className="min-w-[130px] font-semibold whitespace-nowrap align-middle">Model</TableHead>
+                <TableHead className="min-w-[180px] w-[180px] font-semibold whitespace-nowrap align-middle">Material / Color</TableHead>
+                <TableHead className="min-w-[70px] w-[70px] font-semibold whitespace-nowrap align-middle text-left">Treatment</TableHead>
+                <TableHead className="min-w-[280px] w-full font-semibold whitespace-nowrap align-middle text-center">Size</TableHead>
+                <TableHead className="min-w-[80px] font-semibold text-center whitespace-nowrap align-middle">Status</TableHead>
+                <TableHead className="min-w-[90px] font-semibold whitespace-nowrap align-middle">PO / Supplier</TableHead>
+                <TableHead className="min-w-[80px] font-semibold whitespace-nowrap align-middle">ETA</TableHead>
+                <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">Remarks</TableHead>
+                {canManage && <TableHead className="min-w-[80px] font-semibold text-center w-[80px] whitespace-nowrap align-middle">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

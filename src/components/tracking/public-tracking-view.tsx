@@ -136,15 +136,15 @@ export function PublicTrackingView() {
           <TableHeader className="bg-slate-50/80">
             <TableRow>
               <TableHead className="min-w-[60px] text-center whitespace-nowrap align-middle">Visual</TableHead>
-              <TableHead className="min-w-[120px] font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
-              <TableHead className="min-w-[150px] font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
-              <TableHead className="min-w-[220px] w-[220px] font-semibold text-slate-700 whitespace-nowrap align-middle">Material / Color</TableHead>
-              <TableHead className="min-w-[90px] w-[90px] font-semibold text-slate-700 whitespace-nowrap align-middle text-left">Treatment</TableHead>
-              <TableHead className="min-w-[320px] w-full text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
-              <TableHead className="min-w-[100px] text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
-              <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
-              <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">ETA</TableHead>
-              <TableHead className="min-w-[150px] font-semibold text-slate-700 whitespace-nowrap align-middle">Remarks</TableHead>
+              <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
+              <TableHead className="min-w-[130px] font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
+              <TableHead className="min-w-[180px] w-[180px] font-semibold text-slate-700 whitespace-nowrap align-middle">Material / Color</TableHead>
+              <TableHead className="min-w-[70px] w-[70px] font-semibold text-slate-700 whitespace-nowrap align-middle text-left">Treatment</TableHead>
+              <TableHead className="min-w-[280px] w-full text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
+              <TableHead className="min-w-[80px] text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
+              <TableHead className="min-w-[90px] font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
+              <TableHead className="min-w-[80px] font-semibold text-slate-700 whitespace-nowrap align-middle">ETA</TableHead>
+              <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -186,23 +186,23 @@ export function PublicTrackingView() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="min-w-[120px] font-medium">{entry.article}</TableCell>
-                  <TableCell className="min-w-[150px] max-w-[200px] whitespace-normal break-words">
+                  <TableCell className="min-w-[100px] font-medium">{entry.article}</TableCell>
+                  <TableCell className="min-w-[130px] max-w-[180px] whitespace-normal break-words">
                     <div className="font-bold text-slate-800 leading-tight">{entry.modelName}</div>
                     <div className="text-[11px] font-medium text-slate-500 mt-1">({entry.genderCategory})</div>
                   </TableCell>
-                  <TableCell className="w-[200px] min-w-[220px] align-top text-xs">
+                  <TableCell className="w-[180px] min-w-[180px] align-top text-xs">
                     <div className="grid grid-cols-[30px_1fr] gap-x-1 gap-y-1 items-center">
                       <span className="text-slate-400 font-medium text-[10px]">MID:</span>
-                      <span className="font-semibold text-slate-700 truncate">{entry.midsoleMaterial || "-"} / {entry.midsoleColor || "-"}</span>
+                      <span className="font-semibold text-slate-700 truncate" title={`${entry.midsoleMaterial || "-"} / ${entry.midsoleColor || "-"}`}>{entry.midsoleMaterial || "-"} / {entry.midsoleColor || "-"}</span>
                       <span className="text-slate-400 font-medium text-[10px]">OUT:</span>
-                      <span className="font-semibold text-slate-700 truncate">{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
+                      <span className="font-semibold text-slate-700 truncate" title={`${entry.outsoleMaterial || "-"} / ${entry.outsoleColor || "-"}`}>{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm font-medium text-slate-700 align-top min-w-[90px]">
+                  <TableCell className="text-sm font-medium text-slate-700 align-top min-w-[70px] max-w-[80px] truncate" title={entry.bottomTreatment || "-"}>
                     {entry.bottomTreatment || "-"}
                   </TableCell>
-                  <TableCell className="w-full min-w-[320px] align-top text-center font-mono font-semibold text-sm">
+                  <TableCell className="w-full min-w-[280px] align-top text-center font-mono font-semibold text-sm">
                     <div className="flex flex-wrap gap-1 w-full">
                       {(() => {
                         const sortedSizes = [...(entry.sizesData || [])].sort((a, b) => {
@@ -225,21 +225,21 @@ export function PublicTrackingView() {
                       })()}
                     </div>
                   </TableCell>
-                  <TableCell className="text-center min-w-[100px]">
+                  <TableCell className="text-center min-w-[80px]">
                     {entry.isOrdered ? (
-                      <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-sm font-bold">ORDERED</Badge>
+                      <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-sm font-bold text-[10px] px-1">ORDERED</Badge>
                     ) : (
-                      <Badge className="bg-amber-50 text-amber-600 border border-amber-200 shadow-sm font-bold">PENDING</Badge>
+                      <Badge className="bg-amber-50 text-amber-600 border border-amber-200 shadow-sm font-bold text-[10px] px-1">PENDING</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm min-w-[100px]">
+                  <TableCell className="text-sm min-w-[90px]">
                     <div className="font-bold text-slate-800">{entry.poNumber || "-"}</div>
-                    <div className="text-xs text-slate-500 truncate max-w-[120px] font-medium">{entry.supplier || "-"}</div>
+                    <div className="text-[10px] text-slate-500 truncate max-w-[100px] font-medium">{entry.supplier || "-"}</div>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500 font-medium min-w-[100px]">
-                    {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
+                  <TableCell className="text-xs text-slate-500 font-medium min-w-[80px]">
+                    {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yy", { locale: localeId }) : <span className="opacity-40">-</span>}
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500 font-medium min-w-[150px] max-w-[200px]">
+                  <TableCell className="text-xs text-slate-500 font-medium min-w-[100px] max-w-[150px]">
                     <div className="truncate" title={entry.notes || ""}>
                       {entry.notes || <span className="opacity-40">-</span>}
                     </div>
