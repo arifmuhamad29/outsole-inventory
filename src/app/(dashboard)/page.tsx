@@ -199,7 +199,7 @@ export default async function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[160px]">QR Code / Last Code</TableHead>
+                  <TableHead className="w-[160px]">QR Code / Handover ID</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Item Name</TableHead>
                   <TableHead>Size</TableHead>
@@ -220,7 +220,9 @@ export default async function DashboardPage() {
                 ) : (
                   recentActivity.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-mono text-sm">{item.codeLast}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {item.category === "Outsole" ? item.codeLast : item.id}
+                      </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           item.category === "Outsole" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
