@@ -1,7 +1,8 @@
 "use client";
 
 import { Bell, Check, CheckCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -100,16 +101,14 @@ export function NotificationBell() {
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button className="relative rounded-full" size="icon" variant="ghost">
-          <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300"/>
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1.5 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-          )}
-        </Button>
+      <PopoverTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative rounded-full")}>
+        <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300"/>
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1.5 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+        )}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0" sideOffset={8}>
         <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 dark:bg-slate-800/50 rounded-t-md">
