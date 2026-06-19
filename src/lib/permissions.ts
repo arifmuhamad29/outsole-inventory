@@ -12,7 +12,9 @@ export const PERMISSIONS = [
   { id: "MANAGE_OUTBOUND", label: "Kelola Outbound (Scan Out)" },
   { id: "VIEW_HISTORY", label: "Lihat Riwayat Transaksi" },
   { id: "VIEW_TRACKING", label: "Lihat Tracking Pembelian" },
-  { id: "MANAGE_TRACKING", label: "Kelola Tracking Pembelian" }
+  { id: "MANAGE_TRACKING", label: "Kelola Tracking Pembelian" },
+  { id: "VIEW_SHOE_LAST", label: "Lihat Shoe Last" },
+  { id: "MANAGE_SHOE_LAST", label: "Kelola Shoe Last" }
 ] as const;
 
 export type PermissionId = typeof PERMISSIONS[number]["id"];
