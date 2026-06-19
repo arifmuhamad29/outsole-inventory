@@ -9,6 +9,7 @@ import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardLis
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
+import { NotificationBell } from "@/components/NotificationBell"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
@@ -85,19 +86,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       
       {/* Mobile Header & Collapsible Menu */}
       <div className="flex flex-col lg:hidden w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex h-16 items-center px-6 border-b border-gray-100 dark:border-gray-700">
-          <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
-          <div className="flex flex-col justify-center">
-            <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] text-muted-foreground">
-                by : Arif Setiawan
-              </span>
-              <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.2.0
-              </span>
+        <div className="flex h-16 items-center justify-between px-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center">
+            <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
+            <div className="flex flex-col justify-center">
+              <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] text-muted-foreground">
+                  by : Arif Setiawan
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
+                  v2.2.0
+                </span>
+              </div>
             </div>
           </div>
+          <NotificationBell />
         </div>
         
         <div className="p-4">
@@ -216,6 +220,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Desktop Top Bar */}
+        <div className="hidden lg:flex h-14 items-center justify-end px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-bold">
+                {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">{session?.user?.name}</span>
+                <span className="text-[10px] text-gray-500 leading-tight">{role}</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
           {children}
         </div>
