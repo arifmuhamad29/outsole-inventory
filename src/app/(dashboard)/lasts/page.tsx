@@ -110,7 +110,10 @@ function SizeGrid({
           {sizeList.length} sizes
         </span>
       </h4>
-      <div className="grid grid-cols-7 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-14 gap-1.5">
+      <div 
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))' }}
+      >
         {sizeList.map((size) => {
           const val = sizes[size] || 0;
           const hasStock = val > 0;
@@ -408,7 +411,7 @@ export default function ShoeLastPage() {
 
       {/* ─ ADD / EDIT DIALOG ─ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-[1000px] w-[95vw] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-lg">
               {formData.id ? "Edit Shoe Last" : "Add Shoe Last"}
