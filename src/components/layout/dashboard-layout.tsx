@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart, Loader2 } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart, Loader2, Footprints } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Stock Opname", href: "/opname", icon: ClipboardList },
     { name: "Tooling (MES)", href: "/tooling", icon: Wrench },
     { name: "BPM & TFM Stock", href: "/bpm-tfm", icon: Layers },
+    { name: "Shoe Last", href: "/lasts", icon: Footprints },
     { name: "Handover", href: "/handover", icon: Send },
     { name: "Reports", href: "/reports", icon: FileSpreadsheet },
     { name: "History / Audit", href: "/history", icon: History },
@@ -50,6 +51,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Outbound", href: "/outbound", icon: ScanBarcode },
     { name: "Tooling (MES)", href: "/tooling", icon: Wrench },
     { name: "BPM & TFM Stock", href: "/bpm-tfm", icon: Layers },
+    { name: "Shoe Last", href: "/lasts", icon: Footprints },
     { name: "Handover", href: "/handover", icon: Send },
     { name: "History / Audit", href: "/history", icon: History },
     { name: "Tracking", href: "/tracking", icon: ShoppingCart },

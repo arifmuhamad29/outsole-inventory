@@ -297,3 +297,19 @@ model Season {
   entries   PurchaseTracking[]
   createdAt DateTime           @default(now())
 }
+
+// ============================================================
+// Shoe Last (Acuan Sepatu) Inventory
+// Uses a JSON column for a universal size matrix so a single
+// last can span Infant, Kids, and Adult sizes freely.
+// ============================================================
+model ShoeLast {
+  id        String   @id @default(cuid())
+  code      String   @unique // e.g., "41TUR"
+  models    String   // e.g., "ADVANTAGE, GRANDCOURT"
+  sizes     Json     // {"2K": 0, "7": 15, "7.5": 20, ...}
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
