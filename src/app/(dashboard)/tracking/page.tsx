@@ -380,6 +380,11 @@ function SortableRow({
       <TableCell className="text-sm text-muted-foreground min-w-[100px]">
         {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
       </TableCell>
+      <TableCell className="text-sm text-muted-foreground min-w-[150px] max-w-[200px]">
+        <div className="truncate" title={entry.notes || ""}>
+          {entry.notes || <span className="opacity-40">-</span>}
+        </div>
+      </TableCell>
       {canManage && (
         <TableCell className="text-center">
           <div className="flex items-center justify-center gap-1">
@@ -828,6 +833,7 @@ export default function TrackingPage() {
                 <TableHead className="min-w-[100px] font-semibold text-center whitespace-nowrap align-middle">Status</TableHead>
                 <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">PO / Supplier</TableHead>
                 <TableHead className="min-w-[100px] font-semibold whitespace-nowrap align-middle">ETA</TableHead>
+                <TableHead className="min-w-[150px] font-semibold whitespace-nowrap align-middle">Remarks</TableHead>
                 {canManage && <TableHead className="min-w-[100px] font-semibold text-center w-[90px] whitespace-nowrap align-middle">Actions</TableHead>}
               </TableRow>
             </TableHeader>
