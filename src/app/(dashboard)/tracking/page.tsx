@@ -314,30 +314,30 @@ function SortableRow({
         </div>
         <span className="block text-xs text-muted-foreground mt-1">({entry.genderCategory})</span>
       </TableCell>
-      <TableCell className="w-[260px] min-w-[260px] align-top text-[10px]">
+      <TableCell className="w-[260px] min-w-[260px] align-top">
         <div className="flex flex-col gap-2">
           <div className="flex items-start">
-            <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[1px]">MID:</span>
+            <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[2px]">MID:</span>
             <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-foreground whitespace-normal break-words">
-                {entry.midsoleMaterial || "-"}
+              <span className="font-bold text-foreground text-[11px] whitespace-normal break-words">
+                {entry.midsoleColor || "-"}
               </span>
-              {entry.midsoleColor && entry.midsoleColor !== "-" && (
-                <span className="font-semibold text-violet-600 whitespace-normal break-words">
-                  {entry.midsoleColor}
+              {entry.midsoleMaterial && entry.midsoleMaterial !== "-" && (
+                <span className="font-semibold text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                  {entry.midsoleMaterial}
                 </span>
               )}
             </div>
           </div>
           <div className="flex items-start">
-            <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[1px]">OUT:</span>
+            <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[2px]">OUT:</span>
             <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-foreground whitespace-normal break-words">
-                {entry.outsoleMaterial || "-"}
+              <span className="font-bold text-foreground text-[11px] whitespace-normal break-words">
+                {entry.outsoleColor || "-"}
               </span>
-              {entry.outsoleColor && entry.outsoleColor !== "-" && (
-                <span className="font-semibold text-violet-600 whitespace-normal break-words">
-                  {entry.outsoleColor}
+              {entry.outsoleMaterial && entry.outsoleMaterial !== "-" && (
+                <span className="font-semibold text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                  {entry.outsoleMaterial}
                 </span>
               )}
             </div>
