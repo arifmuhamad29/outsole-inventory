@@ -142,12 +142,13 @@ export function PublicTrackingView() {
               <TableHead className="min-w-[100px] text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
               <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">PO / Supplier</TableHead>
               <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">ETA</TableHead>
+              <TableHead className="min-w-[150px] font-semibold text-slate-700 whitespace-nowrap align-middle">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-48 text-center">
+                <TableCell colSpan={10} className="h-48 text-center">
                   <div className="flex flex-col items-center justify-center text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin mb-3 text-indigo-500" />
                     Memuat data...
@@ -156,7 +157,7 @@ export function PublicTrackingView() {
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-48 text-center text-slate-500">
+                <TableCell colSpan={10} className="h-48 text-center text-slate-500">
                   Tidak ada data tracking ditemukan.
                 </TableCell>
               </TableRow>
@@ -232,6 +233,11 @@ export function PublicTrackingView() {
                   </TableCell>
                   <TableCell className="text-sm text-slate-500 font-medium min-w-[100px]">
                     {entry.etaDate ? format(new Date(entry.etaDate), "dd MMM yyyy", { locale: localeId }) : <span className="opacity-40">-</span>}
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-500 font-medium min-w-[150px] max-w-[200px]">
+                    <div className="truncate" title={entry.notes || ""}>
+                      {entry.notes || <span className="opacity-40">-</span>}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
