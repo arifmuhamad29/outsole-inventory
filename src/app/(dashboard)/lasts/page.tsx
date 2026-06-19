@@ -472,7 +472,7 @@ export default function ShoeLastPage() {
                 <Label className="text-xs font-semibold">
                   Status
                 </Label>
-                <Select value={formData.status} onValueChange={(val) => setFormData((prev) => ({ ...prev, status: val }))}>
+                <Select value={formData.status} onValueChange={(val) => setFormData((prev) => ({ ...prev, status: val || "EXISTING" }))}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
