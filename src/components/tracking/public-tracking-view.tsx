@@ -138,7 +138,7 @@ export function PublicTrackingView() {
               <TableHead className="min-w-[60px] text-center whitespace-nowrap align-middle">Visual</TableHead>
               <TableHead className="min-w-[100px] font-semibold text-slate-700 whitespace-nowrap align-middle">Article</TableHead>
               <TableHead className="min-w-[130px] font-semibold text-slate-700 whitespace-nowrap align-middle">Model Name</TableHead>
-              <TableHead className="min-w-[180px] w-[180px] font-semibold text-slate-700 whitespace-nowrap align-middle">Material / Color</TableHead>
+              <TableHead className="min-w-[200px] w-[200px] font-semibold text-slate-700 whitespace-nowrap align-middle">Material / Color</TableHead>
               <TableHead className="min-w-[70px] w-[70px] font-semibold text-slate-700 whitespace-nowrap align-middle text-left">Treatment</TableHead>
               <TableHead className="min-w-[280px] w-full text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Size</TableHead>
               <TableHead className="min-w-[80px] text-center font-semibold text-slate-700 whitespace-nowrap align-middle">Status</TableHead>
@@ -191,12 +191,20 @@ export function PublicTrackingView() {
                     <div className="font-bold text-slate-800 leading-tight">{entry.modelName}</div>
                     <div className="text-[11px] font-medium text-slate-500 mt-1">({entry.genderCategory})</div>
                   </TableCell>
-                  <TableCell className="w-[180px] min-w-[180px] align-top text-xs">
-                    <div className="grid grid-cols-[30px_1fr] gap-x-1 gap-y-1 items-center">
-                      <span className="text-slate-400 font-medium text-[10px]">MID:</span>
-                      <span className="font-semibold text-slate-700 truncate" title={`${entry.midsoleMaterial || "-"} / ${entry.midsoleColor || "-"}`}>{entry.midsoleMaterial || "-"} / {entry.midsoleColor || "-"}</span>
-                      <span className="text-slate-400 font-medium text-[10px]">OUT:</span>
-                      <span className="font-semibold text-slate-700 truncate" title={`${entry.outsoleMaterial || "-"} / ${entry.outsoleColor || "-"}`}>{entry.outsoleMaterial || "-"} / {entry.outsoleColor || "-"}</span>
+                  <TableCell className="w-[200px] min-w-[200px] align-top text-xs">
+                    <div className="flex flex-col gap-1.5">
+                      <div className="leading-tight">
+                        <span className="text-slate-400 font-medium text-[10px] mr-1">MID:</span>
+                        <span className="font-semibold text-slate-700 whitespace-normal break-words">
+                          {entry.midsoleMaterial || "-"} {entry.midsoleColor && entry.midsoleColor !== "-" ? `/ ${entry.midsoleColor}` : ""}
+                        </span>
+                      </div>
+                      <div className="leading-tight">
+                        <span className="text-slate-400 font-medium text-[10px] mr-1">OUT:</span>
+                        <span className="font-semibold text-slate-700 whitespace-normal break-words">
+                          {entry.outsoleMaterial || "-"} {entry.outsoleColor && entry.outsoleColor !== "-" ? `/ ${entry.outsoleColor}` : ""}
+                        </span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm font-medium text-slate-700 align-top min-w-[70px] max-w-[80px] truncate" title={entry.bottomTreatment || "-"}>
