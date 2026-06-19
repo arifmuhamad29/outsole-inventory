@@ -200,7 +200,7 @@ export function PublicTrackingView() {
                             {entry.midsoleColor || "-"}
                           </span>
                           {entry.midsoleMaterial && entry.midsoleMaterial !== "-" && (
-                            <span className="font-semibold text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                            <span className="text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
                               {entry.midsoleMaterial}
                             </span>
                           )}
@@ -213,7 +213,7 @@ export function PublicTrackingView() {
                             {entry.outsoleColor || "-"}
                           </span>
                           {entry.outsoleMaterial && entry.outsoleMaterial !== "-" && (
-                            <span className="font-semibold text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                            <span className="text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
                               {entry.outsoleMaterial}
                             </span>
                           )}

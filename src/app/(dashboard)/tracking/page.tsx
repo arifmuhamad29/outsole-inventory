@@ -323,7 +323,7 @@ function SortableRow({
                 {entry.midsoleColor || "-"}
               </span>
               {entry.midsoleMaterial && entry.midsoleMaterial !== "-" && (
-                <span className="font-semibold text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                <span className="text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
                   {entry.midsoleMaterial}
                 </span>
               )}
@@ -336,7 +336,7 @@ function SortableRow({
                 {entry.outsoleColor || "-"}
               </span>
               {entry.outsoleMaterial && entry.outsoleMaterial !== "-" && (
-                <span className="font-semibold text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                <span className="text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
                   {entry.outsoleMaterial}
                 </span>
               )}
