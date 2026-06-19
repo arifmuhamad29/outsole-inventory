@@ -39,6 +39,7 @@ type TrackingEntryGrouped = {
   poNumber: string | null
   supplier: string | null
   etaDate: Date | string | null
+  notes: string | null
 }
 
 export function PublicTrackingView() {
