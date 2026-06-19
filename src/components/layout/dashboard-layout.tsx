@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const role = session?.user?.role
   const permissions = session?.user?.permissions || []
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogOut = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      await logOut()
+    } catch (error) {
+      console.error("Logout failed", error)
+      setIsLoggingOut(false)
+    }
+  }
 
   const adminNavItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -123,10 +136,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{session?.user?.name}</p>
                   <p className="text-xs text-gray-500 truncate">{session?.user?.username || session?.user?.email}</p>
                 </div>
-                <form action={logOut}>
-                  <button className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors dark:text-red-400 dark:hover:bg-red-900/10">
-                    <LogOut className="w-5 h-5" />
-                    Sign Out
+                <form onSubmit={handleLogOut}>
+                  <button disabled={isLoggingOut} className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors dark:text-red-400 dark:hover:bg-red-900/10 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isLoggingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                    {isLoggingOut ? "Signing Out..." : "Sign Out"}
                   </button>
                 </form>
               </div>
@@ -189,10 +202,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                </span>
             </div>
           </div>
-          <form action={logOut}>
-            <button className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors dark:text-red-400 dark:hover:bg-red-900/10">
-              <LogOut className="w-5 h-5" />
-              Sign Out
+          <form onSubmit={handleLogOut}>
+            <button disabled={isLoggingOut} className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors dark:text-red-400 dark:hover:bg-red-900/10 disabled:opacity-50 disabled:cursor-not-allowed">
+              {isLoggingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+              {isLoggingOut ? "Signing Out..." : "Sign Out"}
             </button>
           </form>
         </div>
