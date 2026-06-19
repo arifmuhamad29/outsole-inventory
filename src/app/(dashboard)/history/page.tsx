@@ -80,7 +80,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
       SELECT 
         h.id, 
         COALESCE(h."codeLast", '-') as "codeLast", 
-        'BPM/TFM' as "category",
+        COALESCE((SELECT "toolName" FROM "HandoverItem" WHERE "handoverId" = h.id LIMIT 1), 'Handover Tooling') as "category",
         COALESCE(h."modelName", COALESCE((SELECT "toolName" FROM "HandoverItem" WHERE "handoverId" = h.id LIMIT 1), 'Handover Items')) as "itemName",
         COALESCE((SELECT "size" FROM "HandoverItem" WHERE "handoverId" = h.id LIMIT 1), '-') as "size",
         'HANDOVER' as "type", 

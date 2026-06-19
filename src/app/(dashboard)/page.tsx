@@ -95,7 +95,7 @@ export default async function DashboardPage() {
   const mappedHandovers = recentHandoversRaw.map(h => ({
     id: h.id,
     codeLast: h.codeLast || "-",
-    category: "BPM/TFM",
+    category: h.items[0]?.toolName || "Handover Tooling",
     itemName: h.modelName || h.items[0]?.toolName || "Handover Items",
     size: h.items[0]?.size || "-",
     type: "HANDOVER",
