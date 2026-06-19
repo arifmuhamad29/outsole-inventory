@@ -201,6 +201,7 @@ export default async function DashboardPage() {
                 <TableRow>
                   <TableHead className="w-[160px]">QR Code / Handover ID</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Last Code</TableHead>
                   <TableHead>Item Name</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Type</TableHead>
@@ -213,7 +214,7 @@ export default async function DashboardPage() {
               <TableBody>
                 {recentActivity.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center h-24 text-muted-foreground">
                       No recent activity found.
                     </TableCell>
                   </TableRow>
@@ -229,6 +230,9 @@ export default async function DashboardPage() {
                         }`}>
                           {item.category}
                         </span>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {item.category === "Outsole" ? <span className="text-muted-foreground">-</span> : item.codeLast}
                       </TableCell>
                       <TableCell className="font-medium">{item.itemName}</TableCell>
                       <TableCell className="text-slate-600 font-medium">{item.size}</TableCell>
