@@ -72,11 +72,9 @@ export default function AccountControlPage() {
   const [editingPermissionsFor, setEditingPermissionsFor] = useState<UserItem | null>(null)
   const [editingCredentialsFor, setEditingCredentialsFor] = useState<UserItem | null>(null)
   const [isRelogging, setIsRelogging] = useState(false)
+  const [isForceRelogOpen, setIsForceRelogOpen] = useState(false)
 
   const handleForceRelog = async () => {
-    const confirmed = window.confirm("PERINGATAN: Ini akan mengeluarkan (logout) SEMUA pengguna yang sedang aktif dari aplikasi. Lanjutkan?");
-    if (!confirmed) return;
-
     setIsRelogging(true);
     try {
       const res = await forceRelogAllUsers();
@@ -89,6 +87,7 @@ export default function AccountControlPage() {
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan sistem.");
     } finally {
       setIsRelogging(false);
+      setIsForceRelogOpen(false);
     }
   };
 
@@ -172,15 +171,41 @@ export default function AccountControlPage() {
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
 
-          <Button 
-            variant="destructive" 
-            onClick={handleForceRelog} 
-            disabled={isRelogging}
-            className="gap-2 shadow-sm"
-          >
-            {isRelogging ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-            <span className="hidden sm:inline">Force Relog Semua</span>
-          </Button>
+          <AlertDialog open={isForceRelogOpen} onOpenChange={setIsForceRelogOpen}>
+            <AlertDialogTrigger 
+              render={<Button variant="destructive" className="gap-2 shadow-sm" />}
+              disabled={isRelogging}
+            >
+              {isRelogging ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              <span className="hidden sm:inline">Force Relog Semua</span>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Force Relog Semua Pengguna?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Peringatan: Tindakan ini akan menghapus semua sesi aktif dan memaksa (logout) semua pengguna yang sedang berada di dalam aplikasi. Mereka diharuskan login kembali. Anda yakin?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isRelogging}>Batal</AlertDialogCancel>
+                <Button
+                  variant="destructive"
+                  onClick={handleForceRelog}
+                  disabled={isRelogging}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isRelogging ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    "Ya, Logout Semua"
+                  )}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger 
