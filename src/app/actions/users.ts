@@ -198,3 +198,23 @@ export async function updateUserCredentialsAction(id: string, username?: string,
   }
 }
 
+export async function forceRelogAllUsers() {
+  try {
+    const session = await auth()
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      throw new Error("Unauthorized Access")
+    }
+
+    // Increment sessionVersion for all users to invalidate their JWTs
+    await prisma.user.updateMany({
+      data: {
+        sessionVersion: { increment: 1 }
+      }
+    })
+
+    return { success: true, message: "Semua sesi pengguna telah direfresh. Mereka harus login ulang." }
+  } catch (error: unknown) {
+    console.error("Error force relogging users:", error)
+    throw new Error(error instanceof Error ? error.message : "Gagal menghapus sesi.")
+  }
+}

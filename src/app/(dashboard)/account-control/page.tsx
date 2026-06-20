@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { ShieldAlert, Plus, Trash2, Loader2, RefreshCw, KeyRound } from "lucide-react"
+import { ShieldAlert, Plus, Trash2, Loader2, RefreshCw, KeyRound, LogOut } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 
@@ -48,7 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { getUsersAction, createUserAction, deleteUserAction, updateUserRoleAction } from "@/app/actions/users"
+import { getUsersAction, createUserAction, deleteUserAction, updateUserRoleAction, forceRelogAllUsers } from "@/app/actions/users"
 import { UserCog } from "lucide-react"
 
 type UserItem = {
@@ -71,6 +71,26 @@ export default function AccountControlPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingPermissionsFor, setEditingPermissionsFor] = useState<UserItem | null>(null)
   const [editingCredentialsFor, setEditingCredentialsFor] = useState<UserItem | null>(null)
+  const [isRelogging, setIsRelogging] = useState(false)
+
+  const handleForceRelog = async () => {
+    const confirmed = window.confirm("PERINGATAN: Ini akan mengeluarkan (logout) SEMUA pengguna yang sedang aktif dari aplikasi. Lanjutkan?");
+    if (!confirmed) return;
+
+    setIsRelogging(true);
+    try {
+      const res = await forceRelogAllUsers();
+      if (res.success) {
+        toast.success(res.message);
+      } else {
+        toast.error("Gagal melakukan force relog.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Terjadi kesalahan sistem.");
+    } finally {
+      setIsRelogging(false);
+    }
+  };
 
   const fetchUsers = async () => {
     setIsLoading(true)
@@ -150,6 +170,16 @@ export default function AccountControlPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={fetchUsers} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+
+          <Button 
+            variant="destructive" 
+            onClick={handleForceRelog} 
+            disabled={isRelogging}
+            className="gap-2 shadow-sm"
+          >
+            {isRelogging ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+            <span className="hidden sm:inline">Force Relog Semua</span>
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

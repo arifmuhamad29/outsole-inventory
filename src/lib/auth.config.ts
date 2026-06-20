@@ -13,6 +13,7 @@ export const authConfig = {
         token.role = user.role;
         token.username = user.username;
         token.permissions = user.permissions;
+        token.sessionVersion = user.sessionVersion;
       }
       return token;
     },
@@ -22,6 +23,7 @@ export const authConfig = {
         session.user.role = token.role as string;
         session.user.username = token.username as string | undefined;
         session.user.permissions = token.permissions as string[] | undefined;
+        session.user.sessionVersion = token.sessionVersion as number | undefined;
       }
       return session;
     }

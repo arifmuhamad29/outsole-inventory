@@ -17,10 +17,10 @@ export default async function Layout({ children }: { children: React.ReactNode }
     try {
       const liveUser = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { id: true, isDeleted: true }
+        select: { id: true, isDeleted: true, sessionVersion: true }
       });
       
-      if (!liveUser || liveUser.isDeleted) {
+      if (!liveUser || liveUser.isDeleted || liveUser.sessionVersion !== session.user.sessionVersion) {
         isZombie = true;
       }
     } catch (error) {
