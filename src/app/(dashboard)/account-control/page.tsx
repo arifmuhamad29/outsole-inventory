@@ -85,8 +85,8 @@ export default function AccountControlPage() {
       } else {
         toast.error("Gagal melakukan force relog.");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Terjadi kesalahan sistem.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan sistem.");
     } finally {
       setIsRelogging(false);
     }
