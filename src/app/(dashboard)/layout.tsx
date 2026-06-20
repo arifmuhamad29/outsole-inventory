@@ -10,6 +10,11 @@ import { GlobalSearch } from "@/components/GlobalSearch"
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const session = await auth()
+  
+  if (!session || !session.user) {
+    redirect("/login")
+  }
+
   let isZombie = false;
   
   // CRITICAL SECURITY PATCH: "Live Check" for Zombie Sessions

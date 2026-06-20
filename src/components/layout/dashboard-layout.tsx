@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useSession } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
@@ -12,7 +12,12 @@ import { Button } from "@/components/ui/button"
 import { NotificationBell } from "@/components/NotificationBell"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession({
+    required: true,
+    onUnauthenticated() {
+      signIn()
+    }
+  })
   const pathname = usePathname()
   const role = session?.user?.role
   const permissions = session?.user?.permissions || []
@@ -80,6 +85,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navItems = baseNavItems;
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  if (status === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground animate-pulse">Memverifikasi Sesi...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-gray-50 dark:bg-gray-900">
