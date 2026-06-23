@@ -41,11 +41,12 @@ export async function updateToolingPhaseStatus(phaseId: string, newStatus: strin
 
 export async function updateModelToolingAction(modelId: string, payload: { 
   phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[],
-  items: { id: string, name: string, remark: string | null }[],
+  items: { id: string, name: string, remark: string | null, sortOrder: number }[],
   newItems?: {
     category: string,
     name: string,
     remark: string | null,
+    sortOrder: number,
     phases: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[]
   }[],
   deletedItemIds?: string[]
@@ -101,7 +102,8 @@ export async function updateModelToolingAction(modelId: string, payload: {
             where: { id: item.id },
             data: {
               name: item.name,
-              remark: item.remark
+              remark: item.remark,
+              sortOrder: item.sortOrder
             }
           })
         }
@@ -118,6 +120,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
               category: newItem.category,
               name: newItem.name || "Untitled Tooling",
               remark: newItem.remark,
+              sortOrder: newItem.sortOrder,
               phases: {
                 create: newItem.phases.map(p => {
                   const pOrderDate = p.orderDate ? new Date(p.orderDate) : null
@@ -215,12 +218,14 @@ export async function createShoeModelAction(name: string) {
         ...ASSEMBLY_DEFAULTS.map(d => ({ category: "ASSEMBLY TOOLING", name: d }))
       ]
 
-      for (const def of allDefaults) {
+      for (let i = 0; i < allDefaults.length; i++) {
+        const def = allDefaults[i];
         await tx.toolingItem.create({
           data: {
             modelId: model.id,
             category: def.category,
             name: def.name,
+            sortOrder: i,
             phases: {
               create: ["EXTREME", "FSR"].map(pt => ({
                 phaseType: pt,

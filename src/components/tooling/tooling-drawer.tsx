@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save, X, Plus, Trash2 } from "lucide-react"
+import { Loader2, Save, X, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react"
 
 // Types
 type Phase = {
@@ -94,6 +94,10 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   const [itemNames, setItemNames] = useState<Record<string, string>>({})
   const [newItemsList, setNewItemsList] = useState<Item[]>([])
   const [deletedItemsList, setDeletedItemsList] = useState<string[]>([])
+  const [orderedItemIds, setOrderedItemIds] = useState<Record<string, string[]>>({
+    "BOTTOM TOOLING": [],
+    "ASSEMBLY TOOLING": []
+  })
 
   // Initialize state when model changes
   useEffect(() => {
@@ -121,6 +125,13 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
       setItemNames(newItemNames)
       setNewItemsList([]) // reset new items
       setDeletedItemsList([]) // reset deleted items
+
+      const bottomIds = model.toolingItems.filter(i => i.category === "BOTTOM TOOLING").map(i => i.id)
+      const assemblyIds = model.toolingItems.filter(i => i.category === "ASSEMBLY TOOLING").map(i => i.id)
+      setOrderedItemIds({
+        "BOTTOM TOOLING": bottomIds,
+        "ASSEMBLY TOOLING": assemblyIds
+      })
     }
   }, [model])
 
@@ -143,6 +154,11 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     }
 
     setNewItemsList(prev => [...prev, newItem])
+    
+    setOrderedItemIds(prev => ({
+      ...prev,
+      [category]: [...(prev[category] || []), newItemId]
+    }))
     
     setItemNames(prev => ({ ...prev, [newItemId]: "" }))
     setItemRemarks(prev => ({ ...prev, [newItemId]: "" }))
@@ -187,6 +203,29 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     } else {
       setDeletedItemsList(prev => [...prev, itemId])
     }
+    setOrderedItemIds(prev => {
+      const newMap = { ...prev }
+      Object.keys(newMap).forEach(cat => {
+        newMap[cat] = newMap[cat].filter(id => id !== itemId)
+      })
+      return newMap
+    })
+  }
+
+  const handleMoveItem = (category: string, index: number, direction: 'up' | 'down') => {
+    setOrderedItemIds(prev => {
+      const arr = [...(prev[category] || [])]
+      if (direction === 'up' && index > 0) {
+        const temp = arr[index]
+        arr[index] = arr[index - 1]
+        arr[index - 1] = temp
+      } else if (direction === 'down' && index < arr.length - 1) {
+        const temp = arr[index]
+        arr[index] = arr[index + 1]
+        arr[index + 1] = temp
+      }
+      return { ...prev, [category]: arr }
+    })
   }
 
   const handleSave = () => {
@@ -205,16 +244,31 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
         })),
       items: Object.entries(itemRemarks)
         .filter(([id]) => !id.startsWith("new-item-"))
-        .map(([id, remark]) => ({
-          id,
-          name: itemNames[id] || "",
-          remark: remark || null,
-        })),
-      newItems: newItemsList.map(ni => ({
-        category: ni.category,
-        name: itemNames[ni.id] || "",
-        remark: itemRemarks[ni.id] || null,
-        phases: ni.phases.map(p => ({
+        .map(([id, remark]) => {
+          let sortOrder = 0;
+          for (const ids of Object.values(orderedItemIds)) {
+            const idx = ids.indexOf(id)
+            if (idx !== -1) sortOrder = idx
+          }
+          return {
+            id,
+            name: itemNames[id] || "",
+            remark: remark || null,
+            sortOrder,
+          }
+        }),
+      newItems: newItemsList.map(ni => {
+        let sortOrder = 0;
+        for (const ids of Object.values(orderedItemIds)) {
+          const idx = ids.indexOf(ni.id)
+          if (idx !== -1) sortOrder = idx
+        }
+        return {
+          category: ni.category,
+          name: itemNames[ni.id] || "",
+          remark: itemRemarks[ni.id] || null,
+          sortOrder,
+          phases: ni.phases.map(p => ({
           phaseType: p.phaseType,
           qty: phaseData[p.id]?.qty || null,
           orderDate: phaseData[p.id]?.orderDate || null,
@@ -222,7 +276,8 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           actualETA: phaseData[p.id]?.actualETA || null,
           status: phaseData[p.id]?.status || "ON PROCESS",
         }))
-      })),
+        }
+      }),
       deletedItemIds: deletedItemsList
     }
 
@@ -238,7 +293,11 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
 
   const renderTable = (category: string, phaseType: string) => {
     const combinedItems = [...model.toolingItems, ...newItemsList]
-    const items = combinedItems.filter((i) => i.category === category && !deletedItemsList.includes(i.id))
+    const currentOrderedIds = orderedItemIds[category] || []
+    const items = currentOrderedIds
+      .filter(id => !deletedItemsList.includes(id))
+      .map(id => combinedItems.find(i => i.id === id))
+      .filter((i): i is Item => i !== undefined)
 
     const today = startOfDay(new Date())
 
@@ -269,7 +328,12 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                 <TableHead>Actual ETA</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Remark</TableHead>
-                {!isReadOnly && <TableHead className="w-[50px] text-center">Hapus</TableHead>}
+                {!isReadOnly && (
+                  <>
+                    <TableHead className="w-[50px] text-center">Urutan</TableHead>
+                    <TableHead className="w-[50px] text-center">Hapus</TableHead>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -393,16 +457,43 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                       )}
                     </TableCell>
                     {!isReadOnly && (
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+                      <>
+                        <TableCell className="text-center px-1">
+                          <div className="flex flex-col items-center justify-center -space-y-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              type="button"
+                              onClick={() => handleMoveItem(category, items.indexOf(item), 'up')}
+                              disabled={items.indexOf(item) === 0}
+                              className="h-6 w-6 text-slate-400 hover:text-slate-800"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              type="button"
+                              onClick={() => handleMoveItem(category, items.indexOf(item), 'down')}
+                              disabled={items.indexOf(item) === items.length - 1}
+                              className="h-6 w-6 text-slate-400 hover:text-slate-800"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center px-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            onClick={() => handleDeleteItem(item.id)}
+                            className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </>
                     )}
                   </TableRow>
                 )

@@ -188,6 +188,7 @@ model ToolingItem {
   category    String        // "BOTTOM TOOLING" or "ASSEMBLY TOOLING"
   name        String        // e.g., "Gauge top net", "3D Gauge"
   remark      String?       // e.g., "DRAWING PROCESS"
+  sortOrder   Int           @default(0) // For custom reordering
   phases      ToolingPhase[]
 
   @@index([modelId])

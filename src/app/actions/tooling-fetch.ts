@@ -12,12 +12,12 @@ export async function getToolingModels() {
   const models = await prisma.shoeModel.findMany({
     include: {
       toolingItems: {
-        orderBy: {
-          name: 'asc'
-        },
         include: {
           phases: true,
-        }
+        },
+        orderBy: {
+          sortOrder: 'asc'
+        },
       }
     },
     orderBy: {
