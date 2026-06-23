@@ -87,6 +87,7 @@ const formatDateForDisplay = (date: Date | null | string) => {
   return format(new Date(date), "dd MMM yyyy")
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SortableRowContext = React.createContext<any>(null)
 
 function SortableRow({ id, children, className }: { id: string, children: React.ReactNode, className?: string }) {
@@ -286,8 +287,6 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
       })
       return newMap
     })
-  }
-
   }
 
   const handleSave = () => {
