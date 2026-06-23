@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import React, { useState, useTransition, useEffect } from "react"
 import { format, isBefore, startOfDay } from "date-fns"
 import { updateModelToolingAction } from "@/app/actions/tooling"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Save, X, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react"
+import { Loader2, Save, X, Plus, Trash2, GripVertical } from "lucide-react"
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 // Types
 type Phase = {
@@ -84,6 +87,50 @@ const formatDateForDisplay = (date: Date | null | string) => {
   return format(new Date(date), "dd MMM yyyy")
 }
 
+const SortableRowContext = React.createContext<any>(null)
+
+function SortableRow({ id, children, className }: { id: string, children: React.ReactNode, className?: string }) {
+  const sortable = useSortable({ id })
+  const {
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = sortable
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 1 : 0,
+    opacity: isDragging ? 0.5 : 1,
+    position: isDragging ? 'relative' as const : undefined,
+  }
+
+  return (
+    <SortableRowContext.Provider value={sortable}>
+      <TableRow ref={setNodeRef} style={style} className={`${className || ""} ${isDragging ? "bg-slate-100 shadow-md" : ""}`}>
+        {children}
+      </TableRow>
+    </SortableRowContext.Provider>
+  )
+}
+
+function SortableDragHandle() {
+  const { attributes, listeners } = React.useContext(SortableRowContext)
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      type="button"
+      className="h-6 w-6 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-800"
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="w-4 h-4" />
+    </Button>
+  )
+}
+
 export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: ToolingDrawerProps) {
   const [activeTab, setActiveTab] = useState("FSR")
   const [isPending, startTransition] = useTransition()
@@ -98,6 +145,35 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     "BOTTOM TOOLING": [],
     "ASSEMBLY TOOLING": []
   })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragEnd = (event: DragEndEvent, category: string) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setOrderedItemIds((prev) => {
+        const items = prev[category] || []
+        const oldIndex = items.indexOf(active.id as string)
+        const newIndex = items.indexOf(over.id as string)
+        if (oldIndex !== -1 && newIndex !== -1) {
+          return {
+            ...prev,
+            [category]: arrayMove(items, oldIndex, newIndex),
+          }
+        }
+        return prev
+      })
+    }
+  }
 
   // Initialize state when model changes
   useEffect(() => {
@@ -212,20 +288,6 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     })
   }
 
-  const handleMoveItem = (category: string, index: number, direction: 'up' | 'down') => {
-    setOrderedItemIds(prev => {
-      const arr = [...(prev[category] || [])]
-      if (direction === 'up' && index > 0) {
-        const temp = arr[index]
-        arr[index] = arr[index - 1]
-        arr[index - 1] = temp
-      } else if (direction === 'down' && index < arr.length - 1) {
-        const temp = arr[index]
-        arr[index] = arr[index + 1]
-        arr[index + 1] = temp
-      }
-      return { ...prev, [category]: arr }
-    })
   }
 
   const handleSave = () => {
@@ -302,22 +364,27 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     const today = startOfDay(new Date())
 
     return (
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-base">{category}</h3>
-          {!isReadOnly && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleAddNewItem(category)}
-              className="h-8 gap-1 text-xs text-slate-600"
-            >
-              <Plus className="w-3 h-3" />
-              Tambah Baris
-            </Button>
-          )}
-        </div>
-        <div className="rounded-md border bg-white overflow-x-auto shadow-sm">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={(e) => handleDragEnd(e, category)}
+      >
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-base">{category}</h3>
+            {!isReadOnly && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleAddNewItem(category)}
+                className="h-8 gap-1 text-xs text-slate-600"
+              >
+                <Plus className="w-3 h-3" />
+                Tambah Baris
+              </Button>
+            )}
+          </div>
+          <div className="rounded-md border bg-white overflow-x-auto shadow-sm">
           <Table className="text-xs sm:text-sm">
             <TableHeader className="bg-slate-50">
               <TableRow>
@@ -337,7 +404,8 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length === 0 ? (
+              <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                {items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isReadOnly ? 7 : 8} className="text-center text-slate-500 py-6">
                     Belum ada data untuk kategori ini.
@@ -359,7 +427,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                   isBefore(startOfDay(new Date(currentPhase.targetETA)), today)
 
                 return (
-                  <TableRow key={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
+                  <SortableRow key={item.id} id={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
                     <TableCell className="font-medium min-w-[200px]">
                       {isReadOnly ? (
                         <span className="text-slate-900">{currentName || "-"}</span>
@@ -459,28 +527,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                     {!isReadOnly && (
                       <>
                         <TableCell className="text-center px-1">
-                          <div className="flex flex-col items-center justify-center -space-y-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              type="button"
-                              onClick={() => handleMoveItem(category, items.indexOf(item), 'up')}
-                              disabled={items.indexOf(item) === 0}
-                              className="h-6 w-6 text-slate-400 hover:text-slate-800"
-                            >
-                              <ArrowUp className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              type="button"
-                              onClick={() => handleMoveItem(category, items.indexOf(item), 'down')}
-                              disabled={items.indexOf(item) === items.length - 1}
-                              className="h-6 w-6 text-slate-400 hover:text-slate-800"
-                            >
-                              <ArrowDown className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          <SortableDragHandle />
                         </TableCell>
                         <TableCell className="text-center px-1">
                           <Button
@@ -495,13 +542,15 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                         </TableCell>
                       </>
                     )}
-                  </TableRow>
+                  </SortableRow>
                 )
               })}
+              </SortableContext>
             </TableBody>
           </Table>
         </div>
       </div>
+    </DndContext>
     )
   }
 
