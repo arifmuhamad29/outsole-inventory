@@ -387,6 +387,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           <Table className="text-xs sm:text-sm">
             <TableHeader className="bg-slate-50">
               <TableRow>
+                {!isReadOnly && <TableHead className="w-[30px]"></TableHead>}
                 <TableHead className="w-[200px]">Tooling Name</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Order Date</TableHead>
@@ -394,12 +395,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                 <TableHead>Actual ETA</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Remark</TableHead>
-                {!isReadOnly && (
-                  <>
-                    <TableHead className="w-[50px] text-center">Urutan</TableHead>
-                    <TableHead className="w-[50px] text-center">Hapus</TableHead>
-                  </>
-                )}
+                {!isReadOnly && <TableHead className="w-[50px] text-center">Hapus</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -427,6 +423,11 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
 
                 return (
                   <SortableRow key={item.id} id={item.id} className={isOverdue ? "bg-red-50/50 hover:bg-red-50" : ""}>
+                    {!isReadOnly && (
+                      <TableCell className="px-1 text-center">
+                        <SortableDragHandle />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium min-w-[200px]">
                       {isReadOnly ? (
                         <span className="text-slate-900">{currentName || "-"}</span>
@@ -524,22 +525,17 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                       )}
                     </TableCell>
                     {!isReadOnly && (
-                      <>
-                        <TableCell className="text-center px-1">
-                          <SortableDragHandle />
-                        </TableCell>
-                        <TableCell className="text-center px-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            type="button"
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </>
+                      <TableCell className="text-center px-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
                     )}
                   </SortableRow>
                 )
