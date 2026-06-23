@@ -125,29 +125,22 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                       />
                       <CommandList>
                         <CommandEmpty>
-                          {searchValue.length > 0 ? (
-                            <Button 
-                              type="button"
-                              variant="ghost" 
-                              className="w-full justify-start text-left px-2 py-1.5 h-auto font-normal"
+                          No model found.
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {searchValue.length > 0 && !mergedModels.some(m => m.toUpperCase() === searchValue.toUpperCase()) && (
+                            <CommandItem
+                              value={searchValue.toUpperCase()}
                               onMouseDown={(e) => e.preventDefault()}
-                              onTouchEnd={(e) => {
-                                e.preventDefault();
-                                setModelValue(searchValue.toUpperCase());
-                                setOpen(false);
-                              }}
-                              onClick={() => {
+                              onSelect={() => {
                                 setModelValue(searchValue.toUpperCase())
                                 setOpen(false)
                               }}
                             >
-                              Use &quot;{searchValue.toUpperCase()}&quot; as new model
-                            </Button>
-                          ) : (
-                            "No model found."
+                              <Check className="mr-2 h-4 w-4 opacity-0" />
+                              <span className="font-medium text-primary">Use &quot;{searchValue.toUpperCase()}&quot; as new model</span>
+                            </CommandItem>
                           )}
-                        </CommandEmpty>
-                        <CommandGroup>
                           {mergedModels.map((model) => (
                             <CommandItem
                               key={model}
