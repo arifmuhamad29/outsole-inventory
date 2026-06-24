@@ -135,7 +135,15 @@ export default function OutboundPage() {
                 autoComplete="off"
               />
             </div>
-            <div className="flex flex-col justify-end">
+            <div className="flex flex-row items-end gap-2 shrink-0">
+              <Button
+                type="submit"
+                disabled={isProcessing || !inputValue.trim()}
+                className="h-16 px-6 font-bold"
+                title="Submit / Process"
+              >
+                OK
+              </Button>
               <Button
                 type="button"
                 variant="outline"
