@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { getPublicTrackingEntries, getSeasons } from "@/app/actions/tracking"
 import { format } from "date-fns"
 import { id as localeId } from "date-fns/locale"
-import { Search, Loader2, ShoppingCart } from "lucide-react"
+import { Search, Loader2, ShoppingCart, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -71,12 +71,7 @@ export function PublicTrackingView() {
     fetchSeasons()
   }, [])
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+  // Search is now manual via button or enter key
 
   const loadData = useCallback(async () => {
     if (!activeSeasonId) return
@@ -120,14 +115,35 @@ export function PublicTrackingView() {
           ))}
         </div>
 
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input 
-            placeholder="Search article, model, PO..." 
-            className="pl-9 h-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex w-full sm:w-auto sm:min-w-[350px] items-center space-x-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input 
+              placeholder="Search article, model, PO..." 
+              className="pl-9 pr-8 h-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setDebouncedSearch(searchQuery)
+                }
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button 
+            onClick={() => setDebouncedSearch(searchQuery)}
+            className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
+          >
+            Search
+          </Button>
         </div>
       </div>
 
