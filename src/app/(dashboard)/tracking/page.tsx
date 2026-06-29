@@ -499,13 +499,7 @@ export default function TrackingPage() {
     reader.readAsDataURL(file)
   }
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+  // Search is now manual via button or enter key
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -810,22 +804,35 @@ export default function TrackingPage() {
           )}
         </div>
 
-        <div className="relative w-full sm:w-auto sm:min-w-[300px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search article, model, PO..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+        <div className="flex w-full sm:w-auto sm:min-w-[350px] items-center space-x-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search article, model, PO..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setDebouncedSearch(searchQuery)
+                }
+              }}
+              className="pl-9 pr-8 bg-card border-border/50 focus:border-violet-500/50 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button 
+            onClick={() => setDebouncedSearch(searchQuery)}
+            className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
+          >
+            Search
+          </Button>
         </div>
       </div>
 
