@@ -118,8 +118,8 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/50">
-              <TableHead className="font-semibold text-slate-700 sticky left-0 z-20 bg-slate-50 drop-shadow-sm w-[160px] min-w-[160px]">CODE LAST</TableHead>
-              <TableHead className="font-semibold text-slate-700 sticky left-[160px] z-20 bg-slate-50 drop-shadow-sm w-[90px] min-w-[90px]">SIZE</TableHead>
+              <TableHead className="font-semibold text-slate-700 sticky left-0 z-20 bg-slate-50 drop-shadow-sm w-[120px] min-w-[120px]">CODE LAST</TableHead>
+              <TableHead className="font-semibold text-slate-700 sticky left-[120px] z-20 bg-slate-50 drop-shadow-sm w-[90px] min-w-[90px]">SIZE</TableHead>
               <TableHead className="font-semibold text-slate-700">TOOL NAME</TableHead>
               <TableHead className="font-semibold text-slate-700">TYPE</TableHead>
               <TableHead className="font-semibold text-slate-700 text-center">DEV STOCK (SET)</TableHead>
@@ -162,7 +162,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                       ${firstInGroup ? "border-t-2 border-t-slate-200" : "border-t border-t-slate-100"}
                     `}
                   >
-                    <TableCell className={`font-semibold text-slate-800 sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm w-[160px] min-w-[160px]`}>
+                    <TableCell className={`font-semibold text-slate-800 sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm w-[120px] min-w-[120px]`}>
                       {firstInGroup ? (
                         <div className="flex items-center gap-2">
                           <span className="inline-flex items-center justify-center shrink-0 w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-bold">
@@ -174,7 +174,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                         <span className="text-slate-300 pl-9">↳</span>
                       )}
                     </TableCell>
-                    <TableCell className={`text-slate-600 font-medium sticky left-[160px] z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm w-[90px] min-w-[90px]`}>
+                    <TableCell className={`text-slate-600 font-medium sticky left-[120px] z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm w-[90px] min-w-[90px]`}>
                       {stock.size}
                     </TableCell>
                     <TableCell className="font-medium">{stock.toolName}</TableCell>
