@@ -118,7 +118,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/50">
-              <TableHead className="font-semibold text-slate-700">CODE LAST</TableHead>
+              <TableHead className="font-semibold text-slate-700 sticky left-0 z-20 bg-slate-50 drop-shadow-sm">CODE LAST</TableHead>
               <TableHead className="font-semibold text-slate-700">TOOL NAME</TableHead>
               <TableHead className="font-semibold text-slate-700">TYPE</TableHead>
               <TableHead className="font-semibold text-slate-700">SIZE</TableHead>
@@ -158,11 +158,11 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                   <TableRow
                     key={stock.id}
                     className={`
-                      ${isEvenGroup ? "bg-slate-50/70" : "bg-white"}
+                      ${isEvenGroup ? "bg-slate-50" : "bg-white"}
                       ${firstInGroup ? "border-t-2 border-t-slate-200" : "border-t border-t-slate-100"}
                     `}
                   >
-                    <TableCell className="font-semibold text-slate-800">
+                    <TableCell className={`font-semibold text-slate-800 sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm`}>
                       {firstInGroup ? (
                         <div className="flex items-center gap-2">
                           <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-bold">
