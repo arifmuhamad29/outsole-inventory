@@ -118,10 +118,10 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/50">
-              <TableHead className="font-semibold text-slate-700 sticky left-0 z-20 bg-slate-50 drop-shadow-sm">CODE LAST</TableHead>
+              <TableHead className="font-semibold text-slate-700 sticky left-0 z-20 bg-slate-50 drop-shadow-sm w-[160px] min-w-[160px]">CODE LAST</TableHead>
+              <TableHead className="font-semibold text-slate-700 sticky left-[160px] z-20 bg-slate-50 drop-shadow-sm w-[90px] min-w-[90px]">SIZE</TableHead>
               <TableHead className="font-semibold text-slate-700">TOOL NAME</TableHead>
               <TableHead className="font-semibold text-slate-700">TYPE</TableHead>
-              <TableHead className="font-semibold text-slate-700">SIZE</TableHead>
               <TableHead className="font-semibold text-slate-700 text-center">DEV STOCK (SET)</TableHead>
               <TableHead className="font-semibold text-slate-700">LAST UPDATE</TableHead>
               {!isReadOnly && <TableHead className="text-right font-semibold text-slate-700">ACTION</TableHead>}
@@ -162,21 +162,23 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                       ${firstInGroup ? "border-t-2 border-t-slate-200" : "border-t border-t-slate-100"}
                     `}
                   >
-                    <TableCell className={`font-semibold text-slate-800 sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm`}>
+                    <TableCell className={`font-semibold text-slate-800 sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm w-[160px] min-w-[160px]`}>
                       {firstInGroup ? (
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-bold">
+                          <span className="inline-flex items-center justify-center shrink-0 w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-bold">
                             {groupSize}
                           </span>
-                          {stock.codeLast}
+                          <span className="truncate" title={stock.codeLast}>{stock.codeLast}</span>
                         </div>
                       ) : (
                         <span className="text-slate-300 pl-9">↳</span>
                       )}
                     </TableCell>
+                    <TableCell className={`text-slate-600 font-medium sticky left-[160px] z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm w-[90px] min-w-[90px]`}>
+                      {stock.size}
+                    </TableCell>
                     <TableCell className="font-medium">{stock.toolName}</TableCell>
                     <TableCell className="text-slate-600">{stock.type || "—"}</TableCell>
-                    <TableCell className="text-slate-600">{stock.size}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-sm font-semibold ${
                         stock.devStock === 0
