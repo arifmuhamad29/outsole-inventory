@@ -161,23 +161,30 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                       ${firstInGroup ? "border-t-2 border-t-slate-200" : "border-t border-t-slate-100"}
                     `}
                   >
-                    <TableCell className={`sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm min-w-[130px] max-w-[150px] p-3`}>
-                      <div className="flex flex-col gap-1">
+                    <TableCell className={`sticky left-0 z-10 ${isEvenGroup ? "bg-slate-50" : "bg-white"} drop-shadow-sm min-w-[130px] max-w-[160px] p-2`}>
+                      <div className="flex flex-col gap-1.5 justify-center">
                         {firstInGroup ? (
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center justify-center shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary text-[11px] font-bold">
-                              {groupSize}
-                            </span>
-                            <span className="truncate font-semibold text-slate-800 text-sm" title={stock.codeLast}>{stock.codeLast}</span>
-                          </div>
+                          <>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center justify-center shrink-0 w-6 h-6 rounded-md bg-primary/10 text-primary text-[11px] font-bold">
+                                {groupSize}
+                              </span>
+                              <span className="truncate font-bold text-slate-800 text-sm" title={stock.codeLast}>{stock.codeLast}</span>
+                            </div>
+                            <div className="flex items-center pl-8">
+                              <span className="text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded border border-slate-200/60 shadow-sm">
+                                Sz: {stock.size}
+                              </span>
+                            </div>
+                          </>
                         ) : (
-                          <div className="flex items-center gap-2">
-                             <span className="inline-block w-6 text-center text-slate-300 font-bold">↳</span>
+                          <div className="flex items-center gap-2 pl-1">
+                            <span className="text-slate-300 font-bold text-sm w-5 text-right shrink-0">↳</span>
+                            <span className="text-[11px] font-medium text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded border border-slate-200/60 shadow-sm">
+                              Sz: {stock.size}
+                            </span>
                           </div>
                         )}
-                        <div className="pl-8 text-xs font-medium text-slate-600">
-                          {stock.size}
-                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{stock.toolName}</TableCell>
