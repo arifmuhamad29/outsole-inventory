@@ -89,34 +89,130 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }, 150)
   }
 
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+
   const handleShareWhatsApp = async () => {
-    // Build a text summary of all selected barcodes
-    const lines = selectedItems.map((item, i) => 
-      `${i + 1}. ${item.qrCode} | ${item.model} | ${item.article} | ${item.color} | Size: ${item.size}`
-    ).join('\n')
-    const message = `📦 *Outsole Barcode Labels* (${selectedItems.length} items)\n\n${lines}`
-    
-    // Try native share (works great on mobile)
-    if (navigator.share) {
-      try {
+    setIsGeneratingPdf(true)
+    toast.info('Generating PDF...')
+
+    try {
+      const { default: jsPDF } = await import('jspdf')
+      const { default: html2canvas } = await import('html2canvas')
+
+      // Create a temporary container for rendering labels
+      const container = document.createElement('div')
+      container.style.position = 'fixed'
+      container.style.left = '-9999px'
+      container.style.top = '0'
+      container.style.width = '794px' // A4 width in px at 96dpi
+      container.style.background = 'white'
+      container.style.zIndex = '-1'
+      document.body.appendChild(container)
+
+      // Render labels in a grid layout (3 columns, 2 rows per page = 6 per page)
+      const pages = chunkArray(selectedItems, 6)
+      
+      for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+        const pageDiv = document.createElement('div')
+        pageDiv.style.display = 'grid'
+        pageDiv.style.gridTemplateColumns = 'repeat(3, 1fr)'
+        pageDiv.style.gap = '12px'
+        pageDiv.style.padding = '16px'
+        pageDiv.style.background = 'white'
+        pageDiv.style.width = '794px'
+        pageDiv.setAttribute('data-page', String(pageIdx))
+
+        for (const item of pages[pageIdx]) {
+          const labelDiv = document.createElement('div')
+          labelDiv.style.border = '2px dashed #ccc'
+          labelDiv.style.borderRadius = '8px'
+          labelDiv.style.padding = '12px'
+          labelDiv.style.textAlign = 'center'
+          labelDiv.style.background = 'white'
+          labelDiv.style.color = 'black'
+          labelDiv.style.fontSize = '11px'
+
+          const incomingDate = item.createdAt
+            ? new Date(item.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
+            : '-'
+
+          labelDiv.innerHTML = `
+            <div style="display:flex;justify-content:center;margin-bottom:8px;">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(item.qrCode)}" width="120" height="120" crossorigin="anonymous" />
+            </div>
+            <div style="font-family:monospace;font-size:13px;font-weight:bold;border:1px solid black;display:inline-block;padding:2px 10px;margin-bottom:6px;letter-spacing:2px;">${item.qrCode}</div>
+            <div style="margin-top:4px;">Model: <strong>${item.model}</strong></div>
+            <div>Article: <strong>${item.article}</strong></div>
+            <div>Color: <strong>${item.color}</strong></div>
+            ${item.bottomTreatment && item.bottomTreatment !== 'None' ? `<div>Bottom: <strong>${item.bottomTreatment}</strong></div>` : ''}
+            <div>Size: <strong>${item.size}</strong></div>
+            ${item.poNumber && item.poNumber !== '-' ? `<div>PO: <strong>${item.poNumber}</strong></div>` : ''}
+            <div>Incoming: <strong>${incomingDate}</strong></div>
+          `
+          pageDiv.appendChild(labelDiv)
+        }
+        container.appendChild(pageDiv)
+      }
+
+      // Wait for QR code images to load
+      const images = container.querySelectorAll('img')
+      await Promise.all(Array.from(images).map(img => 
+        img.complete ? Promise.resolve() : new Promise(resolve => {
+          img.onload = resolve
+          img.onerror = resolve
+        })
+      ))
+
+      // Small delay to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // Generate PDF
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageElements = container.querySelectorAll('[data-page]')
+
+      for (let i = 0; i < pageElements.length; i++) {
+        if (i > 0) pdf.addPage()
+        const canvas = await html2canvas(pageElements[i] as HTMLElement, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+        })
+        const imgData = canvas.toDataURL('image/jpeg', 0.95)
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
+      }
+
+      // Cleanup temporary container
+      document.body.removeChild(container)
+
+      // Convert to blob
+      const pdfBlob = pdf.output('blob')
+      const pdfFile = new File([pdfBlob], `barcode-labels-${Date.now()}.pdf`, { type: 'application/pdf' })
+
+      // Try native share with file (mobile)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         await navigator.share({
           title: 'Outsole Barcode Labels',
-          text: message,
+          files: [pdfFile],
         })
-        toast.success('Shared successfully!')
-        return
-      } catch (err) {
-        // User cancelled or share failed, fall back to WhatsApp URL
-        if ((err as Error).name === 'AbortError') return
+        toast.success('PDF shared successfully!')
+      } else {
+        // Fallback: download PDF then prompt user
+        const url = URL.createObjectURL(pdfBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `barcode-labels-${Date.now()}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+        toast.success('PDF downloaded! Silakan kirim manual ke WhatsApp.')
       }
+    } catch (err) {
+      console.error('PDF generation error:', err)
+      toast.error('Gagal membuat PDF. Coba lagi.')
+    } finally {
+      setIsGeneratingPdf(false)
     }
-    
-    // Fallback: open WhatsApp with pre-filled message
-    const phoneNumber = prompt('Masukkan nomor WhatsApp tujuan (contoh: 6281234567890):')
-    if (!phoneNumber) return
-    const cleanNumber = phoneNumber.replace(/[^0-9]/g, '')
-    const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`
-    window.open(waUrl, '_blank')
   }
 
   const handleViewHistory = async (outsoleId: string, qrCode: string, itemName: string) => {
@@ -198,9 +294,9 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
               <Printer className="w-4 h-4 mr-2" />
               Bulk Print ({selectedItems.length} Items)
             </Button>
-            <Button variant="outline" onClick={handleShareWhatsApp} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
-              <Share2 className="w-4 h-4 mr-2" />
-              Send to WhatsApp
+            <Button variant="outline" onClick={handleShareWhatsApp} disabled={isGeneratingPdf} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
+              {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
+              {isGeneratingPdf ? 'Generating...' : 'Send to WhatsApp'}
             </Button>
           </div>
         </div>
