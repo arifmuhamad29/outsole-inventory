@@ -33,7 +33,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   
-  const [useComponent, setUseComponent] = useState(false)
+  const [soleType, setSoleType] = useState<"COMPONENT" | "UNISOLE">("COMPONENT")
   const [componentValue, setComponentValue] = useState("RUBBER")
 
   const [mounted, setMounted] = useState(false)
@@ -50,8 +50,8 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
 
     const formData = new FormData(event.currentTarget)
     
-    // Append component to model name if checkbox is checked
-    const finalModelName = useComponent ? `${modelValue} - ${componentValue}` : modelValue;
+    // Append component to model name if Component is selected, otherwise append UNISOLE or keep as is
+    const finalModelName = soleType === "COMPONENT" ? `${modelValue} - ${componentValue}` : `${modelValue} - UNISOLE`;
     formData.set("model", finalModelName);
     
     try {
@@ -160,18 +160,33 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="useComponent" 
-                  checked={useComponent}
-                  onChange={(e) => setUseComponent(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <label className="text-sm font-medium" htmlFor="useComponent">Add Component Type?</label>
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Type</label>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="soleType"
+                    value="COMPONENT"
+                    checked={soleType === "COMPONENT"}
+                    onChange={() => setSoleType("COMPONENT")}
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <span className="text-sm font-medium">Component</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="soleType"
+                    value="UNISOLE"
+                    checked={soleType === "UNISOLE"}
+                    onChange={() => setSoleType("UNISOLE")}
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <span className="text-sm font-medium">Unisole</span>
+                </label>
               </div>
-              {useComponent && (
+              {soleType === "COMPONENT" && (
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   value={componentValue}
