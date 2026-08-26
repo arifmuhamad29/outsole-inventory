@@ -114,15 +114,16 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                     </Button>
                   } />
                   <PopoverContent className="w-full p-0" align="start">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Search model..." 
+                        value={searchValue}
                         onValueChange={setSearchValue} 
                       />
                       <CommandList>
-                        <CommandEmpty>
-                          No model found.
-                        </CommandEmpty>
+                        {mergedModels.filter(m => m.toLowerCase().includes(searchValue.toLowerCase())).length === 0 && searchValue.length === 0 && (
+                          <div className="py-6 text-center text-sm">No model found.</div>
+                        )}
                         <CommandGroup>
                           {searchValue.length > 0 && !mergedModels.some(m => m.toUpperCase() === searchValue.toUpperCase()) && (
                             <CommandItem
@@ -137,7 +138,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                               <span className="font-medium text-primary">Use &quot;{searchValue.toUpperCase()}&quot; as new model</span>
                             </CommandItem>
                           )}
-                          {mergedModels.map((model) => (
+                          {mergedModels.filter(m => m.toLowerCase().includes(searchValue.toLowerCase())).map((model) => (
                             <CommandItem
                               key={model}
                               value={model}
