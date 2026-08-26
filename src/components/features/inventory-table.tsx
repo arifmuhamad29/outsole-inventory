@@ -22,7 +22,7 @@ import {
 import { Outsole, Transaction } from "@prisma/client"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Printer, Loader2, History, ArrowUpCircle, ArrowDownCircle, Settings2 } from "lucide-react"
+import { Printer, Loader2, History, ArrowUpCircle, ArrowDownCircle, Settings2, Share2 } from "lucide-react"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
@@ -87,6 +87,36 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
       setIsPrinting(false)
       setSelectedItems([])
     }, 150)
+  }
+
+  const handleShareWhatsApp = async () => {
+    // Build a text summary of all selected barcodes
+    const lines = selectedItems.map((item, i) => 
+      `${i + 1}. ${item.qrCode} | ${item.model} | ${item.article} | ${item.color} | Size: ${item.size}`
+    ).join('\n')
+    const message = `📦 *Outsole Barcode Labels* (${selectedItems.length} items)\n\n${lines}`
+    
+    // Try native share (works great on mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Outsole Barcode Labels',
+          text: message,
+        })
+        toast.success('Shared successfully!')
+        return
+      } catch (err) {
+        // User cancelled or share failed, fall back to WhatsApp URL
+        if ((err as Error).name === 'AbortError') return
+      }
+    }
+    
+    // Fallback: open WhatsApp with pre-filled message
+    const phoneNumber = prompt('Masukkan nomor WhatsApp tujuan (contoh: 6281234567890):')
+    if (!phoneNumber) return
+    const cleanNumber = phoneNumber.replace(/[^0-9]/g, '')
+    const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`
+    window.open(waUrl, '_blank')
   }
 
   const handleViewHistory = async (outsoleId: string, qrCode: string, itemName: string) => {
@@ -163,10 +193,16 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
       {!readOnly && selectedItems.length > 0 && (
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-md border print:hidden">
           <span className="text-sm font-medium">{selectedItems.length} items selected</span>
-          <Button variant="default" onClick={handleBulkPrint}>
-            <Printer className="w-4 h-4 mr-2" />
-            Bulk Print ({selectedItems.length} Items)
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="default" onClick={handleBulkPrint}>
+              <Printer className="w-4 h-4 mr-2" />
+              Bulk Print ({selectedItems.length} Items)
+            </Button>
+            <Button variant="outline" onClick={handleShareWhatsApp} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
+              <Share2 className="w-4 h-4 mr-2" />
+              Send to WhatsApp
+            </Button>
+          </div>
         </div>
       )}
 
