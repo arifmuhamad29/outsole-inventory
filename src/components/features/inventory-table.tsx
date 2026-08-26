@@ -100,6 +100,8 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
       const htmlToImage = await import('html-to-image')
 
       // Create a temporary container for rendering labels
+      const QRCode = await import('qrcode')
+
       const container = document.createElement('div')
       container.style.position = 'fixed'
       container.style.left = '-9999px'
@@ -136,9 +138,16 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
             ? new Date(item.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
             : '-'
 
+          // Generate QR code as data URL locally (no external request)
+          const qrDataUrl = await QRCode.toDataURL(item.qrCode, {
+            width: 150,
+            margin: 1,
+            color: { dark: '#000000', light: '#ffffff' }
+          })
+
           labelDiv.innerHTML = `
             <div style="display:flex;justify-content:center;margin-bottom:8px;">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(item.qrCode)}" width="120" height="120" crossorigin="anonymous" />
+              <img src="${qrDataUrl}" width="120" height="120" />
             </div>
             <div style="font-family:monospace;font-size:13px;font-weight:bold;border:1px solid black;display:inline-block;padding:2px 10px;margin-bottom:6px;letter-spacing:2px;">${item.qrCode}</div>
             <div style="margin-top:4px;">Model: <strong>${item.model}</strong></div>
@@ -154,14 +163,8 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
         container.appendChild(pageDiv)
       }
 
-      // Wait for QR code images to load
-      const images = container.querySelectorAll('img')
-      await Promise.all(Array.from(images).map(img => 
-        img.complete ? Promise.resolve() : new Promise(resolve => {
-          img.onload = resolve
-          img.onerror = resolve
-        })
-      ))
+      // Small delay to ensure rendering is complete (no images to wait for now)
+      await new Promise(resolve => setTimeout(resolve, 200))
 
       // Small delay to ensure rendering is complete
       await new Promise(resolve => setTimeout(resolve, 300))
