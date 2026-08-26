@@ -50,9 +50,11 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
 
     const formData = new FormData(event.currentTarget)
     
-    // Append component to model name if Component is selected, otherwise append UNISOLE or keep as is
-    const finalModelName = soleType === "COMPONENT" ? `${modelValue} - ${componentValue}` : `${modelValue} - UNISOLE`;
-    formData.set("model", finalModelName);
+    // Model stays clean (e.g. W574), type is appended to article (e.g. 2YQ - MIDSOLE)
+    formData.set("model", modelValue);
+    const articleValue = (formData.get("article") as string || "").toUpperCase();
+    const typeLabel = soleType === "COMPONENT" ? componentValue : "UNISOLE";
+    formData.set("article", `${articleValue} - ${typeLabel}`);
     
     try {
       const response = await processInboundAction(formData)
