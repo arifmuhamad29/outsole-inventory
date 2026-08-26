@@ -22,12 +22,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-const PREDEFINED_MODELS = [
-  "RUBBER", "MIDSOLE", "TPU", "STABILIZER", "SHANK"
-]
-
 export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }) {
-  const mergedModels = Array.from(new Set([...PREDEFINED_MODELS, ...dynamicModels])).sort();
+  const mergedModels = Array.from(new Set([...dynamicModels])).sort();
 
   const [isPending, setIsPending] = useState(false)
   const [message, setMessage] = useState<{ type: "error" | "success", text: string } | null>(null)
@@ -36,6 +32,9 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
   const [modelValue, setModelValue] = useState("")
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
+  
+  const [useComponent, setUseComponent] = useState(false)
+  const [componentValue, setComponentValue] = useState("RUBBER")
 
   const [mounted, setMounted] = useState(false)
 
@@ -50,6 +49,10 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
     setGeneratedQR(null)
 
     const formData = new FormData(event.currentTarget)
+    
+    // Append component to model name if checkbox is checked
+    const finalModelName = useComponent ? `${modelValue} - ${componentValue}` : modelValue;
+    formData.set("model", finalModelName);
     
     try {
       const response = await processInboundAction(formData)
@@ -154,6 +157,32 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                   </PopoverContent>
                 </Popover>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="useComponent" 
+                  checked={useComponent}
+                  onChange={(e) => setUseComponent(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <label className="text-sm font-medium" htmlFor="useComponent">Add Component Type?</label>
+              </div>
+              {useComponent && (
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={componentValue}
+                  onChange={(e) => setComponentValue(e.target.value)}
+                >
+                  <option value="RUBBER">RUBBER</option>
+                  <option value="MIDSOLE">MIDSOLE</option>
+                  <option value="TPU">TPU</option>
+                  <option value="STABILIZER">STABILIZER</option>
+                  <option value="SHANK">SHANK</option>
+                </select>
+              )}
             </div>
             
             <div className="space-y-2">
