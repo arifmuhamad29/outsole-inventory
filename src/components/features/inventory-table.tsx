@@ -97,7 +97,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
 
     try {
       const { default: jsPDF } = await import('jspdf')
-      const { default: html2canvas } = await import('html2canvas')
+      const htmlToImage = await import('html-to-image')
 
       // Create a temporary container for rendering labels
       const container = document.createElement('div')
@@ -172,14 +172,16 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
 
       for (let i = 0; i < pageElements.length; i++) {
         if (i > 0) pdf.addPage()
-        const canvas = await html2canvas(pageElements[i] as HTMLElement, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
+        
+        // Use html-to-image which better supports modern CSS like oklch
+        const imgData = await htmlToImage.toJpeg(pageElements[i] as HTMLElement, {
+          quality: 0.95,
+          pixelRatio: 2,
+          backgroundColor: '#ffffff'
         })
-        const imgData = canvas.toDataURL('image/jpeg', 0.95)
+        
         const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+        const pdfHeight = ((pageElements[i] as HTMLElement).offsetHeight * pdfWidth) / (pageElements[i] as HTMLElement).offsetWidth
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
       }
 
