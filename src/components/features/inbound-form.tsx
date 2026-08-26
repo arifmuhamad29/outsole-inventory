@@ -23,14 +23,7 @@ import {
 } from "@/components/ui/popover"
 
 const PREDEFINED_MODELS = [
-  "VL COURT 3.0 M", "VL COURT 3.0 W", "VL COURT 3.0 INF",
-  "LITERACER 4.0 M", "LITERACER 4.0 W", "LITERACER ADAPT 7.0 M",
-  "LITERACER ADAPT 7.0 W", "LITERACER ADAPT 7.0 KID",
-  "LITERACER ADAPT 7.0 KID WIDE", "LITERACER ADAPT 7.0 INF",
-  "LITERACER ADAPT 8.0 KID", "LITERACER ADAPT 8.0 KID WIDE",
-  "LITERACER ADAPT 8.0 INF", "LITERACER NEXT", "RUNFALCON 5.0 M",
-  "RUNFALCON 5.0 W", "RUNFALCON 6.0 KID", "RUNFALCON 6.0 JR",
-  "RUNFALCON 6.0 INF", "X-PLRPATH M", "X-PLRPATH W", "XPLRPATH KID"
+  "RUBBER", "MIDSOLE", "TPU", "STABILIZER", "SHANK"
 ]
 
 export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }) {
@@ -199,18 +192,13 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                   defaultValue=""
                 >
                   <option value="" disabled>Select size</option>
-                  <optgroup label="Infant">
-                    {["3K", "4K", "5K", "5TK", "6K", "6TK", "7K", "7TK", "8K", "8TK", "9K", "9TK"].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Kids">
-                    {["10K", "10TK", "11K", "11TK", "12K", "12TK", "13K", "13TK", "1", "1T", "2", "2T", "3", "3T", "4", "4T", "5", "5T", "6", "6T"].map(s => (
+                  <optgroup label="Infant / Kids">
+                    {["2K", "2.5K", "3K", "3.5K", "4K", "4.5K", "5K", "5.5K", "6K", "6.5K", "7K", "7.5K", "8K", "8.5K", "9K", "9.5K", "10K", "10.5K", "11K", "11.5K", "12K", "12.5K", "13K", "13.5K", "1", "1.5", "2", "2.5"].map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </optgroup>
                   <optgroup label="Men/Women">
-                    {["3", "3T", "4", "4T", "5", "5T", "6", "6T", "7", "7T", "8", "8T", "9", "9T", "10", "10T", "11", "11T", "12", "12T", "13", "13T", "14", "14T", "15", "15T", "16", "16T", "17", "17T"].map(s => (
+                    {["3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5", "13", "13.5", "14", "14.5", "15", "15.5", "16", "16.5", "17", "17.5", "18"].map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </optgroup>
