@@ -245,7 +245,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }
     return chunks
   }
-  const barcodePages = chunkArray(selectedItems, 6)
+  const barcodePages = chunkArray(selectedItems, 12)
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -313,7 +313,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           {barcodePages.map((pageItems, pageIndex) => (
             <div
               key={pageIndex}
-              className="w-full min-h-screen p-2 grid grid-cols-3 gap-x-4 gap-y-4 content-start"
+              className="w-full min-h-screen p-2 grid grid-cols-4 gap-x-2 gap-y-2 content-start"
               style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
             >
               {pageItems.map((item) => (
