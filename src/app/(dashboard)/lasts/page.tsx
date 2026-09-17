@@ -84,6 +84,7 @@ interface ShoeLastRow {
   code: string;
   models: string;
   status: string;
+  category: string;
   sizes: Record<string, number>;
   createdAt: Date;
   updatedAt: Date;
@@ -94,6 +95,7 @@ interface FormData {
   code: string;
   models: string;
   status: string;
+  category: string;
   sizes: Record<string, number>;
 }
 
@@ -171,6 +173,7 @@ export default function ShoeLastPage() {
     code: "",
     models: "",
     status: "EXISTING",
+    category: "ADULT",
     sizes: buildEmptySizes(),
   });
 
@@ -208,7 +211,7 @@ export default function ShoeLastPage() {
 
   // ── FORM HELPERS ───────────────────────────────────────────
   const openNew = () => {
-    setFormData({ code: "", models: "", status: "EXISTING", sizes: buildEmptySizes() });
+    setFormData({ code: "", models: "", status: "EXISTING", category: "ADULT", sizes: buildEmptySizes() });
     setDialogOpen(true);
   };
 
@@ -218,7 +221,7 @@ export default function ShoeLastPage() {
     Object.entries(row.sizes).forEach(([k, v]) => {
       if (k in merged) merged[k] = v;
     });
-    setFormData({ id: row.id, code: row.code, models: row.models, status: row.status || "EXISTING", sizes: merged });
+    setFormData({ id: row.id, code: row.code, models: row.models, status: row.status || "EXISTING", category: row.category || "ADULT", sizes: merged });
     setDialogOpen(true);
   };
 
@@ -252,6 +255,7 @@ export default function ShoeLastPage() {
           code: formData.code.trim(),
           models: formData.models.trim(),
           status: formData.status,
+          category: formData.category,
           sizes: cleanSizes,
         });
         toast.success(formData.id ? "Shoe Last berhasil diupdate" : "Shoe Last berhasil ditambahkan");
@@ -441,7 +445,7 @@ export default function ShoeLastPage() {
 
           <div className="flex-1 overflow-y-auto space-y-5 pr-1 pb-4">
             {/* Code & Models */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="last-code" className="text-xs font-semibold">
                   Code <span className="text-destructive">*</span>
@@ -479,6 +483,20 @@ export default function ShoeLastPage() {
                   <SelectContent>
                     <SelectItem value="EXISTING">EXISTING</SelectItem>
                     <SelectItem value="NEW">NEW</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Category
+                </Label>
+                <Select value={formData.category} onValueChange={(val) => setFormData((prev) => ({ ...prev, category: val || "ADULT" }))}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADULT">Adult</SelectItem>
+                    <SelectItem value="KIDS">Infant & Kids</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
