@@ -333,10 +333,15 @@ export async function createTrackingEntry(data: {
   outsoleMaterial?: string
   midsoleColor?: string
   outsoleColor?: string
+  wedgeMaterial?: string
+  wedgeColor?: string
+  crDeviceMaterial?: string
+  crDeviceColor?: string
   bottomTreatment?: string
-  imageUrl?: string // new field
-  sizes: Record<string, number> // { "5": 100, "5T": 0, "6": 250 }
+  imageUrl?: string
+  sizes: Record<string, number>
   isOrdered: boolean
+  orderStatus: string
   poNumber?: string
   supplier?: string
   etaDate?: string
@@ -376,11 +381,16 @@ export async function createTrackingEntry(data: {
       outsoleMaterial: data.outsoleMaterial?.trim() || null,
       midsoleColor: data.midsoleColor?.trim() || null,
       outsoleColor: data.outsoleColor?.trim() || null,
+      wedgeMaterial: data.wedgeMaterial?.trim() || null,
+      wedgeColor: data.wedgeColor?.trim() || null,
+      crDeviceMaterial: data.crDeviceMaterial?.trim() || null,
+      crDeviceColor: data.crDeviceColor?.trim() || null,
       bottomTreatment: data.bottomTreatment || null,
       imageUrl: data.imageUrl || null,
       size: size.trim(),
       quantity: quantity,
       isOrdered: data.isOrdered,
+      orderStatus: data.orderStatus,
       poNumber: data.poNumber?.trim() || null,
       supplier: data.supplier?.trim() || null,
       etaDate: data.etaDate ? new Date(data.etaDate) : null,
@@ -422,10 +432,15 @@ export async function updateTrackingEntry(
     outsoleMaterial?: string
     midsoleColor?: string
     outsoleColor?: string
+    wedgeMaterial?: string
+    wedgeColor?: string
+    crDeviceMaterial?: string
+    crDeviceColor?: string
     bottomTreatment?: string
-    imageUrl?: string // new field
+    imageUrl?: string
     sizes: Record<string, number>
     isOrdered: boolean
+    orderStatus: string
     poNumber?: string
     supplier?: string
     etaDate?: string
@@ -467,11 +482,16 @@ export async function updateTrackingEntry(
       outsoleMaterial: data.outsoleMaterial?.trim() || null,
       midsoleColor: data.midsoleColor?.trim() || null,
       outsoleColor: data.outsoleColor?.trim() || null,
+      wedgeMaterial: data.wedgeMaterial?.trim() || null,
+      wedgeColor: data.wedgeColor?.trim() || null,
+      crDeviceMaterial: data.crDeviceMaterial?.trim() || null,
+      crDeviceColor: data.crDeviceColor?.trim() || null,
       bottomTreatment: data.bottomTreatment || null,
       imageUrl: data.imageUrl || null,
       size: size.trim(),
       quantity: quantity,
       isOrdered: data.isOrdered,
+      orderStatus: data.orderStatus,
       poNumber: data.poNumber?.trim() || null,
       supplier: data.supplier?.trim() || null,
       etaDate: data.etaDate ? new Date(data.etaDate) : null,

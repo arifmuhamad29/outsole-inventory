@@ -87,6 +87,13 @@ const SIZES_MATRIX: Record<string, string[]> = {
 
 const TREATMENT_OPTIONS = ["Spray", "Marble", "Spackle"]
 
+const ORDER_STATUS_OPTIONS = [
+  { value: "NOT_ORDERED", label: "Not Ordered", emoji: "⏳" },
+  { value: "ORDERED", label: "Ordered", emoji: "✅" },
+  { value: "ON_PAINTING_SUPPLIER", label: "On Painting Supplier", emoji: "🎨" },
+  { value: "DONE", label: "Done", emoji: "✔️" },
+]
+
 // ============ Types ============
 
 type TrackingEntryGrouped = {
@@ -98,12 +105,17 @@ type TrackingEntryGrouped = {
   outsoleMaterial: string | null
   midsoleColor: string | null
   outsoleColor: string | null
+  wedgeMaterial: string | null
+  wedgeColor: string | null
+  crDeviceMaterial: string | null
+  crDeviceColor: string | null
   bottomTreatment: string | null
   imageUrl: string | null
   totalSizes: number
   totalQuantity: number
   sizesData?: { size: string; quantity: number }[]
   isOrdered: boolean
+  orderStatus: string
   poNumber: string | null
   supplier: string | null
   etaDate: string | null
@@ -121,9 +133,14 @@ type FormValues = {
   outsoleMaterial: string
   midsoleColor: string
   outsoleColor: string
+  wedgeMaterial: string
+  wedgeColor: string
+  crDeviceMaterial: string
+  crDeviceColor: string
   bottomTreatment: string
   imageUrl: string
   isOrdered: boolean
+  orderStatus: string
   poNumber: string
   supplier: string
   etaDate: string
@@ -140,9 +157,14 @@ const defaultValues: FormValues = {
   outsoleMaterial: "",
   midsoleColor: "",
   outsoleColor: "",
+  wedgeMaterial: "",
+  wedgeColor: "",
+  crDeviceMaterial: "",
+  crDeviceColor: "",
   bottomTreatment: "",
   imageUrl: "",
   isOrdered: false,
+  orderStatus: "NOT_ORDERED",
   poNumber: "",
   supplier: "",
   etaDate: "",
@@ -371,17 +393,40 @@ function SortableRow({
         </div>
       </TableCell>
       <TableCell className="text-center min-w-[80px]">
-        {entry.isOrdered ? (
-          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold text-[10px] px-1 py-0">
-            <CheckCircle2 className="h-3 w-3" />
-            ORDERED
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/15 gap-1 font-semibold text-[10px] px-1 py-0">
-            <Clock className="h-3 w-3" />
-            NOT YET
-          </Badge>
-        )}
+        {(() => {
+          const status = entry.orderStatus || (entry.isOrdered ? "ORDERED" : "NOT_ORDERED");
+          switch (status) {
+            case "ORDERED":
+              return (
+                <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 gap-1 font-semibold text-[10px] px-1 py-0">
+                  <CheckCircle2 className="h-3 w-3" />
+                  ORDERED
+                </Badge>
+              );
+            case "ON_PAINTING_SUPPLIER":
+              return (
+                <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 hover:bg-blue-500/20 gap-1 font-semibold text-[10px] px-1 py-0">
+                  <CheckCircle2 className="h-3 w-3" />
+                  PAINTING
+                </Badge>
+              );
+            case "DONE":
+              return (
+                <Badge className="bg-purple-500/15 text-purple-600 border-purple-500/30 hover:bg-purple-500/20 gap-1 font-semibold text-[10px] px-1 py-0">
+                  <CheckCircle2 className="h-3 w-3" />
+                  DONE
+                </Badge>
+              );
+            case "NOT_ORDERED":
+            default:
+              return (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/15 gap-1 font-semibold text-[10px] px-1 py-0">
+                  <Clock className="h-3 w-3" />
+                  NOT YET
+                </Badge>
+              );
+          }
+        })()}
       </TableCell>
       <TableCell className="text-sm min-w-[90px] max-w-[120px]">
         <div className="space-y-0.5">
@@ -654,9 +699,14 @@ export default function TrackingPage() {
         outsoleMaterial: entry.outsoleMaterial || "",
         midsoleColor: entry.midsoleColor || "",
         outsoleColor: entry.outsoleColor || "",
+        wedgeMaterial: entry.wedgeMaterial || "",
+        wedgeColor: entry.wedgeColor || "",
+        crDeviceMaterial: entry.crDeviceMaterial || "",
+        crDeviceColor: entry.crDeviceColor || "",
         bottomTreatment: entry.bottomTreatment || "",
         imageUrl: entry.imageUrl || "",
         isOrdered: entry.isOrdered,
+        orderStatus: entry.orderStatus || "NOT_ORDERED",
         poNumber: entry.poNumber || "",
         supplier: entry.supplier || "",
         etaDate: entry.etaDate ? new Date(entry.etaDate).toISOString().split("T")[0] : "",
@@ -697,10 +747,15 @@ export default function TrackingPage() {
         outsoleMaterial: data.outsoleMaterial || undefined,
         midsoleColor: data.midsoleColor || undefined,
         outsoleColor: data.outsoleColor || undefined,
+        wedgeMaterial: data.wedgeMaterial || undefined,
+        wedgeColor: data.wedgeColor || undefined,
+        crDeviceMaterial: data.crDeviceMaterial || undefined,
+        crDeviceColor: data.crDeviceColor || undefined,
         bottomTreatment: data.bottomTreatment || undefined,
         imageUrl: data.imageUrl || undefined,
         sizes: processedSizes,
-        isOrdered: data.isOrdered,
+        isOrdered: data.orderStatus === "ORDERED" || data.orderStatus === "DONE" || data.orderStatus === "ON_PAINTING_SUPPLIER" ? true : false,
+        orderStatus: data.orderStatus,
         poNumber: data.poNumber || undefined,
         supplier: data.supplier || undefined,
         etaDate: data.etaDate || undefined,
@@ -1121,6 +1176,28 @@ export default function TrackingPage() {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Wedge Material</Label>
+                      <Input placeholder="EVA, etc." {...register("wedgeMaterial")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Wedge Color</Label>
+                      <Input placeholder="White, etc." {...register("wedgeColor")} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">CR Device Material</Label>
+                      <Input placeholder="TPU, etc." {...register("crDeviceMaterial")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">CR Device Color</Label>
+                      <Input placeholder="Clear, etc." {...register("crDeviceColor")} />
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5 w-1/2 pr-2">
                     <Label className="text-xs font-medium">Bottom Treatment</Label>
                     <Controller
@@ -1153,18 +1230,24 @@ export default function TrackingPage() {
                     <div className="h-px bg-border" />
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/10">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium">Order Status</Label>
-                      <p className="text-xs text-muted-foreground">
-                        {watch("isOrdered") ? "✅ Ordered" : "⏳ Not Ordered"}
-                      </p>
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Order Status</Label>
                     <Controller
                       control={control}
-                      name="isOrdered"
+                      name="orderStatus"
                       render={({ field }) => (
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ORDER_STATUS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.emoji} {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     />
                   </div>
