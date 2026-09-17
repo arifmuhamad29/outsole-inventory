@@ -556,27 +556,41 @@ export default function TrackingPage() {
   const watchImageUrl = watch("imageUrl")
 
   // Handle Image Upload (Base64)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Quick validation
+  const processImageFile = (file: File) => {
     if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
       toast.error("Format foto harus JPG atau PNG")
       return
     }
-
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+    if (file.size > 2 * 1024 * 1024) {
       toast.error("Ukuran foto maksimal 2MB")
       return
     }
-
     const reader = new FileReader()
     reader.onloadend = () => {
       setValue("imageUrl", reader.result as string)
     }
     reader.readAsDataURL(file)
   }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) processImageFile(file)
+  }
+
+  useEffect(() => {
+    if (!isFormOpen) return
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (e.clipboardData && e.clipboardData.files.length > 0) {
+        const file = e.clipboardData.files[0]
+        if (file.type.startsWith('image/')) {
+          e.preventDefault()
+          processImageFile(file)
+        }
+      }
+    }
+    document.addEventListener('paste', handleGlobalPaste)
+    return () => document.removeEventListener('paste', handleGlobalPaste)
+  }, [isFormOpen])
 
   // Search is now manual via button or enter key
 
@@ -909,7 +923,7 @@ export default function TrackingPage() {
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -1030,7 +1044,17 @@ export default function TrackingPage() {
                     {/* Foto Upload Zone */}
                     <div className="flex flex-col gap-2 shrink-0">
                       <Label className="text-xs font-medium">Shoe Photo</Label>
-                      <div className="relative group w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center overflow-hidden cursor-pointer">
+                      <div 
+  className="relative group w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/20 hover:bg-muted/40 transition-colors flex flex-col items-center justify-center overflow-hidden cursor-pointer"
+  onDragOver={(e) => e.preventDefault()}
+  onDrop={(e) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      processImageFile(file)
+    }
+  }}
+>
                         {watchImageUrl ? (
                           <>
                             <img src={watchImageUrl} alt="Preview" className="w-full h-full object-cover" />
