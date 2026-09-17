@@ -47,17 +47,17 @@ const INFANT_KIDS_SIZES = [
   "2K","2.5K","3K","3.5K","4K","4.5K","5K","5.5K",
   "6K","6.5K","7K","7.5K","8K","8.5K","9K","9.5K",
   "10K","10.5K","11K","11.5K","12K","12.5K","13K","13.5K",
-  "1","1.5","2","2.5",
+  "1","1.5","2","2.5","3","3.5","4","4.5","5","5.5","6","6.5","7",
 ];
 
 const ADULT_SIZES = [
   "3","3.5","4","4.5","5","5.5","6","6.5",
   "7","7.5","8","8.5","9","9.5","10","10.5",
   "11","11.5","12","12.5","13","13.5","14","14.5",
-  "15","15.5","16","16.5","17",
+  "15","15.5","16","16.5","17","17.5","18",
 ];
 
-const ALL_SIZES = [...INFANT_KIDS_SIZES, ...ADULT_SIZES];
+const ALL_SIZES = Array.from(new Set([...INFANT_KIDS_SIZES, ...ADULT_SIZES]));
 
 function buildEmptySizes(): Record<string, number> {
   const obj: Record<string, number> = {};
