@@ -364,6 +364,36 @@ function SortableRow({
               )}
             </div>
           </div>
+          {(entry.wedgeColor || entry.wedgeMaterial) && (
+            <div className="flex items-start">
+              <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[2px]">WDG:</span>
+              <div className="flex flex-col leading-tight">
+                <span className="font-bold text-foreground text-[11px] whitespace-normal break-words">
+                  {entry.wedgeColor || "-"}
+                </span>
+                {entry.wedgeMaterial && entry.wedgeMaterial !== "-" && (
+                  <span className="text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                    {entry.wedgeMaterial}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {(entry.crDeviceColor || entry.crDeviceMaterial) && (
+            <div className="flex items-start">
+              <span className="text-muted-foreground font-medium text-[9px] w-[26px] shrink-0 pt-[2px]">CR:</span>
+              <div className="flex flex-col leading-tight">
+                <span className="font-bold text-foreground text-[11px] whitespace-normal break-words">
+                  {entry.crDeviceColor || "-"}
+                </span>
+                {entry.crDeviceMaterial && entry.crDeviceMaterial !== "-" && (
+                  <span className="text-violet-600 text-[9.5px] whitespace-normal break-words mt-0.5">
+                    {entry.crDeviceMaterial}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-sm font-medium min-w-[70px] max-w-[80px] truncate" title={entry.bottomTreatment || "-"}>
