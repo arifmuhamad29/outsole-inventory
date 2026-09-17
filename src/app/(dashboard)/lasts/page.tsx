@@ -445,7 +445,7 @@ export default function ShoeLastPage() {
 
           <div className="flex-1 overflow-y-auto space-y-5 pr-1 pb-4">
             {/* Code & Models */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="last-code" className="text-xs font-semibold">
                   Code <span className="text-destructive">*</span>
@@ -514,11 +514,12 @@ export default function ShoeLastPage() {
             </div>
 
             {/* Size Matrix */}
-            <SizeGrid label="Infant & Kids" sizes={formData.sizes} sizeList={INFANT_KIDS_SIZES} onChange={handleSizeChange} />
-
-            <div className="border-t border-border/50" />
-
-            <SizeGrid label="Adult" sizes={formData.sizes} sizeList={ADULT_SIZES} onChange={handleSizeChange} />
+            {formData.category === "KIDS" && (
+              <SizeGrid label="Infant & Kids" sizes={formData.sizes} sizeList={INFANT_KIDS_SIZES} onChange={handleSizeChange} />
+            )}
+            {formData.category === "ADULT" && (
+              <SizeGrid label="Adult" sizes={formData.sizes} sizeList={ADULT_SIZES} onChange={handleSizeChange} />
+            )}
           </div>
 
           <DialogFooter className="pt-2 border-t">
