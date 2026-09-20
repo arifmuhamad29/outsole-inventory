@@ -105,10 +105,10 @@ export default function HandoverPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Send className="w-8 h-8" />
-            Handover Tooling
+            Handover Tooling & Outsole
           </h1>
           <p className="text-muted-foreground mt-1">
-            Record outgoing tools and deduct stock for BPM, TFM, and Universal Pad.
+            Record outgoing items and deduct stock for Tooling and Outsole.
           </p>
         </div>
         <div className="flex items-center gap-2">

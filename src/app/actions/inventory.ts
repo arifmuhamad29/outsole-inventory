@@ -272,3 +272,12 @@ export async function getItemTransactionHistory(outsoleId: string) {
     createdAt: t.createdAt.toISOString(),
   }))
 }
+
+// ============================
+// FETCH: Get outsole by QR Code
+// ============================
+export async function getOutsoleByQRCode(qrCode: string) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+  return await prisma.outsole.findUnique({ where: { qrCode: qrCode.trim() } })
+}

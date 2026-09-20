@@ -307,3 +307,133 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
     return { success: false, message: error instanceof Error ? error.message : "Terjadi kesalahan saat menghapus handover" }
   }
 }
+
+type OutsoleHandoverItemPayload = {
+  qrCode: string
+  model: string
+  article: string
+  color: string
+  size: string
+  stock: number
+  qtyHandover: number
+  remark: string
+  outsoleId: string
+}
+
+type OutsoleHandoverPayload = {
+  date: string
+  recipient: string
+  giver?: string
+  items: OutsoleHandoverItemPayload[]
+}
+
+export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload): Promise<{ success: boolean; message: string }> {
+  try {
+    const session = await auth()
+    if (!session || (!session.user.permissions?.includes("CREATE_HANDOVER") && session.user.role !== "SUPER_ADMIN")) {
+      return { success: false, message: "Unauthorized Access: You do not have permission to create handovers" }
+    }
+
+    const actualGiver = session.user.username || session.user.name || "SYSTEM"
+    const { date, recipient, items } = data
+
+    await prisma.$transaction(async (tx) => {
+      // Generate format: HO-YYYYMMDD-001
+      const today = new Date();
+      const dateString = today.toISOString().slice(0, 10).replace(/-/g, '');
+      
+      const lastHandover = await tx.handover.findFirst({
+        where: { id: { startsWith: `HO-${dateString}-` } },
+        orderBy: { id: 'desc' }
+      });
+
+      let sequence = 1;
+      if (lastHandover) {
+        const lastSequence = parseInt(lastHandover.id.split('-')[2], 10);
+        sequence = lastSequence + 1;
+      }
+      const customId = `HO-${dateString}-${sequence.toString().padStart(3, '0')}`;
+
+      // 1. Create Handover
+      const handover = await tx.handover.create({
+        data: {
+          id: customId,
+          date: new Date(date),
+          recipient,
+          giver: actualGiver,
+          modelName: "Outsole Handover",
+          codeLast: "-",
+        }
+      })
+
+      // 2. Loop through Outsole items
+      for (const item of items) {
+        // Create HandoverItem for UI records
+        await tx.handoverItem.create({
+          data: {
+            handoverId: handover.id,
+            toolName: "Outsole",
+            type: item.article || "-",
+            size: item.size,
+            satuan: "PRS",
+            qty: item.qtyHandover,
+            remark: item.remark || null,
+          }
+        })
+
+        // 3. Deduct stock and log transaction in Outsole tracking
+        const outsoleRecord = await tx.outsole.findUnique({ where: { id: item.outsoleId } });
+        if (!outsoleRecord || outsoleRecord.stock < item.qtyHandover) {
+          throw new Error(`Stok tidak mencukupi untuk ${item.model} ukuran ${item.size}`);
+        }
+
+        const deduction = Number(item.qtyHandover) || 0;
+        const updatedOutsole = await tx.outsole.update({
+          where: { id: item.outsoleId },
+          data: { stock: { decrement: deduction } }
+        });
+
+        // Generate Transaction for Outsole inventory history
+        await tx.transaction.create({
+          data: {
+            outsoleId: item.outsoleId,
+            userId: session.user.id,
+            type: "OUTBOUND",
+            qty: deduction,
+            notes: `Handover ke ${recipient}${item.remark ? ` (${item.remark})` : ''}`,
+          }
+        });
+
+        // Generate AuditLog
+        await tx.auditLog.create({
+          data: {
+            userId: session.user.id,
+            action: "STOCK_OUT",
+            entityName: "Outsole",
+            entityId: item.outsoleId,
+            beforeData: { stock: outsoleRecord.stock } as object,
+            afterData: { stock: updatedOutsole.stock } as object,
+          }
+        });
+      }
+    });
+
+    revalidatePath("/handover");
+    revalidatePath("/inventory");
+    revalidatePath("/");
+
+    await createNotification(
+      "Handover Outsole Berhasil",
+      `${items.length} item outsole telah diserahterimakan kepada ${recipient} oleh ${actualGiver}.`,
+      "success"
+    );
+
+    return { success: true, message: "Handover Outsole berhasil disimpan." };
+  } catch (error) {
+    console.error("Handover error:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Terjadi kesalahan internal",
+    };
+  }
+}
