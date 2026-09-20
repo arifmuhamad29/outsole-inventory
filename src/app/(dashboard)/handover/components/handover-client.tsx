@@ -22,6 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { deleteHandoverAction } from "@/app/actions/handover"
 import { PrintableHandover } from "@/components/ui/printable-handover"
 
@@ -29,6 +39,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
   const router = useRouter()
   const { data: session } = useSession()
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [printHandover, setPrintHandover] = useState<any | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -49,13 +60,20 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
 
   const canDelete = session?.user?.role === "SUPER_ADMIN"
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const confirmDelete = (id: string, e: React.MouseEvent) => {
     e.preventDefault() // Prevent navigation if wrapped in link
-    if (!confirm("Yakin ingin menghapus catatan handover ini? Stok tidak akan dikembalikan otomatis.")) return
+    setDeleteConfirmId(id)
+  }
 
-    setIsDeleting(id)
+  const handleDelete = async () => {
+    if (!deleteConfirmId) return
+
+    setIsDeleting(deleteConfirmId)
+    const currentId = deleteConfirmId
+    setDeleteConfirmId(null)
+    
     try {
-      const res = await deleteHandoverAction(id)
+      const res = await deleteHandoverAction(currentId)
       if (res.success) {
         toast.success("Berhasil", { description: res.message })
         router.refresh()
@@ -181,7 +199,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                           {h.items[0]?.remark || "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex justify-end items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -195,7 +213,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={(e) => handleDelete(h.id, e)}
+                                onClick={(e) => confirmDelete(h.id, e)}
                                 disabled={isDeleting === h.id}
                                 className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                               >
@@ -264,7 +282,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                           </div>
                         </TableCell>
                         <TableCell className="text-right align-top">
-                          <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex justify-end items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -278,7 +296,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={(e) => handleDelete(h.id, e)}
+                                onClick={(e) => confirmDelete(h.id, e)}
                                 disabled={isDeleting === h.id}
                                 className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                               >
@@ -301,6 +319,22 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
         </Tabs>
       </CardContent>
     </Card>
+
+      
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent className="bg-white dark:bg-slate-900 border-none rounded-2xl shadow-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
+              Yakin ingin menghapus catatan handover ini? Stok tidak akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 text-white hover:bg-red-700">Ya, Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {printHandover && mounted && createPortal(
         <div className="print-container hidden print:flex flex-col items-center justify-start w-full absolute top-0 left-0 bg-white z-[9999]">
