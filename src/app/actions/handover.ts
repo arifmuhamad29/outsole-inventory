@@ -1,6 +1,7 @@
 "use server"
 
 import prisma from "@/lib/prisma"
+import crypto from "crypto"
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 import { createNotification } from "./notification"
@@ -123,22 +124,11 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
     const { date, recipient, modelName, codeLast, items } = data
 
     await prisma.$transaction(async (tx) => {
-      // Generate format: HO-YYYYMMDD-001
+      // Generate unique unforgeable ID: HO-YYYYMMDD-XXXXXX
       const today = new Date();
       const dateString = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-      
-      // Find the last handover of today to increment the counter
-      const lastHandover = await tx.handover.findFirst({
-        where: { id: { startsWith: `HO-${dateString}-` } },
-        orderBy: { id: 'desc' }
-      });
-
-      let sequence = 1;
-      if (lastHandover) {
-        const lastSequence = parseInt(lastHandover.id.split('-')[2], 10);
-        sequence = lastSequence + 1;
-      }
-      const customId = `HO-${dateString}-${sequence.toString().padStart(3, '0')}`;
+      const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
+      const customId = `HO-${dateString}-${randomString}`;
 
       // 1. Create the master Handover record
       const handover = await tx.handover.create({
@@ -337,21 +327,11 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
     const { date, recipient, items } = data
 
     await prisma.$transaction(async (tx) => {
-      // Generate format: HO-YYYYMMDD-001
+      // Generate unique unforgeable ID: HO-YYYYMMDD-XXXXXX
       const today = new Date();
-      const dateString = today.toISOString().slice(0, 10).replace(/-/g, '');
-      
-      const lastHandover = await tx.handover.findFirst({
-        where: { id: { startsWith: `HO-${dateString}-` } },
-        orderBy: { id: 'desc' }
-      });
-
-      let sequence = 1;
-      if (lastHandover) {
-        const lastSequence = parseInt(lastHandover.id.split('-')[2], 10);
-        sequence = lastSequence + 1;
-      }
-      const customId = `HO-${dateString}-${sequence.toString().padStart(3, '0')}`;
+      const dateString = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+      const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
+      const customId = `HO-${dateString}-${randomString}`;
 
       // 1. Create Handover
       const handover = await tx.handover.create({
