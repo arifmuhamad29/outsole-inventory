@@ -124,11 +124,9 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
     const { date, recipient, modelName, codeLast, items } = data
 
     await prisma.$transaction(async (tx) => {
-      // Generate unique unforgeable ID: HO-YYYYMMDD-XXXXXX
-      const today = new Date();
-      const dateString = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+      // Generate unique unforgeable ID: HO-XXXXXX
       const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
-      const customId = `HO-${dateString}-${randomString}`;
+      const customId = `HO-${randomString}`;
 
       // 1. Create the master Handover record
       const handover = await tx.handover.create({
@@ -327,11 +325,9 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
     const { date, recipient, items } = data
 
     await prisma.$transaction(async (tx) => {
-      // Generate unique unforgeable ID: HO-YYYYMMDD-XXXXXX
-      const today = new Date();
-      const dateString = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+      // Generate unique unforgeable ID: HO-XXXXXX
       const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
-      const customId = `HO-${dateString}-${randomString}`;
+      const customId = `HO-${randomString}`;
 
       // 1. Create Handover
       const handover = await tx.handover.create({
