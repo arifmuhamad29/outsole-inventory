@@ -5,12 +5,13 @@ import { format } from "date-fns"
 import { PrintButton } from "./print-button"
 
 interface PageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function PrintHandoverPage({ params }: PageProps) {
+  const resolvedParams = await params;
   const handover = await prisma.handover.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     include: { items: true },
   })
 
