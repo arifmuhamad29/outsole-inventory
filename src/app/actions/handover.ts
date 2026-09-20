@@ -313,11 +313,10 @@ type OutsoleHandoverItemPayload = {
   model: string
   article: string
   color: string
-  size: string
-  gender: string
+  genderCategory: string
   stage: string
-  qtyHandover: number
   remark: string
+  sizes: Record<string, number>
 }
 
 type OutsoleHandoverPayload = {
@@ -366,25 +365,27 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
         }
       })
 
-      // 2. Loop through Outsole items
+      // 2. Loop through Outsole items and sizes
       for (const item of items) {
-        // Create HandoverItem for UI records
-        // Using "type" to store Model + Article, and "size" to store Stage
-                // Save Gender in type, Size in size along with Stage
-        const itemType = `${item.model} - ${item.article} (${item.color}) | Gender: ${item.gender}`;
-        const itemSize = `Sz: ${item.size} | Stage: ${item.stage}`;
-        
-        await tx.handoverItem.create({
-          data: {
-            handoverId: handover.id,
-            toolName: "Outsole",
-            type: itemType,
-            size: itemSize,
-            satuan: "PRS",
-            qty: item.qtyHandover,
-            remark: item.remark || null,
-          }
-        })
+        const sizes = item.sizes || {}
+        const enteredSizes = Object.entries(sizes).filter(([_, qty]) => Number(qty) > 0)
+
+        for (const [sizeLabel, qty] of enteredSizes) {
+          const itemType = `${item.model} - ${item.article} (${item.color}) | Gender: ${item.genderCategory}`;
+          const itemSize = `Sz: ${sizeLabel} | Stage: ${item.stage}`;
+
+          await tx.handoverItem.create({
+            data: {
+              handoverId: handover.id,
+              toolName: "Outsole",
+              type: itemType,
+              size: itemSize,
+              satuan: "PRS",
+              qty: Number(qty),
+              remark: item.remark || null,
+            }
+          })
+        }
       }
     });
 
