@@ -22,7 +22,7 @@ const SIZES_MATRIX: Record<string, string[]> = {
   "Kids/Jr": ["10K", "10TK", "11K", "11TK", "12K", "12TK", "13K", "13TK", "1", "1T", "2", "2T", "3", "3T", "4", "4T", "5", "5T", "6", "6T", "7"],
 }
 
-const STAGE_OPTIONS = ["MST", "Estreme", "FSR", "SS", "Duplicate", "Other"]
+const STAGE_OPTIONS = ["MST", "Extreme", "FSR", "SS", "Duplicate", "Other"]
 
 type OutsoleItem = {
   model: string
