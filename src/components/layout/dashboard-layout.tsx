@@ -104,7 +104,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center">
             <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
             <div className="flex flex-col justify-center">
-              <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
+              <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE & TOOLING INVENTORY</span>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-muted-foreground">
                   by : Arif Setiawan
@@ -174,7 +174,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-gray-700">
           <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
           <div className="flex flex-col justify-center">
-            <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
+            <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE & TOOLING INVENTORY</span>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[10px] text-muted-foreground">
                 by : Arif Setiawan

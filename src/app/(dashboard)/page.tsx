@@ -115,7 +115,7 @@ export default async function DashboardPage() {
     <div className="space-y-8 pb-8">
       {/* HEADER / GREETING */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold tracking-tight">👋 Hello Bottom Team, welcome back!</h2>
+        <h2 className="text-2xl font-bold tracking-tight">👋 Hello PWI 5 Bottom Team, welcome back!</h2>
         <p className="text-muted-foreground mt-1">Here is your warehouse activity summary for today.</p>
       </div>
       

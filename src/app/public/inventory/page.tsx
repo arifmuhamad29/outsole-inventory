@@ -132,7 +132,7 @@ export default async function PublicInventoryPage(props: {
       <header className="h-16 flex items-center px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
         <div className="flex flex-col justify-center">
-          <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE INVENTORY</span>
+          <span className="font-bold text-sm leading-tight tracking-tight">DEVELOPMENT OUTSOLE & TOOLING INVENTORY</span>
           <span className="text-[10px] text-muted-foreground block">Unified Public Portal</span>
         </div>
       </header>
