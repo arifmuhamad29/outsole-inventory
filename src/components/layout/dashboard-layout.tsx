@@ -96,10 +96,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col lg:flex-row bg-gray-50 dark:bg-gray-900 print:bg-white print:text-black">
       
       {/* Mobile Header & Collapsible Menu */}
-      <div className="flex flex-col lg:hidden w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col lg:hidden w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 print:hidden">
         <div className="flex h-16 items-center justify-between px-6 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center">
             <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
@@ -170,7 +170,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen shrink-0">
+      <aside className="hidden lg:flex w-64 flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen shrink-0 print:hidden">
         <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-gray-700">
           <Package className="w-6 h-6 text-primary mr-2 shrink-0" />
           <div className="flex flex-col justify-center">
@@ -233,9 +233,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden print:overflow-visible">
         {/* Desktop Top Bar */}
-        <div className="hidden lg:flex h-14 items-center justify-end px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+        <div className="hidden lg:flex h-14 items-center justify-end px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0 print:hidden">
           <div className="flex items-center gap-3">
             <NotificationBell />
             <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
@@ -250,7 +250,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+        <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 print:overflow-visible print:p-0">
           {children}
         </div>
       </main>
