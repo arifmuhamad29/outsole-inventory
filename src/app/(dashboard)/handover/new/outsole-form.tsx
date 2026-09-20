@@ -80,7 +80,7 @@ export function OutsoleHandoverForm() {
       if (!outsole) {
         toast.error("Tidak Ditemukan", { description: "QR Code Outsole tidak valid atau tidak ada." })
       } else if (outsole.stock <= 0) {
-        toast.error("Stok Habis", { description: \`Stok untuk \${outsole.model} (\${outsole.size}) sedang kosong.\` })
+        toast.error("Stok Habis", { description: `Stok untuk ${outsole.model} (${outsole.size}) sedang kosong.` })
       } else {
         append({
           qrCode: outsole.qrCode,
@@ -116,7 +116,7 @@ export function OutsoleHandoverForm() {
         hasError = true
       }
       if (item.qtyHandover > item.stock) {
-        toast.error("Validasi Gagal", { description: \`Quantity handover \${item.qrCode} melebihi stok.\` })
+        toast.error("Validasi Gagal", { description: `Quantity handover ${item.qrCode} melebihi stok.` })
         hasError = true
       }
     })
@@ -217,7 +217,7 @@ export function OutsoleHandoverForm() {
                   </TableRow>
                 ) : (
                   fields.map((field, index) => {
-                    const currentItem = watch(\`items.\${index}\`)
+                    const currentItem = watch(`items.${index}`)
                     const isOverStock = currentItem.qtyHandover > currentItem.stock
                     
                     return (
@@ -233,7 +233,7 @@ export function OutsoleHandoverForm() {
                         <TableCell>
                           <Controller
                             control={control}
-                            name={\`items.\${index}.qtyHandover\`}
+                            name={`items.${index}.qtyHandover`}
                             render={({ field: f }) => (
                               <div>
                                 <Input
@@ -242,7 +242,7 @@ export function OutsoleHandoverForm() {
                                   placeholder="0"
                                   value={f.value === 0 ? "" : f.value}
                                   onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
-                                  className={\`h-9 text-center font-semibold bg-white dark:bg-gray-800 \${isOverStock ? "border-red-400 ring-2 ring-red-200 text-red-700" : ""}\`}
+                                  className={`h-9 text-center font-semibold bg-white dark:bg-gray-800 ${isOverStock ? "border-red-400 ring-2 ring-red-200 text-red-700" : ""}`}
                                 />
                                 {isOverStock && <p className="text-[10px] text-red-500 mt-1">Melebihi stok</p>}
                               </div>
@@ -250,7 +250,7 @@ export function OutsoleHandoverForm() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Input placeholder="Catatan..." {...register(\`items.\${index}.remark\` as const)} className="h-9" />
+                          <Input placeholder="Catatan..." {...register(`items.${index}.remark` as const)} className="h-9" />
                         </TableCell>
                         <TableCell className="text-center">
                           <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)} className="text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
