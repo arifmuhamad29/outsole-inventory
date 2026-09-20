@@ -5,28 +5,21 @@ import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Plus, Trash2, Send, Package, AlertTriangle, ScanLine } from "lucide-react"
+import { Plus, Trash2, Send, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useSession } from "next-auth/react"
-
-// Action to fetch outsole
-import { getOutsoleByQRCode } from "@/app/actions/inventory"
 import { submitOutsoleHandoverAction } from "@/app/actions/handover"
 
 type OutsoleItem = {
-  qrCode: string
   model: string
   article: string
   color: string
-  size: string
-  stock: number
+  stage: string
   qtyHandover: number
   remark: string
-  outsoleId: string
 }
 
 type FormValues = {
@@ -36,19 +29,19 @@ type FormValues = {
   items: OutsoleItem[]
 }
 
+const STAGE_OPTIONS = ["MST", "Estreme", "FSR", "SS", "Duplicate", "Other"]
+
 export function OutsoleHandoverForm() {
   const router = useRouter()
   const { data: session } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [scanInput, setScanInput] = useState("")
-  const [isScanning, setIsScanning] = useState(false)
 
   const { register, control, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       date: format(new Date(), "yyyy-MM-dd"),
       recipient: "",
       giver: "",
-      items: [],
+      items: [{ model: "", article: "", color: "", stage: "MST", qtyHandover: 0, remark: "" }],
     },
   })
 
@@ -61,46 +54,6 @@ export function OutsoleHandoverForm() {
     }
   }, [session, globalGiver, setValue])
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!scanInput.trim()) return
-
-    const code = scanInput.trim().toUpperCase()
-    
-    // Check if already added
-    if (fields.some(f => f.qrCode === code)) {
-      toast.error("Sudah Ditambahkan", { description: "QR Code ini sudah ada di daftar." })
-      setScanInput("")
-      return
-    }
-
-    setIsScanning(true)
-    try {
-      const outsole = await getOutsoleByQRCode(code)
-      if (!outsole) {
-        toast.error("Tidak Ditemukan", { description: "QR Code Outsole tidak valid atau tidak ada." })
-      } else {
-        append({
-          qrCode: outsole.qrCode,
-          model: outsole.model,
-          article: outsole.article || "-",
-          color: outsole.color,
-          size: outsole.size,
-          stock: outsole.stock,
-          qtyHandover: 0,
-          remark: "",
-          outsoleId: outsole.id
-        })
-        toast.success("Berhasil ditambahkan")
-      }
-    } catch (error) {
-      toast.error("Error", { description: "Gagal menarik data outsole." })
-    } finally {
-      setIsScanning(false)
-      setScanInput("")
-    }
-  }
-
   const onSubmit = async (data: FormValues) => {
     if (data.items.length === 0) {
       toast.error("Validasi Gagal", { description: "Pilih minimal 1 outsole untuk di-handover." })
@@ -108,12 +61,15 @@ export function OutsoleHandoverForm() {
     }
 
     let hasError = false
-    data.items.forEach(item => {
-      if (item.qtyHandover <= 0) {
-        toast.error("Validasi Gagal", { description: "Quantity handover harus lebih dari 0." })
+    data.items.forEach((item, idx) => {
+      if (!item.model || !item.article) {
+        toast.error("Validasi Gagal", { description: `Baris ${idx + 1}: Model dan Article wajib diisi.` })
         hasError = true
       }
-      
+      if (item.qtyHandover <= 0) {
+        toast.error("Validasi Gagal", { description: `Baris ${idx + 1}: Qty handover harus lebih dari 0.` })
+        hasError = true
+      }
     })
 
     if (hasError) return
@@ -142,7 +98,7 @@ export function OutsoleHandoverForm() {
             <Package className="w-4 h-4 text-primary" />
             Informasi Handover Outsole
           </CardTitle>
-          <CardDescription>Isi detail penerima. Pencatatan Mandiri. Tidak memotong stok raw material utama.</CardDescription>
+          <CardDescription>Isi detail serah terima barang jadi (setelah stockfit).</CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -161,31 +117,12 @@ export function OutsoleHandoverForm() {
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader className="pb-4 border-b flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <ScanLine className="w-4 h-4 text-primary" />
-              Daftar Outsole
-            </CardTitle>
-            <CardDescription>Scan QR Code Outsole yang akan diserahkan.</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Input 
-              placeholder="Scan QR Code..." 
-              value={scanInput}
-              onChange={(e) => setScanInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleScan(e)
-                }
-              }}
-              className="w-[200px] h-9"
-            />
-            <Button type="button" size="sm" onClick={handleScan} disabled={isScanning || !scanInput}>
-              {isScanning ? "Scanning..." : "Tambah"}
-            </Button>
-          </div>
+        <CardHeader className="pb-4 border-b">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary" />
+            Daftar Outsole
+          </CardTitle>
+          <CardDescription>Input data komponen yang akan diserahkan secara manual.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -193,69 +130,76 @@ export function OutsoleHandoverForm() {
               <TableHeader>
                 <TableRow className="bg-slate-50/80 dark:bg-slate-800/50">
                   <TableHead className="w-[40px] text-center font-semibold text-slate-600 dark:text-slate-400">#</TableHead>
-                  <TableHead className="min-w-[120px] font-semibold text-slate-600 dark:text-slate-400">QR Code</TableHead>
-                  <TableHead className="min-w-[180px] font-semibold text-slate-600 dark:text-slate-400">Item (Model - Article)</TableHead>
-                  <TableHead className="min-w-[80px] font-semibold text-slate-600 dark:text-slate-400">Color</TableHead>
-                  <TableHead className="min-w-[60px] font-semibold text-slate-600 dark:text-slate-400">Size</TableHead>
-                  <TableHead className="min-w-[80px] font-semibold text-slate-600 dark:text-slate-400 text-center">Stock</TableHead>
-                  <TableHead className="min-w-[100px] font-semibold text-slate-600 dark:text-slate-400">Qty Handover</TableHead>
+                  <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Model</TableHead>
+                  <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Article</TableHead>
+                  <TableHead className="min-w-[100px] font-semibold text-slate-600 dark:text-slate-400">Color</TableHead>
+                  <TableHead className="min-w-[120px] font-semibold text-slate-600 dark:text-slate-400">Stage</TableHead>
+                  <TableHead className="min-w-[80px] font-semibold text-slate-600 dark:text-slate-400 text-center">Qty</TableHead>
                   <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Remark</TableHead>
                   <TableHead className="w-[50px] font-semibold text-slate-600 dark:text-slate-400 text-center">Hapus</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {fields.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center h-24 text-slate-500">
-                      Belum ada outsole yang di-scan.
+                {fields.map((field, index) => (
+                  <TableRow key={field.id} className="group">
+                    <TableCell className="text-center text-sm text-slate-400 font-mono">{index + 1}</TableCell>
+                    <TableCell>
+                      <Input placeholder="Model..." {...register(`items.${index}.model` as const)} className="h-9" />
+                    </TableCell>
+                    <TableCell>
+                      <Input placeholder="Article..." {...register(`items.${index}.article` as const)} className="h-9" />
+                    </TableCell>
+                    <TableCell>
+                      <Input placeholder="Color..." {...register(`items.${index}.color` as const)} className="h-9" />
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        {...register(`items.${index}.stage` as const)}
+                        className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                      >
+                        {STAGE_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </TableCell>
+                    <TableCell>
+                      <Controller
+                        control={control}
+                        name={`items.${index}.qtyHandover`}
+                        render={({ field: f }) => (
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="0"
+                            value={f.value === 0 ? "" : f.value}
+                            onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
+                            className="h-9 text-center font-semibold bg-white dark:bg-gray-800"
+                          />
+                        )}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input placeholder="Catatan..." {...register(`items.${index}.remark` as const)} className="h-9" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)} className="text-slate-400 hover:text-red-600 disabled:opacity-30" disabled={fields.length === 1}><Trash2 className="w-4 h-4" /></Button>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  fields.map((field, index) => {
-                    const currentItem = watch(`items.${index}`)
-                    const isOverStock = false
-                    
-                    return (
-                      <TableRow key={field.id} className="group">
-                        <TableCell className="text-center text-sm text-slate-400 font-mono">{index + 1}</TableCell>
-                        <TableCell className="font-mono text-sm">{field.qrCode}</TableCell>
-                        <TableCell className="font-medium text-sm">{field.model} - {field.article}</TableCell>
-                        <TableCell className="text-sm">{field.color}</TableCell>
-                        <TableCell className="text-sm">{field.size}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-slate-100 text-slate-700">{field.stock}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Controller
-                            control={control}
-                            name={`items.${index}.qtyHandover`}
-                            render={({ field: f }) => (
-                              <div>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  placeholder="0"
-                                  value={f.value === 0 ? "" : f.value}
-                                  onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
-                                  className={`h-9 text-center font-semibold bg-white dark:bg-gray-800 ${isOverStock ? "border-red-400 ring-2 ring-red-200 text-red-700" : ""}`}
-                                />
-                                
-                              </div>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input placeholder="Catatan..." {...register(`items.${index}.remark` as const)} className="h-9" />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)} className="text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
+                ))}
               </TableBody>
             </Table>
+          </div>
+          <div className="p-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ model: "", article: "", color: "", stage: "MST", qtyHandover: 0, remark: "" })}
+              className="w-full border-dashed border-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 gap-2 h-10"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah Item Lain
+            </Button>
           </div>
         </CardContent>
       </Card>

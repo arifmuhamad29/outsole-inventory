@@ -308,16 +308,14 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
   }
 }
 
+
 type OutsoleHandoverItemPayload = {
-  qrCode: string
   model: string
   article: string
   color: string
-  size: string
-  stock: number
+  stage: string
   qtyHandover: number
   remark: string
-  outsoleId: string
 }
 
 type OutsoleHandoverPayload = {
@@ -369,25 +367,23 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
       // 2. Loop through Outsole items
       for (const item of items) {
         // Create HandoverItem for UI records
+        // Using "type" to store Model + Article, and "size" to store Stage
+        const itemType = `${item.model} - ${item.article} (${item.color})`;
         await tx.handoverItem.create({
           data: {
             handoverId: handover.id,
             toolName: "Outsole",
-            type: item.article || "-",
-            size: item.size,
+            type: itemType,
+            size: item.stage,
             satuan: "PRS",
             qty: item.qtyHandover,
             remark: item.remark || null,
           }
         })
-        
-        // Removed stock deduction logic as requested (Option 1)
       }
     });
 
     revalidatePath("/handover");
-    revalidatePath("/inventory");
-    revalidatePath("/");
 
     await createNotification(
       "Handover Outsole Berhasil",

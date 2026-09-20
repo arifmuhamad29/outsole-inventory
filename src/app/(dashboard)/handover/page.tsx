@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { format } from "date-fns"
-import { Send, Plus, Trash2, RefreshCw, Loader2 } from "lucide-react"
+import { Send, Plus, Trash2, RefreshCw, Loader2, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
