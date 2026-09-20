@@ -313,6 +313,8 @@ type OutsoleHandoverItemPayload = {
   model: string
   article: string
   color: string
+  size: string
+  gender: string
   stage: string
   qtyHandover: number
   remark: string
@@ -368,13 +370,16 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
       for (const item of items) {
         // Create HandoverItem for UI records
         // Using "type" to store Model + Article, and "size" to store Stage
-        const itemType = `${item.model} - ${item.article} (${item.color})`;
+                // Save Gender in type, Size in size along with Stage
+        const itemType = `${item.model} - ${item.article} (${item.color}) | Gender: ${item.gender}`;
+        const itemSize = `Sz: ${item.size} | Stage: ${item.stage}`;
+        
         await tx.handoverItem.create({
           data: {
             handoverId: handover.id,
             toolName: "Outsole",
             type: itemType,
-            size: item.stage,
+            size: itemSize,
             satuan: "PRS",
             qty: item.qtyHandover,
             remark: item.remark || null,

@@ -17,6 +17,8 @@ type OutsoleItem = {
   model: string
   article: string
   color: string
+  size: string
+  gender: string
   stage: string
   qtyHandover: number
   remark: string
@@ -29,6 +31,7 @@ type FormValues = {
   items: OutsoleItem[]
 }
 
+const GENDER_OPTIONS = ["Men", "Women", "Unisex", "Kids", "Infant"]
 const STAGE_OPTIONS = ["MST", "Estreme", "FSR", "SS", "Duplicate", "Other"]
 
 export function OutsoleHandoverForm() {
@@ -41,7 +44,7 @@ export function OutsoleHandoverForm() {
       date: format(new Date(), "yyyy-MM-dd"),
       recipient: "",
       giver: "",
-      items: [{ model: "", article: "", color: "", stage: "MST", qtyHandover: 0, remark: "" }],
+      items: [{ model: "", article: "", color: "", size: "", gender: "Men", stage: "MST", qtyHandover: 0, remark: "" }],
     },
   })
 
@@ -133,6 +136,8 @@ export function OutsoleHandoverForm() {
                   <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Model</TableHead>
                   <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Article</TableHead>
                   <TableHead className="min-w-[100px] font-semibold text-slate-600 dark:text-slate-400">Color</TableHead>
+                  <TableHead className="min-w-[80px] font-semibold text-slate-600 dark:text-slate-400">Size</TableHead>
+                  <TableHead className="min-w-[100px] font-semibold text-slate-600 dark:text-slate-400">Gender</TableHead>
                   <TableHead className="min-w-[120px] font-semibold text-slate-600 dark:text-slate-400">Stage</TableHead>
                   <TableHead className="min-w-[80px] font-semibold text-slate-600 dark:text-slate-400 text-center">Qty</TableHead>
                   <TableHead className="min-w-[140px] font-semibold text-slate-600 dark:text-slate-400">Remark</TableHead>
@@ -151,6 +156,19 @@ export function OutsoleHandoverForm() {
                     </TableCell>
                     <TableCell>
                       <Input placeholder="Color..." {...register(`items.${index}.color` as const)} className="h-9" />
+                    </TableCell>
+<TableCell>
+                      <Input placeholder="Size..." {...register(`items.${index}.size` as const)} className="h-9" />
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        {...register(`items.${index}.gender` as const)}
+                        className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                      >
+                        {GENDER_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
                     </TableCell>
                     <TableCell>
                       <select
@@ -194,7 +212,7 @@ export function OutsoleHandoverForm() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ model: "", article: "", color: "", stage: "MST", qtyHandover: 0, remark: "" })}
+              onClick={() => append({ model: "", article: "", color: "", size: "", gender: "Men", stage: "MST", qtyHandover: 0, remark: "" })}
               className="w-full border-dashed border-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 gap-2 h-10"
             >
               <Plus className="w-4 h-4" />

@@ -49,6 +49,8 @@ export default async function PrintHandoverPage({ params }: PageProps) {
               <th className="border border-black p-2 w-12">No</th>
               {!isOutsole && <th className="border border-black p-2">Tool Name</th>}
               <th className="border border-black p-2">{isOutsole ? "Item (Model - Article - Color)" : "Type/Model"}</th>
+              {isOutsole && <th className="border border-black p-2">Gender</th>}
+              {isOutsole && <th className="border border-black p-2">Size</th>}
               <th className="border border-black p-2">{isOutsole ? "Stage" : "Size"}</th>
               <th className="border border-black p-2">Qty</th>
               <th className="border border-black p-2">Remark</th>
@@ -59,8 +61,19 @@ export default async function PrintHandoverPage({ params }: PageProps) {
               <tr key={item.id}>
                 <td className="border border-black p-2 text-center">{idx + 1}</td>
                 {!isOutsole && <td className="border border-black p-2">{item.toolName}</td>}
-                <td className="border border-black p-2">{item.type || "-"}</td>
-                <td className="border border-black p-2 text-center">{item.size || "-"}</td>
+                {isOutsole ? (
+                  <>
+                    <td className="border border-black p-2">{item.type.split(' | ')[0] || "-"}</td>
+                    <td className="border border-black p-2 text-center">{item.type.includes('| Gender:') ? item.type.split('Gender: ')[1] : "-"}</td>
+                    <td className="border border-black p-2 text-center">{item.size.includes('Sz: ') ? item.size.split(' | ')[0].replace('Sz: ', '') : "-"}</td>
+                    <td className="border border-black p-2 text-center">{item.size.includes('Stage: ') ? item.size.split('Stage: ')[1] : item.size}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="border border-black p-2">{item.type || "-"}</td>
+                    <td className="border border-black p-2 text-center">{item.size || "-"}</td>
+                  </>
+                )}
                 <td className="border border-black p-2 text-center font-semibold">{item.qty} {item.satuan}</td>
                 <td className="border border-black p-2">{item.remark || "-"}</td>
               </tr>
