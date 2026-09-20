@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -22,12 +23,29 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { deleteHandoverAction } from "@/app/actions/handover"
+import { PrintableHandover } from "@/components/ui/printable-handover"
 
 export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[], outsoleData: any[] }) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [printHandover, setPrintHandover] = useState<any | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (printHandover) {
+      const timer = setTimeout(() => {
+        window.print()
+        setTimeout(() => setPrintHandover(null), 500)
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [printHandover])
 
   const canDelete = session?.user?.role === "SUPER_ADMIN"
 
@@ -68,6 +86,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
   const filteredOutsole = filterData(outsoleData)
 
   return (
+    <>
     <Card className="border-none shadow-md bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
       <CardContent className="p-6">
         <Tabs defaultValue="tooling" className="w-full">
@@ -163,16 +182,15 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Link href={`/handover/${h.id}/print`}>
-                              <Button
+                            <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={(e) => { e.preventDefault(); setPrintHandover(h); }}
                                 className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                 title="Cetak Bukti"
                               >
                                 <Printer className="w-4 h-4" />
                               </Button>
-                            </Link>
                             {canDelete && (
                               <Button
                                 variant="ghost"
@@ -247,16 +265,15 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                         </TableCell>
                         <TableCell className="text-right align-top">
                           <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Link href={`/handover/${h.id}/print`}>
-                              <Button
+                            <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={(e) => { e.preventDefault(); setPrintHandover(h); }}
                                 className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                 title="Cetak Bukti"
                               >
                                 <Printer className="w-4 h-4" />
                               </Button>
-                            </Link>
                             {canDelete && (
                               <Button
                                 variant="ghost"
@@ -284,5 +301,13 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
         </Tabs>
       </CardContent>
     </Card>
+
+      {printHandover && mounted && createPortal(
+        <div className="print-container hidden print:flex flex-col items-center justify-start w-full absolute top-0 left-0 bg-white z-[9999]">
+          <PrintableHandover handover={printHandover} />
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
