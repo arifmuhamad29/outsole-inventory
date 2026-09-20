@@ -380,41 +380,8 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
             remark: item.remark || null,
           }
         })
-
-        // 3. Deduct stock and log transaction in Outsole tracking
-        const outsoleRecord = await tx.outsole.findUnique({ where: { id: item.outsoleId } });
-        if (!outsoleRecord || outsoleRecord.stock < item.qtyHandover) {
-          throw new Error(`Stok tidak mencukupi untuk ${item.model} ukuran ${item.size}`);
-        }
-
-        const deduction = Number(item.qtyHandover) || 0;
-        const updatedOutsole = await tx.outsole.update({
-          where: { id: item.outsoleId },
-          data: { stock: { decrement: deduction } }
-        });
-
-        // Generate Transaction for Outsole inventory history
-        await tx.transaction.create({
-          data: {
-            outsoleId: item.outsoleId,
-            userId: session.user.id,
-            type: "OUTBOUND",
-            qty: deduction,
-            notes: `Handover ke ${recipient}${item.remark ? ` (${item.remark})` : ''}`,
-          }
-        });
-
-        // Generate AuditLog
-        await tx.auditLog.create({
-          data: {
-            userId: session.user.id,
-            action: "STOCK_OUT",
-            entityName: "Outsole",
-            entityId: item.outsoleId,
-            beforeData: { stock: outsoleRecord.stock } as object,
-            afterData: { stock: updatedOutsole.stock } as object,
-          }
-        });
+        
+        // Removed stock deduction logic as requested (Option 1)
       }
     });
 

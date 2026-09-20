@@ -79,8 +79,6 @@ export function OutsoleHandoverForm() {
       const outsole = await getOutsoleByQRCode(code)
       if (!outsole) {
         toast.error("Tidak Ditemukan", { description: "QR Code Outsole tidak valid atau tidak ada." })
-      } else if (outsole.stock <= 0) {
-        toast.error("Stok Habis", { description: `Stok untuk ${outsole.model} (${outsole.size}) sedang kosong.` })
       } else {
         append({
           qrCode: outsole.qrCode,
@@ -115,10 +113,7 @@ export function OutsoleHandoverForm() {
         toast.error("Validasi Gagal", { description: "Quantity handover harus lebih dari 0." })
         hasError = true
       }
-      if (item.qtyHandover > item.stock) {
-        toast.error("Validasi Gagal", { description: `Quantity handover ${item.qrCode} melebihi stok.` })
-        hasError = true
-      }
+      
     })
 
     if (hasError) return
@@ -147,7 +142,7 @@ export function OutsoleHandoverForm() {
             <Package className="w-4 h-4 text-primary" />
             Informasi Handover Outsole
           </CardTitle>
-          <CardDescription>Isi detail penerima. Stok Outsole akan dikurangi sebagai Outbound.</CardDescription>
+          <CardDescription>Isi detail penerima. Pencatatan Mandiri. Tidak memotong stok raw material utama.</CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -218,7 +213,7 @@ export function OutsoleHandoverForm() {
                 ) : (
                   fields.map((field, index) => {
                     const currentItem = watch(`items.${index}`)
-                    const isOverStock = currentItem.qtyHandover > currentItem.stock
+                    const isOverStock = false
                     
                     return (
                       <TableRow key={field.id} className="group">
@@ -244,7 +239,7 @@ export function OutsoleHandoverForm() {
                                   onChange={(e) => f.onChange(parseInt(e.target.value, 10) || 0)}
                                   className={`h-9 text-center font-semibold bg-white dark:bg-gray-800 ${isOverStock ? "border-red-400 ring-2 ring-red-200 text-red-700" : ""}`}
                                 />
-                                {isOverStock && <p className="text-[10px] text-red-500 mt-1">Melebihi stok</p>}
+                                
                               </div>
                             )}
                           />
