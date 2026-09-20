@@ -7,6 +7,39 @@ export function PrintableHandover({ handover }: { handover: any }) {
   const isOutsole = handover.items.some((item: any) => item.toolName === "Outsole")
   const title = isOutsole ? "BUKTI SERAH TERIMA OUTSOLE" : "BUKTI SERAH TERIMA TOOLING"
 
+  const sortedItems = [...handover.items].sort((a: any, b: any) => {
+    // Sort by type/model first
+    const aType = a.type || "";
+    const bType = b.type || "";
+    const typeCompare = aType.localeCompare(bType);
+    if (typeCompare !== 0) return typeCompare;
+
+    // Then sort by size
+    const aSizeStr = isOutsole 
+      ? (a.size?.includes('Sz: ') ? a.size.split(' | ')[0].replace('Sz: ', '') : a.size) 
+      : a.size;
+    const bSizeStr = isOutsole 
+      ? (b.size?.includes('Sz: ') ? b.size.split(' | ')[0].replace('Sz: ', '') : b.size) 
+      : b.size;
+
+    const parseSize = (sizeStr: string) => {
+      const match = String(sizeStr || "").trim().match(/([\d\.]+)([a-zA-Z]*)/);
+      if (match) {
+        return { num: parseFloat(match[1]), suffix: match[2] || "" };
+      }
+      return { num: 999, suffix: String(sizeStr || "") };
+    };
+
+    const aParsed = parseSize(aSizeStr);
+    const bParsed = parseSize(bSizeStr);
+
+    if (aParsed.num !== bParsed.num) {
+      return aParsed.num - bParsed.num;
+    }
+    
+    return aParsed.suffix.localeCompare(bParsed.suffix);
+  });
+
   return (
     <div className="bg-white text-black w-full max-w-[210mm] min-h-[297mm] p-10 print:p-8 print:w-auto relative print:bg-white print:text-black">
       {/* Header */}
@@ -48,7 +81,7 @@ export function PrintableHandover({ handover }: { handover: any }) {
           </tr>
         </thead>
         <tbody>
-          {handover.items.map((item: any, idx: number) => (
+          {sortedItems.map((item: any, idx: number) => (
             <tr key={item.id}>
               <td className="border border-black p-2 text-center">{idx + 1}</td>
               {!isOutsole && <td className="border border-black p-2">{item.toolName}</td>}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
@@ -19,6 +20,39 @@ export default async function PrintHandoverPage({ params }: PageProps) {
 
   const isOutsole = handover.items.some(item => item.toolName === "Outsole")
   const title = isOutsole ? "BUKTI SERAH TERIMA OUTSOLE" : "BUKTI SERAH TERIMA TOOLING"
+
+  const sortedItems = [...handover.items].sort((a: any, b: any) => {
+    // Sort by type/model first
+    const aType = a.type || "";
+    const bType = b.type || "";
+    const typeCompare = aType.localeCompare(bType);
+    if (typeCompare !== 0) return typeCompare;
+
+    // Then sort by size
+    const aSizeStr = isOutsole 
+      ? (a.size?.includes('Sz: ') ? a.size.split(' | ')[0].replace('Sz: ', '') : a.size) 
+      : a.size;
+    const bSizeStr = isOutsole 
+      ? (b.size?.includes('Sz: ') ? b.size.split(' | ')[0].replace('Sz: ', '') : b.size) 
+      : b.size;
+
+    const parseSize = (sizeStr: string) => {
+      const match = String(sizeStr || "").trim().match(/([\d\.]+)([a-zA-Z]*)/);
+      if (match) {
+        return { num: parseFloat(match[1]), suffix: match[2] || "" };
+      }
+      return { num: 999, suffix: String(sizeStr || "") };
+    };
+
+    const aParsed = parseSize(aSizeStr);
+    const bParsed = parseSize(bSizeStr);
+
+    if (aParsed.num !== bParsed.num) {
+      return aParsed.num - bParsed.num;
+    }
+    
+    return aParsed.suffix.localeCompare(bParsed.suffix);
+  });
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-8 flex justify-center">
@@ -63,7 +97,7 @@ export default async function PrintHandoverPage({ params }: PageProps) {
             </tr>
           </thead>
           <tbody>
-            {handover.items.map((item, idx) => (
+            {sortedItems.map((item, idx) => (
               <tr key={item.id}>
                 <td className="border border-black p-2 text-center">{idx + 1}</td>
                 {!isOutsole && <td className="border border-black p-2">{item.toolName}</td>}
