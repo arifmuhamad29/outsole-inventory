@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useSession } from "next/auth/react"
+import { useSession } from "next-auth/react"
 
 // Action to fetch outsole
 import { getOutsoleByQRCode } from "@/app/actions/inventory"
