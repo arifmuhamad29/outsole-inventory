@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { name: true } },
-        outsole: { select: { qrCode: true, model: true, color: true, size: true } }
+        outsole: { select: { qrCode: true, model: true, article: true, color: true, size: true } }
       }
     }),
 
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
     id: t.id,
     codeLast: t.outsole.qrCode,
     category: "Outsole",
-    itemName: `${t.outsole.model} (${t.outsole.color})`,
+    itemName: `${t.outsole.model}${t.outsole.article ? ` - ${t.outsole.article}` : ""} (${t.outsole.color})`,
     size: t.outsole.size || "-",
     type: t.type,
     operator: t.user.name,

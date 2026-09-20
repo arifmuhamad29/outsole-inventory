@@ -57,7 +57,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         t.id, 
         o."qrCode" as "codeLast", 
         'Outsole' as "category",
-        o.model || ' (' || o.color || ')' as "itemName",
+        o.model || CASE WHEN o.article IS NOT NULL AND o.article != '' THEN ' - ' || o.article ELSE '' END || ' (' || o.color || ')' as "itemName",
         COALESCE(o.size, '-') as "size",
         t.type::text as "type",
         u.name as "operator",
