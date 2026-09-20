@@ -25,9 +25,15 @@ export default async function PrintHandoverPage({ params }: PageProps) {
       <div className="bg-white text-black w-full max-w-[210mm] min-h-[297mm] p-10 shadow-lg relative print:shadow-none print:m-0 print:p-0 print:w-auto">
         
         {/* Header */}
-        <div className="text-center border-b-2 border-black pb-4 mb-6">
-          <h1 className="text-xl font-bold uppercase tracking-wider">DEVELOPMENT OUTSOLE & TOOLING INVENTORY</h1>
-          <h2 className="text-2xl font-bold mt-2 uppercase">{title}</h2>
+        <div className="border-b-2 border-black pb-4 mb-6 flex items-center">
+          <div className="w-32 flex justify-start shrink-0">
+            <img src="/parkland-logo.png" alt="Parkland Logo" className="h-20 w-auto object-contain" />
+          </div>
+          <div className="flex-1 text-center pr-32">
+            <h3 className="text-lg font-bold uppercase tracking-wide text-slate-700">Parkland Indonesia Rembang</h3>
+            <h1 className="text-xl font-bold uppercase tracking-wider mt-1">DEVELOPMENT OUTSOLE & TOOLING INVENTORY</h1>
+            <h2 className="text-2xl font-bold mt-2 uppercase">{title}</h2>
+          </div>
         </div>
 
         {/* Info */}
