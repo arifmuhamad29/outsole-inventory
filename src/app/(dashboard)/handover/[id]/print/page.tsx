@@ -30,7 +30,7 @@ export default async function PrintHandoverPage({ params }: PageProps) {
             <img src="/parkland-logo.png" alt="Parkland Logo" className="h-20 w-auto object-contain" />
           </div>
           <div className="flex-1 text-center pr-32">
-            <h3 className="text-lg font-bold uppercase tracking-wide text-slate-700 print:text-black">Parkland Indonesia Rembang</h3>
+            <h3 className="text-lg font-bold uppercase tracking-wide text-slate-700 print:text-black">Parkland World Indonesia Rembang</h3>
             <h1 className="text-xl font-bold uppercase tracking-wider mt-1 print:text-black">DEVELOPMENT OUTSOLE & TOOLING INVENTORY</h1>
             <h2 className="text-2xl font-bold mt-2 uppercase print:text-black">{title}</h2>
           </div>
