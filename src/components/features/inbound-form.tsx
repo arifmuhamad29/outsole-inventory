@@ -33,7 +33,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   
-  const [soleType, setSoleType] = useState<"COMPONENT" | "UNISOLE" | "AFTER_STOCKFIT">("COMPONENT")
+  const [soleType, setSoleType] = useState<"Component" | "Unisole" | "After Stockfit">("Component")
   const [componentValue, setComponentValue] = useState("RUBBER")
 
   const [mounted, setMounted] = useState(false)
@@ -169,9 +169,9 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                   <input 
                     type="radio" 
                     name="soleType"
-                    value="COMPONENT"
-                    checked={soleType === "COMPONENT"}
-                    onChange={() => setSoleType("COMPONENT")}
+                    value="Component"
+                    checked={soleType === "Component"}
+                    onChange={() => setSoleType("Component")}
                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
                   />
                   <span className="text-sm font-medium">Component</span>
@@ -180,9 +180,9 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                   <input 
                     type="radio" 
                     name="soleType"
-                    value="UNISOLE"
-                    checked={soleType === "UNISOLE"}
-                    onChange={() => setSoleType("UNISOLE")}
+                    value="Unisole"
+                    checked={soleType === "Unisole"}
+                    onChange={() => setSoleType("Unisole")}
                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
                   />
                   <span className="text-sm font-medium">Unisole</span>
@@ -191,15 +191,15 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                   <input 
                     type="radio" 
                     name="soleType"
-                    value="AFTER_STOCKFIT"
-                    checked={soleType === "AFTER_STOCKFIT"}
-                    onChange={() => setSoleType("AFTER_STOCKFIT")}
+                    value="After Stockfit"
+                    checked={soleType === "After Stockfit"}
+                    onChange={() => setSoleType("After Stockfit")}
                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
                   />
                   <span className="text-sm font-medium">After Stockfit</span>
                 </label>
               </div>
-              {soleType === "COMPONENT" && (
+              {soleType === "Component" && (
                 <select
                   name="component"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
