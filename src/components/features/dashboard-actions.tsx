@@ -27,7 +27,7 @@ import {
 import { Printer, Trash2 } from "lucide-react"
 
 export function DashboardActions({ item, isAdmin }: { 
-  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, notes?: string | null, createdAt?: Date | string }, 
+  item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, notes?: string | null, createdAt?: Date | string, component?: string | null }, 
   isAdmin: boolean 
 }) {
   const [isOpen, setIsOpen] = useState(false)
