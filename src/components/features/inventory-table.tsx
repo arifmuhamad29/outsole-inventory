@@ -245,7 +245,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }
     return chunks
   }
-  const barcodePages = chunkArray(selectedItems, 12)
+  const barcodePages = chunkArray(selectedItems, 16)
 
   const getTypeIcon = (type: string) => {
     switch (type) {
