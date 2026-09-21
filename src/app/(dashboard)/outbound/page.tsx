@@ -110,36 +110,39 @@ export default function OutboundPage() {
           <CardDescription>Use your barcode scanner or type the QR code manually and press Enter.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleScan} className="flex gap-2">
-            <div className="w-24 shrink-0 flex flex-col">
-              <span className="text-xs text-muted-foreground mb-1">Qty Multiplier</span>
-              <Input
-                type="number"
-                min="1"
-                value={scanQty}
-                onChange={(e) => setScanQty(parseInt(e.target.value) || 1)}
-                disabled={isProcessing}
-                title="Quantity Multiplier"
-                className="text-center text-xl h-16 shadow-sm border-primary/50"
-              />
+          <form onSubmit={handleScan} className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2 w-full">
+              <div className="w-20 sm:w-24 shrink-0 flex flex-col">
+                <span className="text-xs text-muted-foreground mb-1">Qty Multiplier</span>
+                <Input
+                  type="number"
+                  min="1"
+                  value={scanQty}
+                  onChange={(e) => setScanQty(parseInt(e.target.value) || 1)}
+                  disabled={isProcessing}
+                  title="Quantity Multiplier"
+                  className="text-center text-xl h-14 sm:h-16 shadow-sm border-primary/50"
+                />
+              </div>
+              <div className="flex-1 flex flex-col">
+                <span className="text-xs text-muted-foreground mb-1">QR Code</span>
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  disabled={isProcessing}
+                  placeholder="Waiting for scan..."
+                  className="text-center text-lg sm:text-2xl h-14 sm:h-16 font-mono tracking-widest border-primary/50 shadow-sm"
+                  autoComplete="off"
+                />
+              </div>
             </div>
-            <div className="flex-1 flex flex-col">
-              <span className="text-xs text-muted-foreground mb-1">QR Code</span>
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                disabled={isProcessing}
-                placeholder="Waiting for scan..."
-                className="text-center text-2xl h-16 font-mono tracking-widest border-primary/50 shadow-sm"
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex flex-row items-end gap-2 shrink-0">
+            
+            <div className="flex flex-row sm:items-end gap-2 shrink-0 mt-1 sm:mt-0 w-full sm:w-auto">
               <Button
                 type="submit"
                 disabled={isProcessing || !inputValue.trim()}
-                className="h-16 px-6 font-bold"
+                className="h-14 sm:h-16 px-6 font-bold flex-1 sm:flex-none"
                 title="Submit / Process"
               >
                 OK
@@ -147,11 +150,11 @@ export default function OutboundPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-16 w-16 shrink-0"
+                className="h-14 sm:h-16 w-14 sm:w-16 shrink-0"
                 onClick={() => setIsCameraOpen(true)}
                 title="Scan with Camera"
               >
-                <Camera className="h-8 w-8 text-primary" />
+                <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               </Button>
             </div>
           </form>
