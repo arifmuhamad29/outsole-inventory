@@ -32,11 +32,11 @@ interface CsvRow {
   Stock: string
   PONumber?: string
   BottomTreatment?: string
-  SoleType?: string
+  Type?: string
   Notes?: string
 }
 
-const CSV_HEADERS = ["Model", "Article", "Color", "Size", "Stock", "PONumber", "BottomTreatment", "SoleType", "Notes"]
+const CSV_HEADERS = ["Model", "Article", "Color", "Size", "Stock", "PONumber", "BottomTreatment", "Type", "Notes"]
 
 export function BulkInbound() {
   const [isOpen, setIsOpen] = useState(false)
