@@ -297,7 +297,7 @@ export function BulkInbound() {
                         <TableRow key={idx}>
                           <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
                           <TableCell className="text-xs font-medium">{row.Model}</TableCell>
-                          <TableCell className="text-xs">{row.Article}</TableCell>
+                          <TableCell className="text-xs">{row.Article}{row.Component && row.Component !== "-" ? ` - ${row.Component}` : ""}</TableCell>
                           <TableCell className="text-xs">{row.Color}</TableCell>
                           <TableCell className="text-xs">{row.Size}</TableCell>
                           <TableCell className="text-xs text-right font-medium">{row.Stock}</TableCell>
