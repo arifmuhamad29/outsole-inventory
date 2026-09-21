@@ -297,24 +297,26 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
 }
 
 
-type OutsoleHandoverItemPayload = {
+export type ScannedHandoverItem = {
+  outsoleId: string
+  qrCode: string
   model: string
   article: string
   color: string
-  genderCategory: string
+  size: string
+  qty: number
   stage: string
-  remark: string
-  sizes: Record<string, number>
+  remark?: string
 }
 
-type OutsoleHandoverPayload = {
+export type OutsoleHandoverScannerPayload = {
   date: string
   recipient: string
   giver?: string
-  items: OutsoleHandoverItemPayload[]
+  items: ScannedHandoverItem[]
 }
 
-export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload): Promise<{ success: boolean; message: string }> {
+export async function submitOutsoleHandoverAction(data: OutsoleHandoverScannerPayload): Promise<{ success: boolean; message: string }> {
   try {
     const session = await auth()
     if (!session || (!session.user.permissions?.includes("CREATE_HANDOVER") && session.user.role !== "SUPER_ADMIN")) {
@@ -341,35 +343,58 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverPayload):
         }
       })
 
-      // 2. Loop through Outsole items and sizes
+      // 2. Loop through Outsole items
       for (const item of items) {
-        const sizes = item.sizes || {}
-        const enteredSizes = Object.entries(sizes).filter(([_, qty]) => Number(qty) > 0)
+        // Verify stock
+        const stockRecord = await tx.outsole.findUnique({
+          where: { id: item.outsoleId }
+        })
 
-        for (const [sizeLabel, qty] of enteredSizes) {
-          const itemType = `${item.model} - ${item.article} (${item.color}) | Gender: ${item.genderCategory}`;
-          const itemSize = `Sz: ${sizeLabel} | Stage: ${item.stage}`;
-
-          await tx.handoverItem.create({
-            data: {
-              handoverId: handover.id,
-              toolName: "Outsole",
-              type: itemType,
-              size: itemSize,
-              satuan: "PRS",
-              qty: Number(qty),
-              remark: item.remark || null,
-            }
-          })
+        if (!stockRecord || stockRecord.stock < item.qty) {
+          throw new Error(`Stok tidak mencukupi untuk ${item.model} Sz: ${item.size}`)
         }
+
+        // Deduct stock
+        await tx.outsole.update({
+          where: { id: item.outsoleId },
+          data: { stock: stockRecord.stock - item.qty }
+        })
+
+        // Create transaction history
+        await tx.transaction.create({
+          data: {
+            outsoleId: item.outsoleId,
+            userId: session.user.id,
+            type: "OUTBOUND",
+            qty: item.qty,
+            notes: `Handover ke ${recipient}${item.remark ? ' - ' + item.remark : ''}`
+          }
+        })
+
+        // Create handover item
+        const itemType = `${item.model} - ${item.article} (${item.color})`;
+        const itemSize = `Sz: ${item.size} | Stage: ${item.stage}`;
+
+        await tx.handoverItem.create({
+          data: {
+            handoverId: handover.id,
+            toolName: "Outsole",
+            type: itemType,
+            size: itemSize,
+            satuan: "PRS",
+            qty: item.qty,
+            remark: item.remark || null,
+          }
+        })
       }
     });
 
     revalidatePath("/handover");
+    revalidatePath("/inventory");
 
     await createNotification(
       "Handover Outsole Berhasil",
-      `${items.length} item outsole telah diserahterimakan kepada ${recipient} oleh ${actualGiver}.`,
+      `${items.length} jenis outsole telah diserahterimakan kepada ${recipient} oleh ${actualGiver}.`,
       "success"
     );
 

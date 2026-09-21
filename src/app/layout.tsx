@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Outsole Inventory Command Center",
+  title: "Development Outsole & Tooling Inventory",
   description: "Warehouse management system for Bottom/Outsole/Tooling",
   manifest: "/manifest.webmanifest",
   icons: {
