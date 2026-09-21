@@ -107,14 +107,14 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
     <>
     <Card className="border-none shadow-md bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
       <CardContent className="p-6">
-        <Tabs defaultValue="tooling" className="w-full">
+        <Tabs defaultValue="outsole" className="w-full">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-              <TabsTrigger value="tooling" className="rounded-lg px-6 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
-                Tooling Handover
-              </TabsTrigger>
               <TabsTrigger value="outsole" className="rounded-lg px-6 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
                 Outsole Handover
+              </TabsTrigger>
+              <TabsTrigger value="tooling" className="rounded-lg px-6 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
+                Tooling Handover
               </TabsTrigger>
             </TabsList>
 

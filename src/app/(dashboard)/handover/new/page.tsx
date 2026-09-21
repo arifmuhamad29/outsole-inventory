@@ -29,16 +29,16 @@ export default function NewHandoverPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="tooling" className="w-full">
-        <TabsList className="grid w-[400px] grid-cols-2 mb-6">
-          <TabsTrigger value="tooling">Tooling Handover</TabsTrigger>
+      <Tabs defaultValue="outsole" className="w-full">
+        <TabsList className="grid w-full sm:w-[400px] grid-cols-2 mb-6">
           <TabsTrigger value="outsole">Outsole Handover</TabsTrigger>
+          <TabsTrigger value="tooling">Tooling Handover</TabsTrigger>
         </TabsList>
-        <TabsContent value="tooling">
-          <ToolingHandoverForm />
-        </TabsContent>
         <TabsContent value="outsole">
           <OutsoleHandoverForm />
+        </TabsContent>
+        <TabsContent value="tooling">
+          <ToolingHandoverForm />
         </TabsContent>
       </Tabs>
     </div>
