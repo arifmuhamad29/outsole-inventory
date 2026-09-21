@@ -159,7 +159,7 @@ export async function processBulkInboundAction(rows: unknown[]) {
             size: row.Size.trim().toUpperCase(),
             poNumber: row.PONumber || "-",
             bottomTreatment: row.BottomTreatment || "None",
-            soleType: (row.Type as any) || "Lokal",
+            soleType: row.Type || "Lokal",
           }
         })
 
@@ -186,7 +186,7 @@ export async function processBulkInboundAction(rows: unknown[]) {
               size: row.Size.trim().toUpperCase(),
               poNumber: row.PONumber || "-",
               bottomTreatment: row.BottomTreatment || "None",
-              soleType: (row.SoleType as any) || "Lokal",
+              soleType: row.Type || "Lokal",
               notes: row.Notes || null,
               stock: row.Stock,
             }
