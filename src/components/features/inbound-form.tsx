@@ -33,7 +33,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   
-  const [soleType, setSoleType] = useState<"COMPONENT" | "UNISOLE">("COMPONENT")
+  const [soleType, setSoleType] = useState<"COMPONENT" | "UNISOLE" | "AFTER_STOCKFIT">("COMPONENT")
   const [componentValue, setComponentValue] = useState("RUBBER")
 
   const [mounted, setMounted] = useState(false)
@@ -53,7 +53,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
     // Model stays clean (e.g. W574), type is appended to article (e.g. 2YQ - MIDSOLE)
     formData.set("model", modelValue);
     const articleValue = (formData.get("article") as string || "").toUpperCase();
-    const typeLabel = soleType === "COMPONENT" ? componentValue : "UNISOLE";
+    const typeLabel = soleType === "COMPONENT" ? componentValue : soleType === "AFTER_STOCKFIT" ? "AFTER STOCKFIT" : "UNISOLE";
     formData.set("article", `${articleValue} - ${typeLabel}`);
     
     try {
@@ -186,6 +186,17 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
                   />
                   <span className="text-sm font-medium">Unisole</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="soleType"
+                    value="AFTER_STOCKFIT"
+                    checked={soleType === "AFTER_STOCKFIT"}
+                    onChange={() => setSoleType("AFTER_STOCKFIT")}
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <span className="text-sm font-medium">After Stockfit</span>
                 </label>
               </div>
               {soleType === "COMPONENT" && (
