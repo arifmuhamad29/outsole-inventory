@@ -50,11 +50,9 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
 
     const formData = new FormData(event.currentTarget)
     
-    // Model stays clean (e.g. W574), type is appended to article (e.g. 2YQ - MIDSOLE)
     formData.set("model", modelValue);
     const articleValue = (formData.get("article") as string || "").toUpperCase();
-    const typeLabel = soleType === "COMPONENT" ? componentValue : soleType === "AFTER_STOCKFIT" ? "AFTER STOCKFIT" : "UNISOLE";
-    formData.set("article", `${articleValue} - ${typeLabel}`);
+    formData.set("article", articleValue);
     
     try {
       const response = await processInboundAction(formData)
