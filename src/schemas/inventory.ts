@@ -48,6 +48,7 @@ export const bulkRowSchema = z.object({
   Stock: z.preprocess((val) => Number(val), z.number().int().min(1, "Stock must be at least 1")),
   PONumber: z.string().optional().default("-"),
   BottomTreatment: z.enum(["Spray", "Spackle", "Marble", "None"]).optional().default("None"),
+  SoleType: z.enum(["Lokal", "Import", "After Stockfit"]).optional().default("Lokal"),
   Notes: z.string().optional(),
 })
 
