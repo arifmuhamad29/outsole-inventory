@@ -238,49 +238,52 @@ export function OutsoleHandoverForm() {
             </div>
           </div>
 
-          <form onSubmit={handleScan} className="flex gap-2">
-            <div className="w-20 md:w-24 shrink-0 flex flex-col">
-              <span className="text-xs text-muted-foreground mb-1">Qty</span>
-              <Input
-                type="number"
-                min="1"
-                value={scanQty}
-                onChange={(e) => setScanQty(parseInt(e.target.value) || 1)}
-                disabled={isProcessingScan || isSubmitting}
-                className="text-center text-xl h-14 shadow-sm border-primary/30"
-              />
-            </div>
-            <div className="flex-1 flex flex-col">
-              <span className="text-xs text-muted-foreground mb-1">Scan QR Code</span>
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                disabled={isProcessingScan || isSubmitting}
-                placeholder="Arahkan kursor kesini..."
-                className="text-center text-xl h-14 font-mono tracking-widest border-primary/30 shadow-sm bg-white dark:bg-slate-900"
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex flex-row items-end gap-2 shrink-0">
-              <Button
-                type="submit"
-                disabled={isProcessingScan || isSubmitting || !inputValue.trim()}
-                className="h-14 px-6 font-bold"
-              >
-                OK
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-14 w-14 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
-                onClick={() => setIsCameraOpen(true)}
-                title="Scan with Camera"
-              >
-                <Camera className="h-6 w-6" />
-              </Button>
-            </div>
-          </form>
+          <form onSubmit={handleScan} className="flex flex-col md:flex-row gap-4 md:gap-2">
+              <div className="flex gap-2 flex-1">
+                <div className="w-20 md:w-24 shrink-0 flex flex-col">
+                  <span className="text-xs text-muted-foreground mb-1">Qty</span>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={scanQty}
+                    onChange={(e) => setScanQty(parseInt(e.target.value) || 1)}
+                    disabled={isProcessingScan || isSubmitting}
+                    className="text-center text-xl h-14 shadow-sm border-primary/30"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col">
+                  <span className="text-xs text-muted-foreground mb-1">Scan QR Code</span>
+                  <Input
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    disabled={isProcessingScan || isSubmitting}
+                    placeholder="Arahkan kursor kesini..."
+                    className="text-center md:text-xl h-14 font-mono tracking-widest border-primary/30 shadow-sm bg-white dark:bg-slate-900"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-row md:items-end gap-2 shrink-0">
+                <Button
+                  type="submit"
+                  disabled={isProcessingScan || isSubmitting || !inputValue.trim()}
+                  className="flex-1 md:flex-none h-14 md:px-6 font-bold"
+                >
+                  OK
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isProcessingScan || isSubmitting}
+                  className="h-14 w-14 shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => setIsCameraOpen(true)}
+                  title="Scan with Camera"
+                >
+                  <Camera className="h-6 w-6" />
+                </Button>
+              </div>
+            </form>
         </CardContent>
       </Card>
 
