@@ -5,7 +5,9 @@ import { useForm } from "react-hook-form"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Trash2, Send, Package, Camera, CheckCircle2, XCircle } from "lucide-react"
+import { Trash2, Send, Package, Camera, CheckCircle2, XCircle, Search } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +15,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useSession } from "next-auth/react"
 import { submitOutsoleHandoverAction, ScannedHandoverItem } from "@/app/actions/handover"
 import { CameraScanner } from "@/components/features/camera-scanner"
+
+export type OutsoleItem = {
+  id: string
+  qrCode: string
+  model: string
+  article: string
+  color: string
+  size: string
+  stock: number
+  component?: string | null
+}
 
 const STAGE_OPTIONS = ["MST", "Extreme", "FSR", "SS", "Duplicate", "Other"]
 
@@ -24,7 +37,7 @@ type FormValues = {
   globalRemark: string
 }
 
-export function OutsoleHandoverForm() {
+export function OutsoleHandoverForm({ outsoles = [] }: { outsoles?: OutsoleItem[] }) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -35,6 +48,7 @@ export function OutsoleHandoverForm() {
   const [scanQty, setScanQty] = useState<number>(1)
   const [isProcessingScan, setIsProcessingScan] = useState(false)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [comboboxOpen, setComboboxOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormValues>({
@@ -64,7 +78,7 @@ export function OutsoleHandoverForm() {
       if (target && (target.tagName === "INPUT" || target.tagName === "BUTTON" || target.tagName === "SELECT")) {
         return;
       }
-      if (!isProcessingScan && !isCameraOpen && !isSubmitting && inputRef.current) {
+      if (!isProcessingScan && !isCameraOpen && !comboboxOpen && !isSubmitting && inputRef.current) {
         inputRef.current.focus()
       }
     }
@@ -76,7 +90,7 @@ export function OutsoleHandoverForm() {
       window.removeEventListener("click", focusInput)
       window.removeEventListener("touchend", focusInput)
     }
-  }, [isProcessingScan, isCameraOpen, isSubmitting])
+  }, [isProcessingScan, isCameraOpen, comboboxOpen, isSubmitting])
 
   const processScan = async (qrCodeString: string, quantity: number) => {
     if (!qrCodeString.trim() || isProcessingScan) return
@@ -215,9 +229,59 @@ export function OutsoleHandoverForm() {
 
       {/* Scanner Section */}
       <Card className="border-2 border-primary/20 bg-primary/5">
-        <CardHeader className="pb-4 border-b border-primary/10">
-          <CardTitle className="text-base font-semibold">Barcode Scanner</CardTitle>
-          <CardDescription>Pilih Stage default, lalu scan QR Code barang.</CardDescription>
+        <CardHeader className="pb-4 border-b border-primary/10 flex flex-row items-start justify-between">
+          <div className="space-y-1.5">
+            <CardTitle className="text-base font-semibold">Barcode Scanner</CardTitle>
+            <CardDescription>Pilih Stage default, lalu scan QR Code barang.</CardDescription>
+          </div>
+          <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+            <PopoverTrigger render={
+              <Button variant="outline" size="sm" className="gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/50">
+                <Search className="h-4 w-4" />
+                <span className="hidden sm:inline">Pencarian Manual</span>
+              </Button>
+            } />
+            <PopoverContent className="w-[320px] sm:w-[500px] p-0" align="end">
+              <Command filter={(value, search) => {
+                const item = outsoles.find(o => o.id === value)
+                if (!item) return 0
+                const searchStr = `${item.qrCode} ${item.model} ${item.article} ${item.component || ""} ${item.color}`.toLowerCase()
+                return searchStr.includes(search.toLowerCase()) ? 1 : 0
+              }}>
+                <CommandInput placeholder="Cari model, article, component, color..." />
+                <CommandList>
+                  <CommandEmpty>Barang tidak ditemukan.</CommandEmpty>
+                  <CommandGroup>
+                    {outsoles.map((o) => {
+                      const articleDisplay = o.article + (o.component && o.component !== "-" ? ` - ${o.component}` : "")
+                      return (
+                        <CommandItem
+                          key={o.id}
+                          value={o.id}
+                          onSelect={(currentValue) => {
+                            const selected = outsoles.find(x => x.id === currentValue)
+                            if (selected) {
+                              setInputValue(selected.qrCode)
+                              setComboboxOpen(false)
+                              if (inputRef.current) inputRef.current.focus()
+                            }
+                          }}
+                        >
+                          <div className="flex flex-col gap-1 w-full">
+                            <div className="flex justify-between items-center w-full">
+                              <span className="font-semibold text-sm">[{o.qrCode}] {o.model}</span>
+                              <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Stock: {o.stock}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{articleDisplay}, {o.color}, Size: {o.size}</span>
+                          </div>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

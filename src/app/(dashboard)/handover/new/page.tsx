@@ -1,12 +1,29 @@
-"use client"
 import Link from "next/link"
 import { ArrowLeft, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToolingHandoverForm } from "./tooling-form"
 import { OutsoleHandoverForm } from "./outsole-form"
+import prisma from "@/lib/prisma"
 
-export default function NewHandoverPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function NewHandoverPage() {
+  const outsoles = await prisma.outsole.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      qrCode: true,
+      model: true,
+      article: true,
+      component: true,
+      color: true,
+      size: true,
+      stock: true
+    },
+    orderBy: { updatedAt: "desc" }
+  })
+
   return (
     <div className="flex flex-col space-y-6 p-6 max-w-5xl mx-auto">
       {/* Header */}
@@ -35,7 +52,7 @@ export default function NewHandoverPage() {
           <TabsTrigger value="tooling">Tooling Handover</TabsTrigger>
         </TabsList>
         <TabsContent value="outsole">
-          <OutsoleHandoverForm />
+          <OutsoleHandoverForm outsoles={outsoles} />
         </TabsContent>
         <TabsContent value="tooling">
           <ToolingHandoverForm />
