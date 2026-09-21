@@ -628,7 +628,7 @@ export function ToolingHandoverForm() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow className="bg-slate-50/80 dark:bg-slate-800/50">
                     <TableHead className="w-[40px] text-center font-semibold text-slate-600 dark:text-slate-400">#</TableHead>

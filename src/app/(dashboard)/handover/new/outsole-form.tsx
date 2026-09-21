@@ -220,7 +220,7 @@ export function OutsoleHandoverForm() {
           <CardDescription>Pilih Stage default, lalu scan QR Code barang.</CardDescription>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4 mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-muted-foreground">Default Stage</label>
               <select
@@ -239,7 +239,7 @@ export function OutsoleHandoverForm() {
           </div>
 
           <form onSubmit={handleScan} className="flex gap-2">
-            <div className="w-24 shrink-0 flex flex-col">
+            <div className="w-20 md:w-24 shrink-0 flex flex-col">
               <span className="text-xs text-muted-foreground mb-1">Qty</span>
               <Input
                 type="number"
