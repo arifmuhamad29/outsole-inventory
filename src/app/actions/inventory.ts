@@ -29,6 +29,7 @@ export async function processInboundAction(formData: FormData) {
       color: formData.get("color") as string,
       poNumber: formData.get("poNumber") as string || "-",
       bottomTreatment: formData.get("bottomTreatment") as string || "None",
+      soleType: formData.get("soleType") as string || "Lokal",
       size: formData.get("size") as string,
       qty: Number(formData.get("qty")),
       notes: formData.get("notes") as string | undefined,

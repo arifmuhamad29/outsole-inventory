@@ -20,6 +20,7 @@ export const InventoryService = {
           size: data.size,
           poNumber: data.poNumber || "-",
           bottomTreatment: data.bottomTreatment || "None",
+          soleType: data.soleType || "Lokal",
         }
       })
 
@@ -38,6 +39,7 @@ export const InventoryService = {
             size: data.size,
             poNumber: data.poNumber || "-",
             bottomTreatment: data.bottomTreatment || "None",
+            soleType: data.soleType || "Lokal",
             notes: data.notes || null,
             stock: data.qty,
           }

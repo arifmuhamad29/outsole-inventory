@@ -6,6 +6,7 @@ export const inboundSchema = z.object({
   color: z.string().min(1, "Color is required").toUpperCase(),
   poNumber: z.string().optional().default("-"),
   bottomTreatment: z.enum(["Spray", "Spackle", "Marble", "None"]).default("None"),
+  soleType: z.enum(["Lokal", "Import", "After Stockfit"]).default("Lokal"),
   size: z.string().min(1, "Size is required"),
   qty: z.coerce.number().int().positive("Quantity must be greater than zero"),
   notes: z.string().optional()
