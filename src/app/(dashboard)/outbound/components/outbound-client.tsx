@@ -121,12 +121,12 @@ export function OutboundClient({ outsoles }: { outsoles: Outsole[] }) {
         </div>
         
         <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-          <PopoverTrigger asChild>
+          <PopoverTrigger render={
             <Button variant="outline" className="gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/50">
               <Search className="h-4 w-4" />
               Pencarian Manual
             </Button>
-          </PopoverTrigger>
+          } />
           <PopoverContent className="w-[320px] sm:w-[500px] p-0" align="end">
             <Command filter={(value, search) => {
               const item = outsoles.find(o => o.id === value)
