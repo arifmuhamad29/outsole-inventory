@@ -97,7 +97,7 @@ export function DashboardActions({ item, isAdmin }: {
             <PrintableLabel 
               qrCode={item.qrCode} 
               model={item.model} 
-              article={item.article} 
+              article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")} 
               color={item.color} 
               size={item.size} 
               poNumber={item.poNumber ? String(item.poNumber) : undefined}
@@ -167,7 +167,7 @@ export function DashboardActions({ item, isAdmin }: {
           <PrintableLabel 
             qrCode={item.qrCode} 
             model={item.model} 
-            article={item.article} 
+            article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")} 
             color={item.color} 
             size={item.size} 
             poNumber={item.poNumber ? String(item.poNumber) : undefined}

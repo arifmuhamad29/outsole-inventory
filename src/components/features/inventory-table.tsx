@@ -321,7 +321,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                   <PrintableLabel
                     qrCode={item.qrCode}
                     model={item.model}
-                    article={item.article}
+                    article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")}
                     color={item.color}
                     size={item.size}
                     poNumber={item.poNumber ? String(item.poNumber) : undefined}
@@ -399,7 +399,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                   )}
                   <TableCell>{item.poNumber || "-"}</TableCell>
                   <TableCell>{item.model}</TableCell>
-                  <TableCell>{item.article}</TableCell>
+                  <TableCell>{item.article}{item.component && item.component !== "-" ? ` - ${item.component}` : ""}</TableCell>
                   <TableCell>{item.color}</TableCell>
                   <TableCell>{item.bottomTreatment && item.bottomTreatment !== "None" ? item.bottomTreatment : "-"}</TableCell>
                   <TableCell>{item.size}</TableCell>
