@@ -29,7 +29,8 @@ export async function processInboundAction(formData: FormData) {
       color: formData.get("color") as string,
       poNumber: formData.get("poNumber") as string || "-",
       bottomTreatment: formData.get("bottomTreatment") as string || "None",
-      soleType: formData.get("soleType") as string || "Lokal",
+      soleType: formData.get("soleType") as string || "Unisole",
+      component: formData.get("component") as string || "-",
       size: formData.get("size") as string,
       qty: Number(formData.get("qty")),
       notes: formData.get("notes") as string | undefined,
@@ -160,7 +161,8 @@ export async function processBulkInboundAction(rows: unknown[]) {
             size: row.Size.trim().toUpperCase(),
             poNumber: row.PONumber || "-",
             bottomTreatment: row.BottomTreatment || "None",
-            soleType: row.Type || "Lokal",
+            soleType: row.Type || "Unisole",
+            component: row.Component || "-",
           }
         })
 

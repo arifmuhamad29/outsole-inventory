@@ -33,10 +33,11 @@ interface CsvRow {
   PONumber?: string
   BottomTreatment?: string
   Type?: string
+  Component?: string
   Notes?: string
 }
 
-const CSV_HEADERS = ["Model", "Article", "Color", "Size", "Stock", "PONumber", "BottomTreatment", "Type", "Notes"]
+const CSV_HEADERS = ["Model", "Article", "Color", "Size", "Stock", "PONumber", "BottomTreatment", "Type", "Component", "Notes"]
 
 export function BulkInbound() {
   const [isOpen, setIsOpen] = useState(false)
@@ -54,8 +55,8 @@ export function BulkInbound() {
 
   const handleDownloadTemplate = () => {
     const csvContent = CSV_HEADERS.join(",") + "\n" +
-      "VL COURT 3.0 M,HP4549,ADPS AMBER GUM,5T,10,5703000135,None,Lokal,Sample row\n" +
-      "LITERACER ADAPT 8.0 INF,LB3072,A0QM CORE BLACK,3K,5,5703000136,Spray,After Stockfit,\n"
+      "VL COURT 3.0 M,HP4549,ADPS AMBER GUM,5T,10,5703000135,None,Unisole,-,Sample row\n" +
+      "LITERACER ADAPT 8.0 INF,LB3072,A0QM CORE BLACK,3K,5,5703000136,Spray,Component,MIDSOLE,\n"
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)

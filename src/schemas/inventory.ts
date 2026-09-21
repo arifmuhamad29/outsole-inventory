@@ -6,7 +6,8 @@ export const inboundSchema = z.object({
   color: z.string().min(1, "Color is required").toUpperCase(),
   poNumber: z.string().optional().default("-"),
   bottomTreatment: z.enum(["Spray", "Spackle", "Marble", "None"]).default("None"),
-  soleType: z.enum(["Lokal", "Import", "After Stockfit"]).default("Lokal"),
+  soleType: z.enum(["Lokal", "Import", "After Stockfit", "Unisole", "Component"]).default("Unisole"),
+  component: z.string().optional().default("-"),
   size: z.string().min(1, "Size is required"),
   qty: z.coerce.number().int().positive("Quantity must be greater than zero"),
   notes: z.string().optional()
@@ -49,7 +50,8 @@ export const bulkRowSchema = z.object({
   Stock: z.preprocess((val) => Number(val), z.number().int().min(1, "Stock must be at least 1")),
   PONumber: z.string().optional().default("-"),
   BottomTreatment: z.enum(["Spray", "Spackle", "Marble", "None"]).optional().default("None"),
-  Type: z.enum(["Lokal", "Import", "After Stockfit"]).optional().default("Lokal"),
+  Type: z.enum(["Lokal", "Import", "After Stockfit", "Unisole", "Component"]).optional().default("Unisole"),
+  Component: z.string().optional().default("-"),
   Notes: z.string().optional(),
 })
 
