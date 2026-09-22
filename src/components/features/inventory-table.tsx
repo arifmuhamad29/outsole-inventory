@@ -449,19 +449,6 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                   )}
                   {!readOnly && (
                     <TableCell>
-                      <div className="flex justify-center">
-                        <Input 
-                          type="number" 
-                          min={1} 
-                          value={printQtys[item.id] || 1} 
-                          onChange={(e) => handlePrintQtyChange(item.id, parseInt(e.target.value) || 1)}
-                          className="w-16 h-8 text-center px-1"
-                        />
-                      </div>
-                    </TableCell>
-                  )}
-                  {!readOnly && (
-                    <TableCell>
                       <DashboardActions item={item} isAdmin={isAdmin} />
                     </TableCell>
                   )}
