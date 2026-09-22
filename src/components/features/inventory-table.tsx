@@ -342,12 +342,12 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
             </Button>
             {isAdmin && (
               <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
-                <AlertDialogTrigger asChild>
+                <AlertDialogTrigger render={
                   <Button variant="destructive">
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete ({selectedItems.length})
                   </Button>
-                </AlertDialogTrigger>
+                } />
                 <AlertDialogContent>
                   <form onSubmit={handleBulkDelete}>
                     <AlertDialogHeader>

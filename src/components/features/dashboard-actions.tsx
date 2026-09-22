@@ -39,11 +39,11 @@ export function DashboardActions({ item, isAdmin }: {
       <div className="flex items-center gap-2 print:hidden justify-center">
         {/* Print QR Dialog */}
         <Dialog open={isPrintOpen} onOpenChange={setIsPrintOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button variant="outline" size="sm" title="Print QR">
               <Printer className="h-4 w-4" />
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent className="sm:max-w-[400px] print:hidden">
             <DialogHeader>
               <DialogTitle>Print QR Code</DialogTitle>
