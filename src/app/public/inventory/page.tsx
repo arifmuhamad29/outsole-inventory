@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { DebouncedSearch } from "@/components/ui/DebouncedSearch"
 import { StatusFilter } from "@/components/ui/StatusFilter"
+import { RowsPerPageFilter } from "@/components/ui/RowsPerPageFilter"
 import { PaginationControls } from "@/components/ui/PaginationControls"
 import { Suspense } from "react"
 import { InventoryTable } from "@/components/features/inventory-table"
@@ -12,6 +13,7 @@ export default async function PublicInventoryPage(props: {
   searchParams?: Promise<{ 
     search?: string | string[]
     page?: string | string[]
+    limit?: string | string[]
     status?: string | string[] 
   }> 
 }) {
@@ -46,7 +48,8 @@ export default async function PublicInventoryPage(props: {
     whereClause.stock = { gt: prisma.outsole.fields.minimumStock }
   }
 
-  const limit = 25
+  const rawLimit = resolvedParams.limit
+  const limit = typeof rawLimit === 'string' ? Math.max(1, parseInt(rawLimit) || 48) : 48
   const skip = (currentPage - 1) * limit
 
   // 1. Fetch paginated outsoles and total count concurrently using prisma.$transaction
@@ -112,6 +115,9 @@ export default async function PublicInventoryPage(props: {
           </Suspense>
           <Suspense fallback={<div className="animate-pulse h-9 w-full sm:w-36 bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
             <StatusFilter />
+          </Suspense>
+          <Suspense fallback={<div className="animate-pulse h-9 w-[80px] bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
+            <RowsPerPageFilter />
           </Suspense>
         </div>
       </div>
