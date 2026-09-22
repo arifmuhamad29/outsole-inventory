@@ -22,6 +22,7 @@ import {
 import { Outsole, Transaction } from "@prisma/client"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Printer, Loader2, History, ArrowUpCircle, ArrowDownCircle, Settings2, Share2 } from "lucide-react"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -50,6 +51,7 @@ export interface InventoryTableProps {
 
 export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: InventoryTableProps) {
   const [selectedItems, setSelectedItems] = useState<OutsoleWithTransactions[]>([])
+  const [printQtys, setPrintQtys] = useState<Record<string, number>>({})
   const [isPrinting, setIsPrinting] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -70,6 +72,10 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     } else {
       setSelectedItems([])
     }
+  }
+
+  const handlePrintQtyChange = (id: string, qty: number) => {
+    setPrintQtys(prev => ({ ...prev, [id]: qty }))
   }
 
   const handleSelectRow = (checked: boolean, item: OutsoleWithTransactions) => {
@@ -245,7 +251,10 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }
     return chunks
   }
-  const barcodePages = chunkArray(selectedItems, 16)
+  const expandedItems = selectedItems.flatMap(item => 
+    Array.from({ length: printQtys[item.id] || 1 }).map(() => item)
+  )
+  const barcodePages = chunkArray(expandedItems, 16)
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -362,6 +371,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
               <TableHead>Last Outbound</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead>Status</TableHead>
+              {!readOnly && <TableHead className="text-center">Print Qty</TableHead>}
               {!readOnly && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -424,6 +434,32 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
                       </Badge>
                     )}
                   </TableCell>
+                  {!readOnly && (
+                    <TableCell>
+                      <div className="flex justify-center">
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          value={printQtys[item.id] || 1} 
+                          onChange={(e) => handlePrintQtyChange(item.id, parseInt(e.target.value) || 1)}
+                          className="w-16 h-8 text-center px-1"
+                        />
+                      </div>
+                    </TableCell>
+                  )}
+                  {!readOnly && (
+                    <TableCell>
+                      <div className="flex justify-center">
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          value={printQtys[item.id] || 1} 
+                          onChange={(e) => handlePrintQtyChange(item.id, parseInt(e.target.value) || 1)}
+                          className="w-16 h-8 text-center px-1"
+                        />
+                      </div>
+                    </TableCell>
+                  )}
                   {!readOnly && (
                     <TableCell>
                       <DashboardActions item={item} isAdmin={isAdmin} />
