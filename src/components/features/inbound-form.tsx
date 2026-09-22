@@ -37,6 +37,7 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
   const [componentValue, setComponentValue] = useState("RUBBER")
 
   const [mounted, setMounted] = useState(false)
+  const [printQty, setPrintQty] = useState(1)
 
   useEffect(() => {
     setMounted(true)
@@ -303,27 +304,51 @@ export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }
               createdAt={outsoleData.createdAt as Date}
               notes={outsoleData.notes as string}
             />
-            <Button type="button" variant="outline" onClick={() => window.print()} className="no-print">
-              Print Label
-            </Button>
+            <div className="flex items-center gap-4 w-full justify-center max-w-xs no-print mt-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Copy:</label>
+                <Input 
+                  type="number" 
+                  min={1} 
+                  value={printQty} 
+                  onChange={(e) => setPrintQty(parseInt(e.target.value) || 1)}
+                  className="w-20"
+                />
+              </div>
+              <Button type="button" variant="outline" onClick={() => window.print()}>
+                Print Label
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Actual printable content rendered via Portal directly into body to prevent any layout interference */}
       {generatedQR && outsoleData && mounted && createPortal(
-        <div className="print-container hidden print:flex flex-col items-center justify-start w-full absolute top-0 left-0 bg-white z-[9999]">
-          <PrintableLabel 
-            qrCode={generatedQR} 
-            model={String(outsoleData.model)} 
-            article={String(outsoleData.article)} 
-            color={String(outsoleData.color)} 
-            size={String(outsoleData.size)} 
-            poNumber={outsoleData.poNumber ? String(outsoleData.poNumber) : undefined}
-            bottomTreatment={outsoleData.bottomTreatment ? String(outsoleData.bottomTreatment) : undefined}
-            createdAt={outsoleData.createdAt as Date}
-            notes={outsoleData.notes as string}
-          />
+        <div className="print-container hidden print:block w-full absolute top-0 left-0 bg-white z-[9999]">
+          {chunkArray(Array.from({ length: printQty }), 16).map((pageItems, pageIndex) => (
+            <div
+              key={pageIndex}
+              className="w-full min-h-screen p-2 grid grid-cols-4 gap-x-2 gap-y-2 content-start"
+              style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+            >
+              {pageItems.map((_, idx) => (
+                <div key={idx} className="border border-gray-200 p-2 rounded-md flex flex-col items-center justify-center bg-white text-black text-center estimation-box">
+                  <PrintableLabel 
+                    qrCode={generatedQR} 
+                    model={String(outsoleData.model)} 
+                    article={String(outsoleData.article)} 
+                    color={String(outsoleData.color)} 
+                    size={String(outsoleData.size)} 
+                    poNumber={outsoleData.poNumber ? String(outsoleData.poNumber) : undefined}
+                    bottomTreatment={outsoleData.bottomTreatment ? String(outsoleData.bottomTreatment) : undefined}
+                    createdAt={outsoleData.createdAt as Date}
+                    notes={outsoleData.notes as string}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
         </div>,
         document.body
       )}

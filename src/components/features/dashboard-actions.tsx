@@ -26,6 +26,14 @@ import {
 } from "@/components/ui/dialog"
 import { Printer, Trash2 } from "lucide-react"
 
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const chunks: T[][] = []
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size))
+  }
+  return chunks
+}
+
 export function DashboardActions({ item, isAdmin }: { 
   item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, notes?: string | null, createdAt?: Date | string, component?: string | null }, 
   isAdmin: boolean 
@@ -36,6 +44,7 @@ export function DashboardActions({ item, isAdmin }: {
   const [message, setMessage] = useState<{ text: string, type: "success" | "error" } | null>(null)
   
   const [isPrintOpen, setIsPrintOpen] = useState(false)
+  const [printQty, setPrintQty] = useState(1)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -106,7 +115,17 @@ export function DashboardActions({ item, isAdmin }: {
               notes={item.notes ? String(item.notes) : undefined}
             />
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center mt-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Copy:</label>
+              <Input 
+                type="number" 
+                min={1} 
+                value={printQty} 
+                onChange={(e) => setPrintQty(parseInt(e.target.value) || 1)}
+                className="w-20"
+              />
+            </div>
             <Button onClick={() => window.print()}>
               Print Label
             </Button>
@@ -163,18 +182,30 @@ export function DashboardActions({ item, isAdmin }: {
 
       {/* Actual printable content rendered via Portal directly into body to prevent any layout interference */}
       {isPrintOpen && mounted && createPortal(
-        <div className="print-container hidden print:flex flex-col items-center justify-start w-full absolute top-0 left-0 bg-white z-[9999]">
-          <PrintableLabel 
-            qrCode={item.qrCode} 
-            model={item.model} 
-            article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")} 
-            color={item.color} 
-            size={item.size} 
-            poNumber={item.poNumber ? String(item.poNumber) : undefined}
-            bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
-            createdAt={item.createdAt}
-            notes={item.notes ? String(item.notes) : undefined}
-          />
+        <div className="print-container hidden print:block w-full absolute top-0 left-0 bg-white z-[9999]">
+          {chunkArray(Array.from({ length: printQty }), 16).map((pageItems, pageIndex) => (
+            <div
+              key={pageIndex}
+              className="w-full min-h-screen p-2 grid grid-cols-4 gap-x-2 gap-y-2 content-start"
+              style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+            >
+              {pageItems.map((_, idx) => (
+                <div key={idx} className="border border-gray-200 p-2 rounded-md flex flex-col items-center justify-center bg-white text-black text-center estimation-box">
+                  <PrintableLabel 
+                    qrCode={item.qrCode} 
+                    model={item.model} 
+                    article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")} 
+                    color={item.color} 
+                    size={item.size} 
+                    poNumber={item.poNumber ? String(item.poNumber) : undefined}
+                    bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
+                    createdAt={item.createdAt}
+                    notes={item.notes ? String(item.notes) : undefined}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
         </div>,
         document.body
       )}
