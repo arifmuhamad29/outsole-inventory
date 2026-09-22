@@ -6,17 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -37,11 +26,6 @@ export function DashboardActions({ item, isAdmin }: {
   item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, notes?: string | null, createdAt?: Date | string, component?: string | null }, 
   isAdmin: boolean 
 }) {
-  
-  
-  
-  
-  
   const [isPrintOpen, setIsPrintOpen] = useState(false)
   const [printQty, setPrintQty] = useState(1)
   const [mounted, setMounted] = useState(false)
@@ -50,62 +34,51 @@ export function DashboardActions({ item, isAdmin }: {
     setMounted(true)
   }, [])
 
-      setIsDeleting(false)
-  }
-
   return (
     <>
-      <div className="flex items-center gap-2 print:hidden">
-      {message && !isOpen && (
-        <span className={`text-xs ${message.type === "error" ? "text-red-500" : "text-green-600"}`}>
-          {message.text}
-        </span>
-      )}
-
-      {/* Print QR Dialog */}
-      <Dialog open={isPrintOpen} onOpenChange={setIsPrintOpen}>
-        <DialogTrigger render={
-          <Button variant="outline" size="sm" title="Print QR">
-            <Printer className="h-4 w-4" />
-          </Button>
-        } />
-        <DialogContent className="sm:max-w-[400px] print:hidden">
-          <DialogHeader>
-            <DialogTitle>Print QR Code</DialogTitle>
-          </DialogHeader>
-          {/* We keep a preview here but it won't be printed */}
-          <div className="p-4 border rounded-md">
-            <PrintableLabel 
-              qrCode={item.qrCode} 
-              model={item.model} 
-              article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")} 
-              color={item.color} 
-              size={item.size} 
-              poNumber={item.poNumber ? String(item.poNumber) : undefined}
-              bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
-              createdAt={item.createdAt}
-              notes={item.notes ? String(item.notes) : undefined}
-            />
-          </div>
-          <div className="flex justify-between items-center mt-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Copy:</label>
-              <Input 
-                type="number" 
-                min={1} 
-                value={printQty} 
-                onChange={(e) => setPrintQty(parseInt(e.target.value) || 1)}
-                className="w-20"
+      <div className="flex items-center gap-2 print:hidden justify-center">
+        {/* Print QR Dialog */}
+        <Dialog open={isPrintOpen} onOpenChange={setIsPrintOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" title="Print QR">
+              <Printer className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[400px] print:hidden">
+            <DialogHeader>
+              <DialogTitle>Print QR Code</DialogTitle>
+            </DialogHeader>
+            {/* We keep a preview here but it won't be printed */}
+            <div className="p-4 border rounded-md">
+              <PrintableLabel 
+                qrCode={item.qrCode} 
+                model={item.model} 
+                article={item.article + (item.component && item.component !== "-" ? ` - ${item.component}` : "")} 
+                color={item.color} 
+                size={item.size} 
+                poNumber={item.poNumber ? String(item.poNumber) : undefined}
+                bottomTreatment={item.bottomTreatment ? String(item.bottomTreatment) : undefined}
+                createdAt={item.createdAt}
+                notes={item.notes ? String(item.notes) : undefined}
               />
             </div>
-            <Button onClick={() => window.print()}>
-              Print Label
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      
+            <div className="flex justify-between items-center mt-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Copy:</label>
+                <Input 
+                  type="number" 
+                  min={1} 
+                  value={printQty} 
+                  onChange={(e) => setPrintQty(parseInt(e.target.value) || 1)}
+                  className="w-20"
+                />
+              </div>
+              <Button onClick={() => window.print()}>
+                Print Label
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Actual printable content rendered via Portal directly into body to prevent any layout interference */}
