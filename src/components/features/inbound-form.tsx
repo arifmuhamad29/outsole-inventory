@@ -22,6 +22,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+  const chunks: T[][] = []
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size))
+  }
+  return chunks
+}
+
 export function InboundForm({ dynamicModels = [] }: { dynamicModels?: string[] }) {
   const mergedModels = Array.from(new Set([...dynamicModels])).sort();
 
