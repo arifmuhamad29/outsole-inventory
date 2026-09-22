@@ -297,6 +297,8 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }
   }
 
+  const totalBarcodes = selectedItems.reduce((acc, item) => acc + (printQtys[item.id] || 1), 0)
+
   return (
     <div className="space-y-4">
       {/* Bulk Actions */}
@@ -306,7 +308,7 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
           <div className="flex items-center gap-2">
             <Button variant="default" onClick={handleBulkPrint}>
               <Printer className="w-4 h-4 mr-2" />
-              Bulk Print ({selectedItems.length} Items)
+              Bulk Print ({selectedItems.length} Items, {totalBarcodes} Barcodes)
             </Button>
             <Button variant="outline" onClick={handleShareWhatsApp} disabled={isGeneratingPdf} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
               {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
