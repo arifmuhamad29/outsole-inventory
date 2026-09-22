@@ -4,7 +4,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { useState, useEffect, useTransition } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Loader2, Check } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export function RowsPerPageFilter() {
   const router = useRouter()
@@ -57,25 +57,25 @@ export function RowsPerPageFilter() {
               applyLimit()
             }
           }}
-          className="w-[80px] h-9 bg-white dark:bg-gray-800 text-slate-900 dark:text-slate-100 text-center px-2"
+          className="w-[70px] h-9 bg-white dark:bg-gray-800 text-slate-900 dark:text-slate-100 text-center px-2"
           min={1}
           disabled={isPending}
         />
-        {value !== currentLimit && !isPending && (
+        {!isPending ? (
           <Button 
-            size="icon" 
+            size="sm" 
             variant="default" 
-            className="w-9 h-9" 
+            className="h-9 px-3 font-semibold text-xs" 
             onClick={applyLimit}
+            disabled={value === currentLimit}
           >
-            <Check className="w-4 h-4" />
+            OK
           </Button>
-        )}
-        {isPending && (
+        ) : (
           <Button 
-            size="icon" 
+            size="sm" 
             variant="default" 
-            className="w-9 h-9"
+            className="h-9 px-3"
             disabled
           >
             <Loader2 className="w-4 h-4 animate-spin" />
