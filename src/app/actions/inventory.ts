@@ -114,6 +114,42 @@ export async function hardDeleteOutsoleAction(id: string, password?: string) {
   }
 }
 
+
+export async function hardDeleteBulkOutsoleAction(ids: string[], password?: string) {
+  try {
+    if (!password) return { success: false, message: "Password is required" }
+
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, message: "Unauthorized" }
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") return { success: false, message: "Forbidden: Only ADMIN/SUPER_ADMIN can delete permanently" }
+
+    // Use InventoryService sequentially or create a new method in InventoryService.
+    // For now, sequentially call hardDeleteOutsole to respect business logic inside InventoryService
+    let successCount = 0;
+    let failedCount = 0;
+    
+    for (const id of ids) {
+      try {
+        await InventoryService.hardDeleteOutsole(id, session.user.id, password)
+        successCount++
+      } catch (e) {
+        console.error("Failed to delete", id, e)
+        failedCount++
+      }
+    }
+
+    revalidatePath("/")
+    revalidatePath("/opname")
+    
+    if (failedCount > 0) {
+      return { success: true, message: `Deleted ${successCount} items. Failed to delete ${failedCount} items.` }
+    }
+    return { success: true, message: `Successfully deleted ${successCount} items.` }
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Failed to process bulk delete" }
+  }
+}
+
 export async function processBulkInboundAction(rows: unknown[]) {
   try {
     const session = await auth()

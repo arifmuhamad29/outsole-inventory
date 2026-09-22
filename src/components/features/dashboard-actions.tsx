@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { hardDeleteOutsoleAction } from "@/app/actions/inventory"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import {
   AlertDialog,
@@ -24,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Printer, Trash2 } from "lucide-react"
+import { Printer } from "lucide-react"
 
 const chunkArray = <T,>(arr: T[], size: number): T[][] => {
   const chunks: T[][] = []
@@ -38,10 +37,10 @@ export function DashboardActions({ item, isAdmin }: {
   item: { id: string, qrCode: string, model: string, article: string, color: string, size: string, poNumber?: string | null, bottomTreatment?: string | null, notes?: string | null, createdAt?: Date | string, component?: string | null }, 
   isAdmin: boolean 
 }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [password, setPassword] = useState("")
-  const [message, setMessage] = useState<{ text: string, type: "success" | "error" } | null>(null)
+  
+  
+  
+  
   
   const [isPrintOpen, setIsPrintOpen] = useState(false)
   const [printQty, setPrintQty] = useState(1)
@@ -51,34 +50,7 @@ export function DashboardActions({ item, isAdmin }: {
     setMounted(true)
   }, [])
 
-  const handleOpenChange = (open: boolean) => {
-    if (!isDeleting) {
-      setIsOpen(open)
-      if (!open) {
-        setPassword("")
-        setMessage(null)
-      }
-    }
-  }
-
-  const handleDelete = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!password || isDeleting) return
-
-    setIsDeleting(true)
-    setMessage(null)
-    
-    const res = await hardDeleteOutsoleAction(item.id, password)
-    
-    if (res.success) {
-      setMessage({ text: "Permanently deleted", type: "success" })
-      setIsOpen(false)
-      setPassword("")
-    } else {
-      setMessage({ text: res.message, type: "error" })
-    }
-    
-    setIsDeleting(false)
+      setIsDeleting(false)
   }
 
   return (
@@ -133,51 +105,7 @@ export function DashboardActions({ item, isAdmin }: {
         </DialogContent>
       </Dialog>
 
-      {/* Hard Delete (Admins only) */}
-      {isAdmin && (
-        <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-          <AlertDialogTrigger render={<Button variant="destructive" size="icon" title="Delete Item" disabled={isDeleting} />}>
-            {isDeleting ? "..." : <Trash2 className="h-4 w-4" />}
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <form onSubmit={handleDelete}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Permanent Deletion Warning</AlertDialogTitle>
-                <AlertDialogDescription className="text-red-600 font-medium">
-                  WARNING: This will permanently erase this model and all its associated records (transactions, opname items). This action cannot be undone. Are you sure?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              
-              <div className="py-4 space-y-2">
-                <Input 
-                  type="password" 
-                  placeholder="Enter Admin Password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isDeleting}
-                  required
-                />
-                {message && message.type === "error" && (
-                  <p className="text-sm text-red-500 font-medium">{message.text}</p>
-                )}
-              </div>
-              
-              <AlertDialogFooter>
-                <AlertDialogCancel type="button" disabled={isDeleting} onClick={() => setIsOpen(false)}>
-                  Cancel
-                </AlertDialogCancel>
-                <Button 
-                  type="submit" 
-                  variant="destructive"
-                  disabled={!password || isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete Permanently"}
-                </Button>
-              </AlertDialogFooter>
-            </form>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      
       </div>
 
       {/* Actual printable content rendered via Portal directly into body to prevent any layout interference */}

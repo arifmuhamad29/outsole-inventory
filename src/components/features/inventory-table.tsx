@@ -21,13 +21,15 @@ import {
 } from "@/components/ui/dialog"
 import { Outsole, Transaction } from "@prisma/client"
 import { Checkbox } from "@/components/ui/checkbox"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Printer, Loader2, History, ArrowUpCircle, ArrowDownCircle, Settings2, Share2 } from "lucide-react"
+import { Printer, Loader2, History, ArrowUpCircle, ArrowDownCircle, Settings2, Share2, Trash2 } from "lucide-react"
 import { PrintableLabel } from "@/components/ui/printable-label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { getItemTransactionHistory } from "@/app/actions/inventory"
+import { getItemTransactionHistory, hardDeleteBulkOutsoleAction } from "@/app/actions/inventory"
 
 type OutsoleWithTransactions = Outsole & {
   transactions?: Transaction[]
@@ -86,6 +88,31 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
     }
   }
 
+  
+  const handleBulkDelete = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!deletePassword || isBulkDeleting || selectedItems.length === 0) return
+
+    setIsBulkDeleting(true)
+    setDeleteMessage(null)
+
+    try {
+      const res = await hardDeleteBulkOutsoleAction(selectedItems.map(i => i.id), deletePassword)
+      if (res.success) {
+        toast.success(res.message)
+        setDeletePassword("")
+        setIsBulkDeleteOpen(false)
+        setSelectedItems([]) // Clear selection after delete
+      } else {
+        setDeleteMessage({ text: res.message, type: "error" })
+      }
+    } catch (err) {
+      setDeleteMessage({ text: "An unexpected error occurred", type: "error" })
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }
+
   const handleBulkPrint = () => {
     setIsPrinting(true)
     setTimeout(() => {
@@ -96,6 +123,10 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
   }
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteMessage, setDeleteMessage] = useState<{ text: string, type: "success" | "error" } | null>(null)
 
   const handleShareWhatsApp = async () => {
     setIsGeneratingPdf(true)
@@ -310,6 +341,53 @@ export function InventoryTable({ outsoles, isAdmin = false, readOnly = false }: 
               <Printer className="w-4 h-4 mr-2" />
               Bulk Print ({selectedItems.length} Items, {totalBarcodes} Barcodes)
             </Button>
+            {isAdmin && (
+              <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedItems.length})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <form onSubmit={handleBulkDelete}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Permanent Deletion Warning</AlertDialogTitle>
+                      <AlertDialogDescription className="text-red-600 font-medium">
+                        WARNING: This will permanently erase {selectedItems.length} selected items and all their associated records. This action cannot be undone. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 space-y-2">
+                      <Input 
+                        type="password" 
+                        placeholder="Enter Admin Password" 
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        disabled={isBulkDeleting}
+                        required
+                      />
+                      {deleteMessage && deleteMessage.type === "error" && (
+                        <p className="text-sm text-red-500 font-medium">{deleteMessage.text}</p>
+                      )}
+                    </div>
+                    
+                    <AlertDialogFooter>
+                      <AlertDialogCancel type="button" disabled={isBulkDeleting} onClick={() => setIsBulkDeleteOpen(false)}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <Button 
+                        type="submit" 
+                        variant="destructive"
+                        disabled={!deletePassword || isBulkDeleting}
+                      >
+                        {isBulkDeleting ? "Deleting..." : "Delete Permanently"}
+                      </Button>
+                    </AlertDialogFooter>
+                  </form>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <Button variant="outline" onClick={handleShareWhatsApp} disabled={isGeneratingPdf} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
               {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
               {isGeneratingPdf ? 'Generating...' : 'Send to WhatsApp'}
