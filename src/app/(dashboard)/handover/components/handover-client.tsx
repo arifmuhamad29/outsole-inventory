@@ -137,12 +137,14 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>
-                {!readOnly && (<Link href="/handover/new">
-                  <Button className="w-full sm:w-auto gap-2 bg-slate-900 hover:bg-slate-800 text-white">
-                    <Plus className="w-4 h-4" />
-                    Buat Handover Baru
-                  </Button>
-                </Link>
+                {!readOnly && (
+                  <Link href="/handover/new">
+                    <Button className="w-full sm:w-auto gap-2 bg-slate-900 hover:bg-slate-800 text-white">
+                      <Plus className="w-4 h-4" />
+                      Buat Handover Baru
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
