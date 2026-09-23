@@ -193,8 +193,7 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
           })
         }
       }
-    })
-
+    }, { timeout: 60000, maxWait: 10000 })
     revalidatePath("/(dashboard)/handover")
     revalidatePath("/(dashboard)/bpm-tfm")
 
@@ -278,8 +277,7 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
       await tx.handover.delete({
         where: { id }
       })
-    })
-
+    }, { timeout: 60000, maxWait: 10000 })
     revalidatePath("/(dashboard)/handover")
     revalidatePath("/(dashboard)/bpm-tfm")
 
@@ -387,8 +385,7 @@ export async function submitOutsoleHandoverAction(data: OutsoleHandoverScannerPa
           }
         })
       }
-    });
-
+    }, { timeout: 60000, maxWait: 10000 });
     revalidatePath("/handover");
     revalidatePath("/inventory");
 
