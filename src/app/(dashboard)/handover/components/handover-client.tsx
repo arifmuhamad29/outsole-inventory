@@ -35,7 +35,7 @@ import {
 import { deleteHandoverAction } from "@/app/actions/handover"
 import { PrintableHandover } from "@/components/ui/printable-handover"
 
-export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[], outsoleData: any[] }) {
+export function HandoverClient({ toolingData, outsoleData, readOnly = false }: { toolingData: any[], outsoleData: any[], readOnly?: boolean }) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
@@ -58,7 +58,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
     }
   }, [printHandover])
 
-  const canDelete = session?.user?.role === "SUPER_ADMIN"
+  const canDelete = !readOnly && session?.user?.role === "SUPER_ADMIN"
 
   const confirmDelete = (id: string, e: React.MouseEvent) => {
     e.preventDefault() // Prevent navigation if wrapped in link
@@ -137,7 +137,7 @@ export function HandoverClient({ toolingData, outsoleData }: { toolingData: any[
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>
-                <Link href="/handover/new">
+                {!readOnly && (<Link href="/handover/new">
                   <Button className="w-full sm:w-auto gap-2 bg-slate-900 hover:bg-slate-800 text-white">
                     <Plus className="w-4 h-4" />
                     Buat Handover Baru

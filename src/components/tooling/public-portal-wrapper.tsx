@@ -5,7 +5,8 @@ import { PublicToolingView } from "@/components/tooling/public-tooling-view"
 import { PublicBpmTfmView } from "@/components/bpm-tfm/public-bpm-tfm-view"
 import { PublicTrackingView } from "@/components/tracking/public-tracking-view"
 import { PublicShoeLastView } from "@/components/lasts/public-lasts-view"
-import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers, ShoppingCart, Footprints } from "lucide-react"
+import { PublicHandoverView } from "@/components/handover/public-handover-view"
+import { Package, Wrench, ChevronDown, ChevronUp, Menu, Layers, ShoppingCart, Footprints, Send } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -86,6 +87,17 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
               >
                 <ShoppingCart className="w-4 h-4 shrink-0" />
                 Purchase Tracking
+              </button>
+              <button
+                onClick={() => handleTabChange("handover")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "handover" 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Send className="w-4 h-4 shrink-0" />
+                Handover History
               </button>
               <button
                 onClick={() => handleTabChange("lasts")}
