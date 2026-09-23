@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { getHandoversAction } from "@/app/actions/handover"
 import { HandoverClient } from "@/app/(dashboard)/handover/components/handover-client"
 import { Loader2 } from "lucide-react"
+import { SessionProvider } from "next-auth/react"
 
 export function PublicHandoverView() {
   const [handovers, setHandovers] = useState<Array<{ items: Array<{ toolName: string }> }>>([])
@@ -48,11 +49,13 @@ export function PublicHandoverView() {
         </p>
       </div>
       
-      <HandoverClient 
-        toolingData={toolingHandovers} 
-        outsoleData={outsoleHandovers} 
-        readOnly={true}
-      />
+      <SessionProvider>
+        <HandoverClient 
+          toolingData={toolingHandovers} 
+          outsoleData={outsoleHandovers} 
+          readOnly={true}
+        />
+      </SessionProvider>
     </div>
   )
 }
