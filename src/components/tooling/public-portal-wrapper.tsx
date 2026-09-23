@@ -99,7 +99,18 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
                 <Send className="w-4 h-4 shrink-0" />
                 Handover History
               </button>
-              <button
+                          <button
+              onClick={() => handleTabChange("handover")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "handover" 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <Send className="w-4 h-4 shrink-0" />
+              Handover History
+            </button>
+<button
                 onClick={() => handleTabChange("lasts")}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
                   activeTab === "lasts" 
