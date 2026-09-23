@@ -6,7 +6,7 @@ import { HandoverClient } from "@/app/(dashboard)/handover/components/handover-c
 import { Loader2 } from "lucide-react"
 
 export function PublicHandoverView() {
-  const [handovers, setHandovers] = useState<any[]>([])
+  const [handovers, setHandovers] = useState<unknown[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -34,8 +34,8 @@ export function PublicHandoverView() {
   }
 
   // Separate handovers by type
-  const toolingHandovers = handovers.filter(h => h.items.every((i: any) => i.toolName !== "Outsole"))
-  const outsoleHandovers = handovers.filter(h => h.items.some((i: any) => i.toolName === "Outsole"))
+  const toolingHandovers = handovers.filter(h => h.items.every((i: unknown) => i.toolName !== "Outsole"))
+  const outsoleHandovers = handovers.filter(h => h.items.some((i: unknown) => i.toolName === "Outsole"))
 
   return (
     <div className="space-y-4">

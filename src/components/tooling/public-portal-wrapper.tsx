@@ -193,6 +193,9 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
         <div className={activeTab === "lasts" ? "block animate-in fade-in zoom-in-95 duration-300" : "hidden"}>
           <PublicShoeLastView />
         </div>
+        <div className={activeTab === "handover" ? "block animate-in fade-in zoom-in-95 duration-300" : "hidden"}>
+          <PublicHandoverView />
+        </div>
       </div>
     </div>
   )
