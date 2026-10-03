@@ -78,7 +78,7 @@ export function PrintableHandover({ handover }: { handover: any }) {
           <tr className="bg-gray-100">
             <th className="border border-black p-2 w-12 text-center">No</th>
             {!isOutsole && <th className="border border-black p-2 text-left">Tool Name</th>}
-            <th className="border border-black p-2 text-left">{isOutsole ? "Item (Model - Article - Color)" : "Type"}</th>
+            <th className="border border-black p-2 text-left">{isOutsole ? "Item (Model - Article - Color)" : "Type/Model"}</th>
             {isOutsole && <th className="border border-black p-2 text-center">Gender</th>}
             {isOutsole && <th className="border border-black p-2 text-center">Size</th>}
             <th className="border border-black p-2 text-center">{isOutsole ? "Stage" : "Size"}</th>
@@ -100,7 +100,7 @@ export function PrintableHandover({ handover }: { handover: any }) {
                 </>
               ) : (
                 <>
-                  <td className="border border-black p-2">{item.type || "-"}</td>
+                  <td className="border border-black p-2">{item.type || (handover.modelName !== "-" ? handover.modelName : null) || (handover.codeLast !== "-" ? handover.codeLast : null) || "-"}</td>
                   <td className="border border-black p-2 text-center">{item.size || "-"}</td>
                 </>
               )}
