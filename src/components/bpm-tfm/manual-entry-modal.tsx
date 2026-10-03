@@ -124,7 +124,16 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
 
   const handleSave = () => {
     setErrorMsg("")
-    const payload: any[] = []
+    const payload: {
+      toolName: string
+      type: string
+      size: string
+      devStock: number
+      modelName?: string
+      gender?: string
+      satuan?: string
+      remark?: string
+    }[] = []
 
     if (selectedTool === "BPM & VAMP PRESS") {
       if (!codeLast.trim()) {
