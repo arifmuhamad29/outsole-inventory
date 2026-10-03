@@ -17,11 +17,13 @@ export async function getRealTimeStock(
   try {
     const stockRecord = await prisma.bpmTfmStock.findUnique({
       where: {
-        codeLast_toolName_type_size: {
+        codeLast_toolName_type_size_modelName_gender: {
           codeLast: codeLast.trim(),
           toolName: toolName.trim().toUpperCase(),
           type: type.trim().toUpperCase(),
           size: size.trim().toUpperCase(),
+          modelName: "-",
+          gender: "-",
         },
       },
       select: {
@@ -161,11 +163,13 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
           // Check if stock exists and is sufficient
           const stockRecord = await tx.bpmTfmStock.findUnique({
             where: {
-              codeLast_toolName_type_size: {
+              codeLast_toolName_type_size_modelName_gender: {
                 codeLast: codeLast.trim(),
                 toolName: item.toolName.trim().toUpperCase(),
                 type: (item.type || "").trim().toUpperCase(),
-                size: item.size.trim().toUpperCase()
+                size: item.size.trim().toUpperCase(),
+                modelName: "-",
+                gender: "-",
               }
             }
           })
@@ -180,11 +184,13 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
 
           await tx.bpmTfmStock.update({
             where: {
-              codeLast_toolName_type_size: {
+              codeLast_toolName_type_size_modelName_gender: {
                 codeLast: codeLast.trim(),
                 toolName: item.toolName.trim().toUpperCase(),
                 type: (item.type || "").trim().toUpperCase(),
-                size: item.size.trim().toUpperCase()
+                size: item.size.trim().toUpperCase(),
+                modelName: "-",
+                gender: "-",
               }
             },
             data: {
