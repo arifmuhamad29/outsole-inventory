@@ -214,14 +214,20 @@ model ToolingPhase {
 
 model BpmTfmStock {
   id        String   @id @default(cuid())
-  codeLast  String
+  codeLast  String   @default("-")
   toolName  String
   type      String   @default("")
   size      String
   devStock  Int      @default(0)
+  
+  modelName String   @default("-")
+  gender    String   @default("-")
+  satuan    String   @default("SET")
+  remark    String?
+
   updatedAt DateTime @updatedAt
 
-  @@unique([codeLast, toolName, type, size])
+  @@unique([codeLast, toolName, type, size, modelName, gender])
   @@index([codeLast])
 }
 

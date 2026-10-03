@@ -56,11 +56,13 @@ export async function importBpmTfmFlatCSVAction(
       for (const record of validRecords) {
         await tx.bpmTfmStock.upsert({
           where: {
-            codeLast_toolName_type_size: {
+            codeLast_toolName_type_size_modelName_gender: {
               codeLast: record.codeLast,
               toolName: record.toolName,
               type: record.type,
               size: record.size,
+              modelName: "-",
+              gender: "-",
             },
           },
           update: {
@@ -72,6 +74,8 @@ export async function importBpmTfmFlatCSVAction(
             type: record.type,
             size: record.size,
             devStock: record.devStock,
+            modelName: "-",
+            gender: "-",
           },
         })
       }
@@ -112,7 +116,7 @@ export async function deleteBpmTfmStockAction(id: string) {
 
 export async function addBpmTfmBatchAction(
   codeLast: string,
-  items: { toolName: string; type: string; size: string; devStock: number }[]
+  items: { toolName: string; type: string; size: string; devStock: number; modelName?: string; gender?: string; satuan?: string; remark?: string }[]
 ) {
   try {
     const session = await auth()
@@ -131,22 +135,30 @@ export async function addBpmTfmBatchAction(
       for (const item of validItems) {
         await tx.bpmTfmStock.upsert({
           where: {
-            codeLast_toolName_type_size: {
-              codeLast: codeLast.trim(),
+            codeLast_toolName_type_size_modelName_gender: {
+              codeLast: codeLast.trim() || "-",
               toolName: item.toolName.trim().toUpperCase(),
               type: item.type.trim().toUpperCase(),
               size: item.size.trim().toUpperCase(),
+              modelName: item.modelName?.trim() || "-",
+              gender: item.gender?.trim() || "-",
             },
           },
           update: {
             devStock: item.devStock,
+            satuan: item.satuan || "SET",
+            remark: item.remark || null,
           },
           create: {
-            codeLast: codeLast.trim(),
+            codeLast: codeLast.trim() || "-",
             toolName: item.toolName.trim().toUpperCase(),
             type: item.type.trim().toUpperCase(),
             size: item.size.trim().toUpperCase(),
             devStock: item.devStock,
+            modelName: item.modelName?.trim() || "-",
+            gender: item.gender?.trim() || "-",
+            satuan: item.satuan || "SET",
+            remark: item.remark || null,
           },
         })
       }
