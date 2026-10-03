@@ -59,6 +59,12 @@ export function PrintableHandover({ handover }: { handover: any }) {
         <div>
           <div className="flex mb-1"><span className="w-32 font-semibold">No. Handover</span><span>: {handover.id}</span></div>
           <div className="flex mb-1"><span className="w-32 font-semibold">Tanggal</span><span>: {format(new Date(handover.date), "dd MMM yyyy")}</span></div>
+          {!isOutsole && handover.codeLast && handover.codeLast !== "-" && (
+            <div className="flex mb-1"><span className="w-32 font-semibold">Code Last</span><span>: {handover.codeLast}</span></div>
+          )}
+          {!isOutsole && handover.modelName && handover.modelName !== "-" && (
+            <div className="flex mb-1"><span className="w-32 font-semibold">Model Sepatu</span><span>: {handover.modelName}</span></div>
+          )}
         </div>
         <div>
           <div className="flex mb-1"><span className="w-32 font-semibold">Pemberi</span><span>: {handover.giver}</span></div>
@@ -72,7 +78,7 @@ export function PrintableHandover({ handover }: { handover: any }) {
           <tr className="bg-gray-100">
             <th className="border border-black p-2 w-12 text-center">No</th>
             {!isOutsole && <th className="border border-black p-2 text-left">Tool Name</th>}
-            <th className="border border-black p-2 text-left">{isOutsole ? "Item (Model - Article - Color)" : "Type/Model"}</th>
+            <th className="border border-black p-2 text-left">{isOutsole ? "Item (Model - Article - Color)" : "Type"}</th>
             {isOutsole && <th className="border border-black p-2 text-center">Gender</th>}
             {isOutsole && <th className="border border-black p-2 text-center">Size</th>}
             <th className="border border-black p-2 text-center">{isOutsole ? "Stage" : "Size"}</th>
