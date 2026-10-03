@@ -44,10 +44,10 @@ export default function BpmTfmPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Layers className="w-8 h-8" />
-            Stock BPM & TOE FORMING
+            Stock Inventory Tooling
           </h1>
           <p className="text-muted-foreground mt-1">
-            Master Data for BPM, TFM, and Universal Pad Stock.
+            Master Data untuk berbagai Tooling (BPM, Vamp Press, Gauge, dll) dan Universal Pad.
           </p>
         </div>
         {/* We moved the actions here if we want them separate from the table, but BpmTfmTable accepts actions prop. Let's pass them into the table to keep search and actions aligned. */}

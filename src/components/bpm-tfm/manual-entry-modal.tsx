@@ -17,16 +17,32 @@ import { Plus, Loader2, Package, Trash2 } from "lucide-react"
 
 interface SizeGroup {
   size: string
-  hotStock: number
-  chillerStock: number
-  tfmStock: number
+  bpmHot: number
+  bpmChiller: number
+  vampPress: number
+  topGauge: number
+  bottomGauge: number
+  screbline: number
+  gaugeSpring: number
+  gaugeMarking3d: number
+  socklinerPattern: number
+  topLast: number
+  padPress: number
 }
 
 const createInitialSizeGroup = (): SizeGroup => ({
   size: "",
-  hotStock: 0,
-  chillerStock: 0,
-  tfmStock: 0,
+  bpmHot: 0,
+  bpmChiller: 0,
+  vampPress: 0,
+  topGauge: 0,
+  bottomGauge: 0,
+  screbline: 0,
+  gaugeSpring: 0,
+  gaugeMarking3d: 0,
+  socklinerPattern: 0,
+  topLast: 0,
+  padPress: 0,
 })
 
 interface ManualEntryModalProps {
@@ -84,7 +100,11 @@ export function ManualEntryModal({ onSuccess }: ManualEntryModalProps) {
 
     // 1. Process Size Groups
     sizeGroups.forEach((group, index) => {
-      const hasStock = group.hotStock > 0 || group.chillerStock > 0 || group.tfmStock > 0
+      const hasStock = 
+        group.bpmHot > 0 || group.bpmChiller > 0 || group.vampPress > 0 ||
+        group.topGauge > 0 || group.bottomGauge > 0 || group.screbline > 0 ||
+        group.gaugeSpring > 0 || group.gaugeMarking3d > 0 || group.socklinerPattern > 0 ||
+        group.topLast > 0 || group.padPress > 0
 
       if (hasStock && !group.size.trim()) {
         setErrorMsg(`Size wajib diisi pada grup ke-${index + 1} karena memiliki stok > 0.`)
@@ -94,15 +114,17 @@ export function ManualEntryModal({ onSuccess }: ManualEntryModalProps) {
 
       if (!group.size.trim()) return // Skip empty sizes without stock
 
-      if (group.hotStock > 0) {
-        payload.push({ toolName: "BPM", type: "HOT", size: group.size, devStock: group.hotStock })
-      }
-      if (group.chillerStock > 0) {
-        payload.push({ toolName: "BPM", type: "CHILLER", size: group.size, devStock: group.chillerStock })
-      }
-      if (group.tfmStock > 0) {
-        payload.push({ toolName: "TFM", type: "", size: group.size, devStock: group.tfmStock })
-      }
+      if (group.bpmHot > 0) payload.push({ toolName: "BPM", type: "HOT", size: group.size, devStock: group.bpmHot })
+      if (group.bpmChiller > 0) payload.push({ toolName: "BPM", type: "CHILLER", size: group.size, devStock: group.bpmChiller })
+      if (group.vampPress > 0) payload.push({ toolName: "VAMP PRESS", type: "", size: group.size, devStock: group.vampPress })
+      if (group.topGauge > 0) payload.push({ toolName: "TOP GAUGE", type: "", size: group.size, devStock: group.topGauge })
+      if (group.bottomGauge > 0) payload.push({ toolName: "BOTTOM GAUGE", type: "", size: group.size, devStock: group.bottomGauge })
+      if (group.screbline > 0) payload.push({ toolName: "SCREBLINE", type: "", size: group.size, devStock: group.screbline })
+      if (group.gaugeSpring > 0) payload.push({ toolName: "GAUGE SPRING", type: "", size: group.size, devStock: group.gaugeSpring })
+      if (group.gaugeMarking3d > 0) payload.push({ toolName: "3D GAUGE MARKING (OTG)", type: "", size: group.size, devStock: group.gaugeMarking3d })
+      if (group.socklinerPattern > 0) payload.push({ toolName: "SOCKLINER PATTERN", type: "", size: group.size, devStock: group.socklinerPattern })
+      if (group.topLast > 0) payload.push({ toolName: "TOP LAST", type: "", size: group.size, devStock: group.topLast })
+      if (group.padPress > 0) payload.push({ toolName: "PAD PRESS", type: "", size: group.size, devStock: group.padPress })
     })
 
     if (hasValidationError) return
@@ -140,14 +162,14 @@ export function ManualEntryModal({ onSuccess }: ManualEntryModalProps) {
           New Entry
         </Button>
       } />
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="w-5 h-5 text-primary" />
-            Tambah Data BPM & TFM
+            Tambah Data Inventory Tooling
           </DialogTitle>
           <DialogDescription>
-            Tentukan ukuran (Size) lalu isi kuantitas stok untuk BPM HOT, BPM CHILLER, dan TFM sekaligus.
+            Tentukan ukuran (Size) lalu isi kuantitas stok untuk masing-masing tooling sekaligus.
           </DialogDescription>
         </DialogHeader>
 
@@ -202,47 +224,159 @@ export function ManualEntryModal({ onSuccess }: ManualEntryModalProps) {
                     </div>
 
                     {/* Stock Inputs Grid */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-amber-600 uppercase tracking-wider truncate">
                           BPM HOT
                         </label>
                         <Input
                           type="number"
                           min={0}
                           placeholder="0"
-                          value={group.hotStock === 0 ? "" : group.hotStock.toString()}
-                          onChange={(e) => updateSizeGroup(index, "hotStock", e.target.value)}
+                          value={group.bpmHot === 0 ? "" : group.bpmHot.toString()}
+                          onChange={(e) => updateSizeGroup(index, "bpmHot", e.target.value)}
                           disabled={isPending}
                           className="h-9 text-center font-semibold bg-white border-amber-200 focus-visible:ring-amber-500"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider truncate">
                           BPM CHILLER
                         </label>
                         <Input
                           type="number"
                           min={0}
                           placeholder="0"
-                          value={group.chillerStock === 0 ? "" : group.chillerStock.toString()}
-                          onChange={(e) => updateSizeGroup(index, "chillerStock", e.target.value)}
+                          value={group.bpmChiller === 0 ? "" : group.bpmChiller.toString()}
+                          onChange={(e) => updateSizeGroup(index, "bpmChiller", e.target.value)}
                           disabled={isPending}
                           className="h-9 text-center font-semibold bg-white border-blue-200 focus-visible:ring-blue-500"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                          TFM
+                        <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider truncate">
+                          VAMP PRESS
                         </label>
                         <Input
                           type="number"
                           min={0}
                           placeholder="0"
-                          value={group.tfmStock === 0 ? "" : group.tfmStock.toString()}
-                          onChange={(e) => updateSizeGroup(index, "tfmStock", e.target.value)}
+                          value={group.vampPress === 0 ? "" : group.vampPress.toString()}
+                          onChange={(e) => updateSizeGroup(index, "vampPress", e.target.value)}
                           disabled={isPending}
                           className="h-9 text-center font-semibold bg-white border-emerald-200 focus-visible:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider truncate">
+                          TOP GAUGE
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.topGauge === 0 ? "" : group.topGauge.toString()}
+                          onChange={(e) => updateSizeGroup(index, "topGauge", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-indigo-200 focus-visible:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider truncate">
+                          BOTTOM GAUGE
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.bottomGauge === 0 ? "" : group.bottomGauge.toString()}
+                          onChange={(e) => updateSizeGroup(index, "bottomGauge", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-indigo-200 focus-visible:ring-indigo-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider truncate">
+                          SCREBLINE
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.screbline === 0 ? "" : group.screbline.toString()}
+                          onChange={(e) => updateSizeGroup(index, "screbline", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-slate-200 focus-visible:ring-slate-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-orange-600 uppercase tracking-wider truncate">
+                          GAUGE SPRING
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.gaugeSpring === 0 ? "" : group.gaugeSpring.toString()}
+                          onChange={(e) => updateSizeGroup(index, "gaugeSpring", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-orange-200 focus-visible:ring-orange-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-pink-600 uppercase tracking-wider truncate">
+                          3D GAUGE MARKING
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.gaugeMarking3d === 0 ? "" : group.gaugeMarking3d.toString()}
+                          onChange={(e) => updateSizeGroup(index, "gaugeMarking3d", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-pink-200 focus-visible:ring-pink-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider truncate">
+                          SOCKLINER PATT.
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.socklinerPattern === 0 ? "" : group.socklinerPattern.toString()}
+                          onChange={(e) => updateSizeGroup(index, "socklinerPattern", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-cyan-200 focus-visible:ring-cyan-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-rose-600 uppercase tracking-wider truncate">
+                          TOP LAST
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.topLast === 0 ? "" : group.topLast.toString()}
+                          onChange={(e) => updateSizeGroup(index, "topLast", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-rose-200 focus-visible:ring-rose-500"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-violet-600 uppercase tracking-wider truncate">
+                          PAD PRESS
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={group.padPress === 0 ? "" : group.padPress.toString()}
+                          onChange={(e) => updateSizeGroup(index, "padPress", e.target.value)}
+                          disabled={isPending}
+                          className="h-9 text-center font-semibold bg-white border-violet-200 focus-visible:ring-violet-500"
                         />
                       </div>
                     </div>

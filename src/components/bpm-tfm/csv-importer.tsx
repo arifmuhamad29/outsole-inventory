@@ -33,8 +33,8 @@ export function BpmTfmCsvImporter({ onSuccess }: BpmTfmCsvImporterProps) {
     const csvContent = `Code Last,Tool Name,Type,Size,Dev Stock
 43011,BPM,HOT,3K - 5TK,2
 43011,BPM,CHILLER,3K - 5TK,2
-43011,TFM,,3K - 5TK,1
-43011,UNIVERSAL PAD,,3K - 5TK,1
+43011,VAMP PRESS,,3K - 5TK,1
+43011,UNIVERSAL PAD,,-,1
 `
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
@@ -152,10 +152,10 @@ export function BpmTfmCsvImporter({ onSuccess }: BpmTfmCsvImporterProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileUp className="w-5 h-5 text-primary" />
-            Bulk Import BPM & TFM Stock
+            Bulk Import Inventory Tooling
           </DialogTitle>
           <DialogDescription>
-            Import stock data for BPM, TFM, and Universal Pad via a CSV file.
+            Import stock data for all Tooling (BPM, Vamp Press, dll) via a CSV file.
           </DialogDescription>
         </DialogHeader>
 
