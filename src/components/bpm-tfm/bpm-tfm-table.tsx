@@ -119,6 +119,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
           <TableHeader>
             <TableRow className="bg-slate-50/50">
               <TableHead className="font-semibold text-slate-700 sticky left-0 z-20 bg-slate-50 drop-shadow-sm min-w-[130px] max-w-[150px]">CODE & SIZE</TableHead>
+              <TableHead className="font-semibold text-slate-700">MODEL</TableHead>
               <TableHead className="font-semibold text-slate-700">TOOL NAME</TableHead>
               <TableHead className="font-semibold text-slate-700">TYPE</TableHead>
               <TableHead className="font-semibold text-slate-700 text-center">DEV STOCK (SET)</TableHead>
@@ -129,7 +130,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
           <TableBody>
             {filteredStocks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isReadOnly ? 6 : 7} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={isReadOnly ? 7 : 8} className="text-center text-muted-foreground py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Layers className="w-10 h-10 text-slate-300" />
                     <p className="text-sm font-medium">No data found.</p>
@@ -186,6 +187,16 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                           </div>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="font-medium text-slate-700">
+                      {stock.modelName && stock.modelName !== "-" ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span>{stock.modelName}</span>
+                          {stock.gender && stock.gender !== "-" && (
+                            <span className="text-[10px] text-slate-500 uppercase">{stock.gender}</span>
+                          )}
+                        </div>
+                      ) : "—"}
                     </TableCell>
                     <TableCell className="font-medium">{stock.toolName}</TableCell>
                     <TableCell className="text-slate-600">{stock.type || "—"}</TableCell>
