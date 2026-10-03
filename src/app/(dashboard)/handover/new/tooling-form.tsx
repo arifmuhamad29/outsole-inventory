@@ -436,6 +436,10 @@ export function ToolingHandoverForm() {
   const globalModelName = watch("modelName")
   const globalCodeLast = watch("codeLast")
   const globalGiver = watch("giver")
+  
+  const firstItemToolName = watch("items.0.toolName")
+  const isCodeLastMode = CODE_LAST_TOOLS.includes(firstItemToolName || "")
+  const isModelMode = !!firstItemToolName && !isCodeLastMode
 
   useEffect(() => {
     if (session?.user && !globalGiver) {
@@ -530,7 +534,16 @@ export function ToolingHandoverForm() {
                 )}
               </div>
 
+              {/* Message when no tool is selected */}
+              {!firstItemToolName && (
+                <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-2 flex items-center pt-6 text-sm text-amber-600 dark:text-amber-500 font-medium italic bg-amber-50 dark:bg-amber-950/30 px-4 rounded-md border border-amber-200 dark:border-amber-900/50">
+                  <AlertTriangle className="w-4 h-4 mr-2 shrink-0" />
+                  Pilih Tool Name di bawah terlebih dahulu.
+                </div>
+              )}
+
               {/* Model Name */}
+              {isModelMode && (
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model Sepatu</label>
                 <Controller
@@ -588,8 +601,10 @@ export function ToolingHandoverForm() {
                   )}
                 />
               </div>
+              )}
 
               {/* Code Last */}
+              {isCodeLastMode && (
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Code Last</label>
                 <Controller
@@ -647,6 +662,7 @@ export function ToolingHandoverForm() {
                   )}
                 />
               </div>
+              )}
             </div>
           </CardContent>
         </Card>
