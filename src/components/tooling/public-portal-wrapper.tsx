@@ -149,7 +149,7 @@ export function PublicPortalWrapper({ inventoryContent }: { inventoryContent: Re
             }`}
           >
             <Layers className="w-4 h-4 shrink-0" />
-            BPM & TFM Stock
+            Dev Tooling Stock
           </button>
           <button
             onClick={() => handleTabChange("tracking")}
