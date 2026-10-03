@@ -254,7 +254,7 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700">PILIH BARANG</label>
             <Select value={selectedTool} onValueChange={(val) => {
-              setSelectedTool(val)
+              setSelectedTool(val as string)
               setErrorMsg("")
             }} disabled={isPending}>
               <SelectTrigger className="w-full font-medium">
@@ -386,7 +386,7 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">GENDER</label>
-                  <Select value={gender} onValueChange={setGender} disabled={isPending}>
+                  <Select value={gender} onValueChange={(val) => setGender(val as string)} disabled={isPending}>
                     <SelectTrigger className="h-10">
                       <SelectValue placeholder="Pilih Gender" />
                     </SelectTrigger>
@@ -438,7 +438,7 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-500 uppercase">Satuan</label>
-                          <Select value={group.satuan} onValueChange={(val) => updateOtherSizeGroup(index, "satuan", val)} disabled={isPending}>
+                          <Select value={group.satuan} onValueChange={(val) => updateOtherSizeGroup(index, "satuan", val as string)} disabled={isPending}>
                             <SelectTrigger className="h-9 bg-white">
                               <SelectValue />
                             </SelectTrigger>
