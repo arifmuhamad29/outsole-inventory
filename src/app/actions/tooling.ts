@@ -41,7 +41,13 @@ export async function updateToolingPhaseStatus(phaseId: string, newStatus: strin
 
 export async function updateModelToolingAction(modelId: string, payload: { 
   phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[],
-  items: { id: string, name: string, remark: string | null, sortOrder: number }[],
+  items: { 
+    id: string, 
+    name: string, 
+    remark: string | null, 
+    sortOrder: number,
+    phases?: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[]
+  }[],
   newItems?: {
     category: string,
     name: string,
@@ -58,29 +64,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
     }
 
     await prisma.$transaction(async (tx) => {
-      // 1. Update Tooling Phases
-      for (const phase of payload.phases) {
-        // Parse dates strings into Date objects
-        const pOrderDate = phase.orderDate ? new Date(phase.orderDate) : null
-        const pTargetETA = phase.targetETA ? new Date(phase.targetETA) : null
-        let pActualETA = phase.actualETA ? new Date(phase.actualETA) : null
-
-        // If status is verified but no actual ETA is set, autofill it
-        if (phase.status === "VERIFIED" && !pActualETA) {
-          pActualETA = new Date()
-        }
-
-        await tx.toolingPhase.update({
-          where: { id: phase.id },
-          data: {
-            qty: phase.qty,
-            orderDate: pOrderDate,
-            targetETA: pTargetETA,
-            actualETA: pActualETA,
-            status: phase.status,
-          }
-        })
-      }
+      // 1. Tooling phases are now updated via upsert in step 2b to handle new virtual phases.
 
       // 2. Update Tooling Items (Name & Remarks) - TWO-PASS TRANSACTION to prevent Swap Collisions
       // PASS 1: Assign temporary names to bypass unique constraint during swaps
@@ -95,7 +79,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
         }
       }
 
-      // PASS 2: Apply the final actual names and other fields
+      // PASS 2: Apply the final actual names and upsert phases
       for (const item of payload.items) {
         if (item.id) {
           await tx.toolingItem.update({
@@ -106,6 +90,37 @@ export async function updateModelToolingAction(modelId: string, payload: {
               sortOrder: item.sortOrder
             }
           })
+          
+          if (item.phases) {
+            for (const p of item.phases) {
+              const pOrderDate = p.orderDate ? new Date(p.orderDate) : null
+              const pTargetETA = p.targetETA ? new Date(p.targetETA) : null
+              let pActualETA = p.actualETA ? new Date(p.actualETA) : null
+              if (p.status === "VERIFIED" && !pActualETA) {
+                pActualETA = new Date()
+              }
+
+              await tx.toolingPhase.upsert({
+                where: { itemId_phaseType: { itemId: item.id, phaseType: p.phaseType } },
+                update: {
+                  qty: p.qty,
+                  orderDate: pOrderDate,
+                  targetETA: pTargetETA,
+                  actualETA: pActualETA,
+                  status: p.status,
+                },
+                create: {
+                  itemId: item.id,
+                  phaseType: p.phaseType,
+                  qty: p.qty,
+                  orderDate: pOrderDate,
+                  targetETA: pTargetETA,
+                  actualETA: pActualETA,
+                  status: p.status,
+                }
+              })
+            }
+          }
         }
       }
 
@@ -227,7 +242,7 @@ export async function createShoeModelAction(name: string) {
             name: def.name,
             sortOrder: i,
             phases: {
-              create: ["EXTREME", "FSR"].map(pt => ({
+              create: ["MST", "EXTREME", "FSR"].map(pt => ({
                 phaseType: pt,
                 status: "ON PROCESS"
               }))

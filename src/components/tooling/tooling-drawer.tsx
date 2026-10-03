@@ -140,6 +140,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }>>({})
   const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({})
   const [itemNames, setItemNames] = useState<Record<string, string>>({})
+  const [localItems, setLocalItems] = useState<Item[]>([])
   const [newItemsList, setNewItemsList] = useState<Item[]>([])
   const [deletedItemsList, setDeletedItemsList] = useState<string[]>([])
   const [orderedItemIds, setOrderedItemIds] = useState<Record<string, string[]>>({
@@ -183,10 +184,26 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
       const newItemRemarks: typeof itemRemarks = {}
       const newItemNames: typeof itemNames = {}
       
+      const newLocalItems: Item[] = []
+
       model.toolingItems.forEach(item => {
         newItemRemarks[item.id] = item.remark || ""
         newItemNames[item.id] = item.name || ""
-        item.phases.forEach(phase => {
+        
+        const phasesCopy = [...item.phases]
+        const requiredPhases = ["MST", "EXTREME", "FSR"]
+        
+        requiredPhases.forEach(pt => {
+          let phase = phasesCopy.find(p => p.phaseType === pt)
+          if (!phase) {
+            phase = {
+              id: `virtual-phase-${item.id}-${pt}`,
+              phaseType: pt,
+              qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
+            }
+            phasesCopy.push(phase)
+          }
+          
           newPhaseData[phase.id] = {
             qty: phase.qty || "",
             orderDate: formatDateForInput(phase.orderDate),
@@ -195,8 +212,11 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             status: phase.status,
           }
         })
+        
+        newLocalItems.push({ ...item, phases: phasesCopy })
       })
       
+      setLocalItems(newLocalItems)
       setPhaseData(newPhaseData)
       setItemRemarks(newItemRemarks)
       setItemNames(newItemNames)
@@ -216,7 +236,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
 
   const handleAddNewItem = (category: string) => {
     const newItemId = `new-item-${Date.now()}`
-    const newPhases = ["EXTREME", "FSR"].map(pt => ({
+    const newPhases = ["MST", "EXTREME", "FSR"].map(pt => ({
       id: `new-phase-${pt}-${Date.now()}`,
       phaseType: pt,
       qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
@@ -316,6 +336,14 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             name: itemNames[id] || "",
             remark: remark || null,
             sortOrder,
+            phases: localItems.find(i => i.id === id)?.phases.map(p => ({
+              phaseType: p.phaseType,
+              qty: phaseData[p.id]?.qty || null,
+              orderDate: phaseData[p.id]?.orderDate || null,
+              targetETA: phaseData[p.id]?.targetETA || null,
+              actualETA: phaseData[p.id]?.actualETA || null,
+              status: phaseData[p.id]?.status || "ON PROCESS",
+            })) || []
           }
         }),
       newItems: newItemsList.map(ni => {
@@ -353,7 +381,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   }
 
   const renderTable = (category: string, phaseType: string) => {
-    const combinedItems = [...model.toolingItems, ...newItemsList]
+    const combinedItems = [...localItems, ...newItemsList]
     const currentOrderedIds = orderedItemIds[category] || []
     const items = currentOrderedIds
       .filter(id => !deletedItemsList.includes(id))
@@ -568,10 +596,16 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
 
       <div className="w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-3 mb-6">
+            <TabsTrigger value="MST">MST</TabsTrigger>
             <TabsTrigger value="EXTREME">Extreme</TabsTrigger>
             <TabsTrigger value="FSR">FSR</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="MST" className="mt-0">
+            {renderTable("BOTTOM TOOLING", "MST")}
+            {renderTable("ASSEMBLY TOOLING", "MST")}
+          </TabsContent>
 
           <TabsContent value="EXTREME" className="mt-0">
             {renderTable("BOTTOM TOOLING", "EXTREME")}
