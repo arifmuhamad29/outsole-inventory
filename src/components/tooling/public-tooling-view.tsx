@@ -65,7 +65,7 @@ const formatDateForDisplay = (date: Date | null | string) => {
 
 // Read Only Drawer Component
 function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithTooling | null, isOpen: boolean, onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState("FSR")
+  const [activeTab, setActiveTab] = useState("MST")
 
   if (!model || !isOpen) return null
 
@@ -150,10 +150,16 @@ function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithT
 
       <div className="w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
+            <TabsTrigger value="MST">MST</TabsTrigger>
             <TabsTrigger value="EXTREME">Extreme</TabsTrigger>
             <TabsTrigger value="FSR">FSR</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="MST" className="mt-0">
+            {renderTable("BOTTOM TOOLING", "MST")}
+            {renderTable("ASSEMBLY TOOLING", "MST")}
+          </TabsContent>
 
           <TabsContent value="EXTREME" className="mt-0">
             {renderTable("BOTTOM TOOLING", "EXTREME")}
