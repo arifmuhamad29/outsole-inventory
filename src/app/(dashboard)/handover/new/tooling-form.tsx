@@ -57,23 +57,27 @@ import { getRealTimeStock, getAvailableSizesAction, getShoeModels, getUniqueCode
 
 // Tool options for the dropdown
 const TOOL_OPTIONS = [
-  "3D GAUGE MARKING",
-  "PAD GAUGE",
+  "BPM",
+  "VAMP PRESS",
   "TOP GAUGE",
   "BOTTOM GAUGE",
-  "SCREEN LINE",
+  "SCREBLINE",
   "GAUGE SPRING",
-  "SOKLINER PATTERN",
-  "BPM",
-  "TFM",
+  "3D GAUGE MARKING (OTG)",
+  "SOCKLINER PATTERN",
   "UNIVERSAL PAD",
+  "TOP LAST",
+  "PAD PRESS",
 ] as const
 
-// Tools that have tracked stock in BpmTfmStock
-const STOCK_TRACKED_TOOLS = ["BPM", "TFM", "UNIVERSAL PAD"]
+// All tools are now stock tracked
+const STOCK_TRACKED_TOOLS = [...TOOL_OPTIONS]
 
 // Tools that have Type variants
 const TYPED_TOOLS = ["BPM"]
+
+// Tools that require Code Last (others require Model Name)
+const CODE_LAST_TOOLS = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"]
 
 type HandoverItem = {
   toolName: string
@@ -128,30 +132,51 @@ function HandoverRow({ index, control, register, globalCodeLast, globalModelName
       setValue(`items.${index}.qtyHandover`, 0)
     }
 
-    if (isStockTracked && globalCodeLast && toolName) {
-      setIsLoadingSizes(true)
-      getAvailableSizesAction(globalCodeLast, toolName, isTyped ? type : null)
-        .then((sizes) => setAvailableSizes(sizes))
-        .catch(() => setAvailableSizes([]))
-        .finally(() => setIsLoadingSizes(false))
+    if (isStockTracked && toolName) {
+      const isCodeLastTool = CODE_LAST_TOOLS.includes(toolName)
+      if ((isCodeLastTool && globalCodeLast) || (!isCodeLastTool && globalModelName)) {
+        setIsLoadingSizes(true)
+        getAvailableSizesAction(
+          isCodeLastTool ? globalCodeLast : null,
+          !isCodeLastTool ? globalModelName : null,
+          toolName,
+          isTyped ? type : null
+        )
+          .then((sizes) => setAvailableSizes(sizes))
+          .catch(() => setAvailableSizes([]))
+          .finally(() => setIsLoadingSizes(false))
+      } else {
+        setAvailableSizes([])
+      }
     } else {
       setAvailableSizes([])
     }
-  }, [globalCodeLast, toolName, type, isStockTracked, isTyped, index, setValue])
+  }, [globalCodeLast, globalModelName, toolName, type, isStockTracked, isTyped, index, setValue])
 
   // Real-time stock fetching
   const [stockInfo, setStockInfo] = useState({ stock: 0, loading: false })
 
   useEffect(() => {
-    if (isStockTracked && globalCodeLast && size) {
-      setStockInfo({ stock: 0, loading: true })
-      getRealTimeStock(globalCodeLast, toolName, type, size)
-        .then((s) => setStockInfo({ stock: s, loading: false }))
-        .catch(() => setStockInfo({ stock: 0, loading: false }))
+    if (isStockTracked && toolName && size) {
+      const isCodeLastTool = CODE_LAST_TOOLS.includes(toolName)
+      if ((isCodeLastTool && globalCodeLast) || (!isCodeLastTool && globalModelName)) {
+        setStockInfo({ stock: 0, loading: true })
+        getRealTimeStock(
+          isCodeLastTool ? globalCodeLast : null,
+          !isCodeLastTool ? globalModelName : null,
+          toolName,
+          isTyped ? type : "",
+          size
+        )
+          .then((s) => setStockInfo({ stock: s, loading: false }))
+          .catch(() => setStockInfo({ stock: 0, loading: false }))
+      } else {
+        setStockInfo({ stock: 0, loading: false })
+      }
     } else {
       setStockInfo({ stock: 0, loading: false })
     }
-  }, [globalCodeLast, toolName, type, size, isStockTracked])
+  }, [globalCodeLast, globalModelName, toolName, type, size, isStockTracked])
 
   const isLoadingStock = stockInfo.loading
   const realStock = stockInfo.stock
@@ -171,9 +196,9 @@ function HandoverRow({ index, control, register, globalCodeLast, globalModelName
           <select
             {...register(`items.${index}.toolName` as const)}
             className={`w-full h-9 rounded-md border px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${
-              toolName && isStockTracked && !globalCodeLast
+              toolName && isStockTracked && CODE_LAST_TOOLS.includes(toolName) && !globalCodeLast
                 ? "border-amber-400 bg-amber-50 dark:border-amber-500/50 dark:bg-amber-900/20"
-                : toolName && !isStockTracked && !globalModelName
+                : toolName && isStockTracked && !CODE_LAST_TOOLS.includes(toolName) && !globalModelName
                 ? "border-amber-400 bg-amber-50 dark:border-amber-500/50 dark:bg-amber-900/20"
                 : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800"
             }`}
@@ -183,12 +208,12 @@ function HandoverRow({ index, control, register, globalCodeLast, globalModelName
               <option key={tool} value={tool}>{tool}</option>
             ))}
           </select>
-          {toolName && isStockTracked && !globalCodeLast && (
+          {toolName && isStockTracked && CODE_LAST_TOOLS.includes(toolName) && !globalCodeLast && (
             <div className="absolute -bottom-4 left-1 text-[10px] text-amber-600 font-medium whitespace-nowrap">
               Isi Code Last
             </div>
           )}
-          {toolName && !isStockTracked && !globalModelName && (
+          {toolName && isStockTracked && !CODE_LAST_TOOLS.includes(toolName) && !globalModelName && (
             <div className="absolute -bottom-4 left-1 text-[10px] text-amber-600 font-medium whitespace-nowrap">
               Isi Model Sepatu
             </div>
@@ -225,17 +250,28 @@ function HandoverRow({ index, control, register, globalCodeLast, globalModelName
         ) : (
           <select
             {...register(`items.${index}.size` as const)}
-            disabled={!globalCodeLast || isLoadingSizes || availableSizes.length === 0}
-            className={`w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${(!globalCodeLast || isLoadingSizes || availableSizes.length === 0) ? "bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed text-slate-500" : "bg-white dark:bg-gray-800"}`}
+            disabled={
+              (CODE_LAST_TOOLS.includes(toolName) && !globalCodeLast) || 
+              (!CODE_LAST_TOOLS.includes(toolName) && !globalModelName) || 
+              isLoadingSizes || 
+              availableSizes.length === 0
+            }
+            className={`w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${
+              ((CODE_LAST_TOOLS.includes(toolName) && !globalCodeLast) || (!CODE_LAST_TOOLS.includes(toolName) && !globalModelName) || isLoadingSizes || availableSizes.length === 0) 
+              ? "bg-slate-50 dark:bg-slate-900 opacity-40 cursor-not-allowed text-slate-500" 
+              : "bg-white dark:bg-gray-800"
+            }`}
           >
             <option value="">
-              {!globalCodeLast 
+              {(CODE_LAST_TOOLS.includes(toolName) && !globalCodeLast) 
                 ? "Isi Code Last dulu" 
-                : isLoadingSizes 
-                  ? "Loading..." 
-                  : availableSizes.length === 0 
-                    ? "Tidak ada ukuran/stok" 
-                    : "-- Pilih Size --"}
+                : (!CODE_LAST_TOOLS.includes(toolName) && !globalModelName)
+                  ? "Isi Model Sepatu dulu"
+                  : isLoadingSizes 
+                    ? "Loading..." 
+                    : availableSizes.length === 0 
+                      ? "Tidak ada ukuran/stok" 
+                      : "-- Pilih Size --"}
             </option>
             {availableSizes.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -412,11 +448,11 @@ export function ToolingHandoverForm() {
     let hasValidationError = false
     
     data.items.forEach((item) => {
-      const isStockTracked = STOCK_TRACKED_TOOLS.includes(item.toolName)
-      if (isStockTracked && !data.codeLast) {
+      const isCodeLastTool = CODE_LAST_TOOLS.includes(item.toolName)
+      if (isCodeLastTool && !data.codeLast) {
         hasValidationError = true
       }
-      if (!isStockTracked && item.toolName && !data.modelName) {
+      if (!isCodeLastTool && item.toolName && !data.modelName) {
         hasValidationError = true
       }
     })

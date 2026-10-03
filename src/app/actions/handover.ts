@@ -7,24 +7,24 @@ import { auth } from "@/lib/auth"
 import { createNotification } from "./notification"
 
 export async function getRealTimeStock(
-  codeLast: string,
+  codeLast: string | null,
+  modelName: string | null,
   toolName: string,
   type: string,
   size: string
 ): Promise<number> {
-  if (!codeLast || !toolName || !size) return 0
+  if ((!codeLast && !modelName) || !toolName || !size) return 0
+
+  const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(toolName.trim().toUpperCase())
 
   try {
-    const stockRecord = await prisma.bpmTfmStock.findUnique({
+    const stockRecord = await prisma.bpmTfmStock.findFirst({
       where: {
-        codeLast_toolName_type_size_modelName_gender: {
-          codeLast: codeLast.trim(),
-          toolName: toolName.trim().toUpperCase(),
-          type: type.trim().toUpperCase(),
-          size: size.trim().toUpperCase(),
-          modelName: "-",
-          gender: "-",
-        },
+        toolName: toolName.trim().toUpperCase(),
+        type: type.trim().toUpperCase(),
+        size: size.trim().toUpperCase(),
+        codeLast: isCodeLastTool ? (codeLast?.trim() || "-") : "-",
+        modelName: !isCodeLastTool ? (modelName?.trim() || "-") : "-",
       },
       select: {
         devStock: true,
@@ -39,17 +39,21 @@ export async function getRealTimeStock(
 }
 
 export async function getAvailableSizesAction(
-  codeLast: string,
+  codeLast: string | null,
+  modelName: string | null,
   toolName: string,
   type: string | null
 ): Promise<string[]> {
-  if (!codeLast || !toolName) return []
+  if ((!codeLast && !modelName) || !toolName) return []
+
+  const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(toolName.trim().toUpperCase())
 
   try {
     const records = await prisma.bpmTfmStock.findMany({
       where: {
-        codeLast: codeLast.trim(),
         toolName: toolName.trim().toUpperCase(),
+        codeLast: isCodeLastTool ? (codeLast?.trim() || "-") : "-",
+        modelName: !isCodeLastTool ? (modelName?.trim() || "-") : "-",
         ...(type ? { type: type.trim().toUpperCase() } : {}),
       },
       select: {
@@ -158,19 +162,18 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
         })
 
         // 3. Stock Deduction for tracked tools
-        const isStockTracked = ["BPM", "TFM", "UNIVERSAL PAD"].includes(item.toolName)
-        if (isStockTracked && codeLast && item.size) {
+        const isStockTracked = true // All tools are tracked now
+        const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(item.toolName.trim().toUpperCase())
+        
+        if (item.size) {
           // Check if stock exists and is sufficient
-          const stockRecord = await tx.bpmTfmStock.findUnique({
+          const stockRecord = await tx.bpmTfmStock.findFirst({
             where: {
-              codeLast_toolName_type_size_modelName_gender: {
-                codeLast: codeLast.trim(),
-                toolName: item.toolName.trim().toUpperCase(),
-                type: (item.type || "").trim().toUpperCase(),
-                size: item.size.trim().toUpperCase(),
-                modelName: "-",
-                gender: "-",
-              }
+              toolName: item.toolName.trim().toUpperCase(),
+              type: (item.type || "").trim().toUpperCase(),
+              size: item.size.trim().toUpperCase(),
+              codeLast: isCodeLastTool ? (codeLast?.trim() || "-") : "-",
+              modelName: !isCodeLastTool ? (modelName?.trim() || "-") : "-",
             }
           })
 
@@ -183,19 +186,8 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
           const updatedStock = stockRecord.devStock - deduction
 
           await tx.bpmTfmStock.update({
-            where: {
-              codeLast_toolName_type_size_modelName_gender: {
-                codeLast: codeLast.trim(),
-                toolName: item.toolName.trim().toUpperCase(),
-                type: (item.type || "").trim().toUpperCase(),
-                size: item.size.trim().toUpperCase(),
-                modelName: "-",
-                gender: "-",
-              }
-            },
-            data: {
-              devStock: updatedStock
-            }
+            where: { id: stockRecord.id },
+            data: { devStock: updatedStock }
           })
         }
       }
@@ -254,16 +246,18 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
       }
 
       // 2. Revert stock
-      for (const item of handover.items) {
-        const isStockTracked = ["BPM", "TFM", "UNIVERSAL PAD"].includes(item.toolName)
-        if (isStockTracked && handover.codeLast && item.size) {
+        const isStockTracked = true
+        const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(item.toolName.trim().toUpperCase())
+        
+        if (item.size) {
           // Find the exact existing stock record
           const existingStock = await tx.bpmTfmStock.findFirst({
             where: {
-              codeLast: handover.codeLast.trim(),
               toolName: item.toolName.trim().toUpperCase(),
               type: (item.type || "").trim().toUpperCase(),
-              size: item.size.trim().toUpperCase()
+              size: item.size.trim().toUpperCase(),
+              codeLast: isCodeLastTool ? (handover.codeLast?.trim() || "-") : "-",
+              modelName: !isCodeLastTool ? (handover.modelName?.trim() || "-") : "-",
             }
           })
 
