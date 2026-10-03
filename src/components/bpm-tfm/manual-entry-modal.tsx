@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { addBpmTfmBatchAction } from "@/app/actions/bpm-tfm"
+import { getShoeModels } from "@/app/actions/handover"
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,12 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
   const [selectedTool, setSelectedTool] = useState(TOOL_OPTIONS[0])
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState("")
+
+  const [shoeModels, setShoeModels] = useState<string[]>([])
+  
+  useEffect(() => {
+    getShoeModels().then(setShoeModels).catch(console.error)
+  }, [])
 
   // BPM & Vamp Press state
   const [codeLast, setCodeLast] = useState("")
@@ -376,13 +383,17 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">MODEL</label>
-                  <Input
-                    placeholder="Contoh: OZELIA"
-                    value={modelName}
-                    onChange={(e) => setModelName(e.target.value)}
-                    disabled={isPending}
-                    className="h-10 text-base"
-                  />
+                  <Select value={modelName} onValueChange={(val) => setModelName(val as string)} disabled={isPending}>
+                    <SelectTrigger className="h-10 text-base">
+                      <SelectValue placeholder="Pilih Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shoeModels.length === 0 && <SelectItem value="-" disabled>Tidak ada model (Tambahkan di Tooling MES)</SelectItem>}
+                      {shoeModels.map((model) => (
+                        <SelectItem key={model} value={model}>{model}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">GENDER</label>
