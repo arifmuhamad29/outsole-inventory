@@ -246,6 +246,7 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
       }
 
       // 2. Revert stock
+      for (const item of handover.items) {
         const isStockTracked = true
         const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(item.toolName.trim().toUpperCase())
         
