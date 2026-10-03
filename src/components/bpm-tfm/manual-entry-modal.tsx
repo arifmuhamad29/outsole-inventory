@@ -233,12 +233,12 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
       setIsOpen(open)
       if (!open) resetForm()
     }}>
-      <DialogTrigger asChild>
+      <DialogTrigger render={
         <Button className="gap-2 shadow-sm">
           <Plus className="w-4 h-4" />
           New Entry
         </Button>
-      </DialogTrigger>
+      } />
       <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
