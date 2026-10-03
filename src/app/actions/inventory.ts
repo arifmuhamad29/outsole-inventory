@@ -123,8 +123,15 @@ export async function hardDeleteBulkOutsoleAction(ids: string[], password?: stri
     if (!session?.user?.id) return { success: false, message: "Unauthorized" }
     if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") return { success: false, message: "Forbidden: Only ADMIN/SUPER_ADMIN can delete permanently" }
 
-    // Use InventoryService sequentially or create a new method in InventoryService.
-    // For now, sequentially call hardDeleteOutsole to respect business logic inside InventoryService
+    // Validate password once before loop to avoid running bcrypt multiple times
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
+    if (!user || !user.passwordHash) return { success: false, message: "Unauthorized" }
+
+    const bcrypt = await import("bcryptjs")
+    const isValid = await bcrypt.compare(password, user.passwordHash)
+    if (!isValid) return { success: false, message: "Invalid Admin Password" }
+
+    // Use InventoryService sequentially
     let successCount = 0;
     let failedCount = 0;
     
@@ -141,8 +148,12 @@ export async function hardDeleteBulkOutsoleAction(ids: string[], password?: stri
     revalidatePath("/")
     revalidatePath("/opname")
     
+    if (successCount === 0 && failedCount > 0) {
+      return { success: false, message: "Gagal menghapus data." }
+    }
+    
     if (failedCount > 0) {
-      return { success: true, message: `Deleted ${successCount} items. Failed to delete ${failedCount} items.` }
+      return { success: true, message: `Berhasil hapus ${successCount} items. Gagal hapus ${failedCount} items.` }
     }
     return { success: true, message: `Successfully deleted ${successCount} items.` }
   } catch (error) {
