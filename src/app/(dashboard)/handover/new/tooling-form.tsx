@@ -71,13 +71,13 @@ const TOOL_OPTIONS = [
 ] as const
 
 // All tools are now stock tracked
-const STOCK_TRACKED_TOOLS = [...TOOL_OPTIONS]
+const STOCK_TRACKED_TOOLS: string[] = [...TOOL_OPTIONS]
 
 // Tools that have Type variants
-const TYPED_TOOLS = ["BPM"]
+const TYPED_TOOLS: string[] = ["BPM"]
 
 // Tools that require Code Last (others require Model Name)
-const CODE_LAST_TOOLS = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"]
+const CODE_LAST_TOOLS: string[] = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"]
 
 type HandoverItem = {
   toolName: string
