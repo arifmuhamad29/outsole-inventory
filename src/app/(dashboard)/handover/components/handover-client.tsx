@@ -159,6 +159,7 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                     <TableHead className="font-semibold text-slate-700">Pemberi</TableHead>
                     <TableHead className="font-semibold text-slate-700">Penerima</TableHead>
                     <TableHead className="font-semibold text-slate-700">Code Last</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Model</TableHead>
                     <TableHead className="font-semibold text-slate-700 text-center">Total Items</TableHead>
                     <TableHead className="font-semibold text-slate-700">Remark</TableHead>
                     <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
@@ -167,7 +168,7 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                 <TableBody>
                   {filteredTooling.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-32 text-center text-slate-500">
+                      <TableCell colSpan={9} className="h-32 text-center text-slate-500">
                         Belum ada data Handover Tooling
                       </TableCell>
                     </TableRow>
@@ -182,7 +183,12 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                         <TableCell className="font-medium text-slate-900 dark:text-slate-100">{h.recipient}</TableCell>
                         <TableCell>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                            {h.codeLast}
+                            {h.codeLast || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                            {h.modelName || "-"}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
