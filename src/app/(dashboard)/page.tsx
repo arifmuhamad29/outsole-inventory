@@ -21,11 +21,13 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   const fromParam = typeof searchParams.from === 'string' ? searchParams.from : undefined
   const toParam = typeof searchParams.to === 'string' ? searchParams.to : undefined
   
-  const chartEnd = toParam ? new Date(toParam) : new Date()
+  let chartEnd = toParam ? new Date(toParam) : new Date()
+  if (isNaN(chartEnd.getTime())) chartEnd = new Date()
   chartEnd.setHours(23, 59, 59, 999)
   
-  const chartStart = fromParam ? new Date(fromParam) : new Date(chartEnd)
-  if (!fromParam) {
+  let chartStart = fromParam ? new Date(fromParam) : new Date(chartEnd)
+  if (isNaN(chartStart.getTime())) chartStart = new Date(chartEnd)
+  if (!fromParam || isNaN(new Date(fromParam).getTime())) {
     chartStart.setDate(chartStart.getDate() - 6) // Default 7 days
   }
   chartStart.setHours(0, 0, 0, 0)
@@ -172,7 +174,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
       if (h.modelName === "Outsole Handover") {
         day.outsole += 1
         h.items.forEach(item => {
-          const match = item.size.match(/Stage:\s*(.+)$/)
+          const match = item.size?.match(/Stage:\s*(.+)$/)
           const stage = match ? match[1].trim() : "Unknown"
           day.stages[stage] = (day.stages[stage] || 0) + 1 // count as 1 article
         })
