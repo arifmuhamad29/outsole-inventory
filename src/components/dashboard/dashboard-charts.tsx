@@ -36,6 +36,7 @@ const mockHandoverData: HandoverChartData[] = [
 export function HandoverLineChart({ data }: { data?: HandoverChartData[] }) {
   const chartData = data || mockHandoverData
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const d = payload[0].payload as HandoverChartData;
