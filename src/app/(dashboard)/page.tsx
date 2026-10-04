@@ -30,7 +30,8 @@ export default async function DashboardPage() {
     todayHandovers,
     recentInbound,
     recentTransactionsRaw,
-    recentHandoversRaw
+    recentHandoversRaw,
+    last7DaysHandovers
   ] = await Promise.all([
     // Total SKUs breakdown
     prisma.outsole.count({ where: { isActive: true } }),
@@ -73,6 +74,19 @@ export default async function DashboardPage() {
       include: {
         items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true, size: true } }
       }
+    }),
+    
+    // Last 7 days Handovers for Chart
+    prisma.handover.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(new Date(startOfToday).setDate(startOfToday.getDate() - 6)),
+          lte: endOfToday
+        }
+      },
+      include: {
+        items: { select: { toolName: true, qty: true, size: true } }
+      }
     })
   ])
 
@@ -112,6 +126,36 @@ export default async function DashboardPage() {
   const recentActivity = [...mappedTransactions, ...mappedHandovers]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 20)
+
+  // Generate last 7 days chart data
+  const chartData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(startOfToday)
+    d.setDate(d.getDate() - 6 + i)
+    return {
+      dateObj: d,
+      name: d.toLocaleDateString("en-US", { weekday: "short" }),
+      fullDate: d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+      tooling: 0,
+      outsole: 0,
+      stages: {} as Record<string, number>
+    }
+  })
+
+  last7DaysHandovers.forEach(h => {
+    const day = chartData.find(d => d.dateObj.toDateString() === h.createdAt.toDateString())
+    if (day) {
+      if (h.modelName === "Outsole Handover") {
+        day.outsole += 1
+        h.items.forEach(item => {
+          const match = item.size.match(/Stage:\s*(.+)$/)
+          const stage = match ? match[1].trim() : "Unknown"
+          day.stages[stage] = (day.stages[stage] || 0) + (item.qty || 0)
+        })
+      } else {
+        day.tooling += 1
+      }
+    }
+  })
 
   return (
     <div className="space-y-8 pb-8">
@@ -171,7 +215,7 @@ export default async function DashboardPage() {
             <CardTitle>Handover Activity (Last 7 Days)</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <HandoverLineChart />
+            <HandoverLineChart data={chartData} />
           </CardContent>
         </Card>
         
