@@ -161,6 +161,10 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     }
   })
 
+  let totalOutsoleDocs = 0
+  let totalOutsolePairs = 0
+  let totalToolingDocs = 0
+
   last7DaysHandovers.forEach(h => {
     const day = chartData.find(d => d.dateObj.toDateString() === h.createdAt.toDateString())
     if (day) {
@@ -175,6 +179,15 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
         day.tooling += 1
       }
     }
+  })
+
+  // Calculate totals
+  chartData.forEach(d => {
+    totalOutsoleDocs += d.outsole
+    totalToolingDocs += d.tooling
+    Object.values(d.stages).forEach(qty => {
+      totalOutsolePairs += qty
+    })
   })
 
   return (
@@ -235,7 +248,13 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
             <CardTitle>Handover Activity</CardTitle>
             <DashboardFilter />
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 flex flex-col h-full">
+            {(fromParam || toParam) && (
+              <div className="mb-4 text-sm bg-blue-50/50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-3 rounded-md border border-blue-100 dark:border-blue-800">
+                <span className="font-semibold">Summary ({chartStart.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })} - {chartEnd.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })}):</span> 
+                {' '}Total <strong>{totalOutsoleDocs} dokumen</strong> Outsole ({totalOutsolePairs} pasang) dan <strong>{totalToolingDocs} dokumen</strong> Tooling telah diserahterimakan.
+              </div>
+            )}
             <HandoverLineChart data={chartData} />
           </CardContent>
         </Card>

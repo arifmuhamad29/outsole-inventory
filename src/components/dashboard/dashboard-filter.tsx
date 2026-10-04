@@ -1,10 +1,10 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Filter, X } from "lucide-react"
+import { Filter, X, Loader2 } from "lucide-react"
 
 export function DashboardFilter() {
   const router = useRouter()
@@ -12,6 +12,7 @@ export function DashboardFilter() {
   
   const [from, setFrom] = useState(searchParams.get("from") || "")
   const [to, setTo] = useState(searchParams.get("to") || "")
+  const [isPending, startTransition] = useTransition()
 
   const handleApply = () => {
     const params = new URLSearchParams(searchParams.toString())
@@ -21,13 +22,17 @@ export function DashboardFilter() {
     if (to) params.set("to", to)
     else params.delete("to")
     
-    router.push(`/?${params.toString()}`)
+    startTransition(() => {
+      router.push(`/?${params.toString()}`)
+    })
   }
 
   const handleReset = () => {
     setFrom("")
     setTo("")
-    router.push("/")
+    startTransition(() => {
+      router.push("/")
+    })
   }
 
   const hasFilter = searchParams.has("from") || searchParams.has("to")
@@ -47,14 +52,19 @@ export function DashboardFilter() {
           value={to} 
           onChange={(e) => setTo(e.target.value)} 
           className="w-[130px] h-9 text-xs sm:text-sm"
+          disabled={isPending}
         />
       </div>
-      <Button variant="secondary" size="sm" onClick={handleApply} className="h-9">
-        <Filter className="h-4 w-4 sm:mr-2" />
-        <span className="hidden sm:inline">Filter</span>
+      <Button variant="secondary" size="sm" onClick={handleApply} className="h-9" disabled={isPending}>
+        {isPending ? (
+          <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+        ) : (
+          <Filter className="h-4 w-4 sm:mr-2" />
+        )}
+        <span className="hidden sm:inline">{isPending ? "Loading..." : "Filter"}</span>
       </Button>
       {hasFilter && (
-        <Button variant="ghost" size="sm" onClick={handleReset} className="h-9 text-muted-foreground hover:text-red-600">
+        <Button variant="ghost" size="sm" onClick={handleReset} className="h-9 text-muted-foreground hover:text-red-600" disabled={isPending}>
           <X className="h-4 w-4" />
         </Button>
       )}
