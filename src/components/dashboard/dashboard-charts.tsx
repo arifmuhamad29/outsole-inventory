@@ -54,11 +54,11 @@ export function HandoverLineChart({ data }: { data?: HandoverChartData[] }) {
             </div>
             {d.stages && Object.keys(d.stages).length > 0 && (
               <div className="pt-2 mt-2 border-t border-slate-100">
-                <p className="text-xs text-slate-500 font-semibold mb-1">Outsole Pairs by Stage:</p>
+                <p className="text-xs text-slate-500 font-semibold mb-1">Outsole Articles by Stage:</p>
                 {Object.entries(d.stages).map(([stage, qty]) => (
                   <div key={stage} className="flex justify-between items-center text-xs">
                     <span className="text-slate-600">{stage}</span>
-                    <span className="font-medium">{qty} prs</span>
+                    <span className="font-medium">{qty} article</span>
                   </div>
                 ))}
               </div>
