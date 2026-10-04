@@ -68,6 +68,7 @@ const TOOL_OPTIONS = [
   "UNIVERSAL PAD",
   "TOP LAST",
   "PAD PRESS",
+  "SHOE LAST",
 ] as const
 
 // All tools are now stock tracked
@@ -77,7 +78,7 @@ const STOCK_TRACKED_TOOLS: string[] = [...TOOL_OPTIONS]
 const TYPED_TOOLS: string[] = ["BPM"]
 
 // Tools that require Code Last (others require Model Name)
-const CODE_LAST_TOOLS: string[] = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"]
+const CODE_LAST_TOOLS: string[] = ["BPM", "VAMP PRESS", "UNIVERSAL PAD", "SHOE LAST"]
 
 type HandoverItem = {
   toolName: string

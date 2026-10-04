@@ -15,9 +15,18 @@ export async function getRealTimeStock(
 ): Promise<number> {
   if ((!codeLast && !modelName) || !toolName || !size) return 0
 
-  const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(toolName.trim().toUpperCase())
+  const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD", "SHOE LAST", "LASTE"].includes(toolName.trim().toUpperCase())
 
   try {
+    if (toolName.trim().toUpperCase() === "SHOE LAST" || toolName.trim().toUpperCase() === "LASTE") {
+      const shoeLast = await prisma.shoeLast.findUnique({
+        where: { code: codeLast?.trim() || "" }
+      })
+      if (!shoeLast) return 0
+      const sizes = shoeLast.sizes as Record<string, number>
+      return sizes[size.trim()] || sizes[size.trim().toUpperCase()] || 0
+    }
+
     const stockRecord = await prisma.bpmTfmStock.findFirst({
       where: {
         toolName: toolName.trim().toUpperCase(),
@@ -46,9 +55,17 @@ export async function getAvailableSizesAction(
 ): Promise<string[]> {
   if ((!codeLast && !modelName) || !toolName) return []
 
-  const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(toolName.trim().toUpperCase())
+  const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD", "SHOE LAST", "LASTE"].includes(toolName.trim().toUpperCase())
 
   try {
+    if (toolName.trim().toUpperCase() === "SHOE LAST" || toolName.trim().toUpperCase() === "LASTE") {
+      const shoeLast = await prisma.shoeLast.findUnique({
+        where: { code: codeLast?.trim() || "" }
+      })
+      if (!shoeLast) return []
+      return Object.keys(shoeLast.sizes as Record<string, number>).sort()
+    }
+
     const records = await prisma.bpmTfmStock.findMany({
       where: {
         toolName: toolName.trim().toUpperCase(),
@@ -163,32 +180,49 @@ export async function submitHandoverAction(data: HandoverPayload): Promise<{ suc
 
         // 3. Stock Deduction for tracked tools
         const isStockTracked = true // All tools are tracked now
-        const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(item.toolName.trim().toUpperCase())
+        const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD", "SHOE LAST", "LASTE"].includes(item.toolName.trim().toUpperCase())
         
         if (item.size) {
-          // Check if stock exists and is sufficient
-          const stockRecord = await tx.bpmTfmStock.findFirst({
-            where: {
-              toolName: item.toolName.trim().toUpperCase(),
-              type: (item.type || "").trim().toUpperCase(),
-              size: item.size.trim().toUpperCase(),
-              codeLast: isCodeLastTool ? (codeLast?.trim() || "-") : "-",
-              modelName: !isCodeLastTool ? (modelName?.trim() || "-") : "-",
+          if (item.toolName.trim().toUpperCase() === "SHOE LAST" || item.toolName.trim().toUpperCase() === "LASTE") {
+             const shoeLast = await tx.shoeLast.findUnique({
+                where: { code: codeLast?.trim() || "" }
+             })
+             if (!shoeLast) throw new Error(`Stock SHOE LAST dengan Code Last ${codeLast} tidak ditemukan.`)
+             const sizes = shoeLast.sizes as Record<string, number>
+             const currentStock = sizes[item.size.trim()] || sizes[item.size.trim().toUpperCase()] || 0
+             if (currentStock < item.qtyHandover) {
+                throw new Error(`Stok SHOE LAST ${codeLast} ukuran ${item.size} tidak mencukupi (Tersedia: ${currentStock}).`)
+             }
+             sizes[item.size.trim()] = currentStock - item.qtyHandover
+             await tx.shoeLast.update({
+                where: { code: codeLast?.trim() || "" },
+                data: { sizes }
+             })
+          } else {
+            // Check if stock exists and is sufficient
+            const stockRecord = await tx.bpmTfmStock.findFirst({
+              where: {
+                toolName: item.toolName.trim().toUpperCase(),
+                type: (item.type || "").trim().toUpperCase(),
+                size: item.size.trim().toUpperCase(),
+                codeLast: isCodeLastTool ? (codeLast?.trim() || "-") : "-",
+                modelName: !isCodeLastTool ? (modelName?.trim() || "-") : "-",
+              }
+            })
+
+            if (!stockRecord || stockRecord.devStock < item.qtyHandover) {
+              throw new Error(`Stok tidak mencukupi untuk ${item.toolName} ukuran ${item.size}`)
             }
-          })
 
-          if (!stockRecord || stockRecord.devStock < item.qtyHandover) {
-            throw new Error(`Stok tidak mencukupi untuk ${item.toolName} ukuran ${item.size}`)
+            // Deduct stock manually
+            const deduction = Number(item.qtyHandover) || 0
+            const updatedStock = stockRecord.devStock - deduction
+
+            await tx.bpmTfmStock.update({
+              where: { id: stockRecord.id },
+              data: { devStock: updatedStock }
+            })
           }
-
-          // Deduct stock manually
-          const deduction = Number(item.qtyHandover) || 0
-          const updatedStock = stockRecord.devStock - deduction
-
-          await tx.bpmTfmStock.update({
-            where: { id: stockRecord.id },
-            data: { devStock: updatedStock }
-          })
         }
       }
     }, { timeout: 60000, maxWait: 10000 })
@@ -248,28 +282,43 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
       // 2. Revert stock
       for (const item of handover.items) {
         const isStockTracked = true
-        const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD"].includes(item.toolName.trim().toUpperCase())
+        const isCodeLastTool = ["BPM", "VAMP PRESS", "UNIVERSAL PAD", "SHOE LAST", "LASTE"].includes(item.toolName.trim().toUpperCase())
         
         if (item.size) {
-          // Find the exact existing stock record
-          const existingStock = await tx.bpmTfmStock.findFirst({
-            where: {
-              toolName: item.toolName.trim().toUpperCase(),
-              type: (item.type || "").trim().toUpperCase(),
-              size: item.size.trim().toUpperCase(),
-              codeLast: isCodeLastTool ? (handover.codeLast?.trim() || "-") : "-",
-              modelName: !isCodeLastTool ? (handover.modelName?.trim() || "-") : "-",
-            }
-          })
-
-          if (existingStock) {
-            const addition = Number(item.qty) || 0
-            const updatedStock = existingStock.devStock + addition
-
-            await tx.bpmTfmStock.update({
-              where: { id: existingStock.id },
-              data: { devStock: updatedStock }
+          if (item.toolName.trim().toUpperCase() === "SHOE LAST" || item.toolName.trim().toUpperCase() === "LASTE") {
+             const shoeLast = await tx.shoeLast.findUnique({
+                where: { code: handover.codeLast?.trim() || "" }
+             })
+             if (shoeLast) {
+               const sizes = shoeLast.sizes as Record<string, number>
+               const currentStock = sizes[item.size.trim()] || sizes[item.size.trim().toUpperCase()] || 0
+               sizes[item.size.trim()] = currentStock + (Number(item.qty) || 0)
+               await tx.shoeLast.update({
+                  where: { code: handover.codeLast?.trim() || "" },
+                  data: { sizes }
+               })
+             }
+          } else {
+            // Find the exact existing stock record
+            const existingStock = await tx.bpmTfmStock.findFirst({
+              where: {
+                toolName: item.toolName.trim().toUpperCase(),
+                type: (item.type || "").trim().toUpperCase(),
+                size: item.size.trim().toUpperCase(),
+                codeLast: isCodeLastTool ? (handover.codeLast?.trim() || "-") : "-",
+                modelName: !isCodeLastTool ? (handover.modelName?.trim() || "-") : "-",
+              }
             })
+
+            if (existingStock) {
+              const addition = Number(item.qty) || 0
+              const updatedStock = existingStock.devStock + addition
+
+              await tx.bpmTfmStock.update({
+                where: { id: existingStock.id },
+                data: { devStock: updatedStock }
+              })
+            }
           }
         }
       }
