@@ -12,8 +12,24 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { HandoverLineChart, InventoryDistributionPieChart } from "@/components/dashboard/dashboard-charts"
+import { DashboardFilter } from "@/components/dashboard/dashboard-filter"
 
-export default async function DashboardPage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+export default async function DashboardPage(props: { searchParams: SearchParams }) {
+  const searchParams = await props.searchParams
+  const fromParam = typeof searchParams.from === 'string' ? searchParams.from : undefined
+  const toParam = typeof searchParams.to === 'string' ? searchParams.to : undefined
+  
+  const chartEnd = toParam ? new Date(toParam) : new Date()
+  chartEnd.setHours(23, 59, 59, 999)
+  
+  const chartStart = fromParam ? new Date(fromParam) : new Date(chartEnd)
+  if (!fromParam) {
+    chartStart.setDate(chartStart.getDate() - 6) // Default 7 days
+  }
+  chartStart.setHours(0, 0, 0, 0)
+
   // Define time range for today's handovers
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
@@ -76,12 +92,12 @@ export default async function DashboardPage() {
       }
     }),
     
-    // Last 7 days Handovers for Chart
+    // Handovers for Chart
     prisma.handover.findMany({
       where: {
         createdAt: {
-          gte: new Date(new Date(startOfToday).setDate(startOfToday.getDate() - 6)),
-          lte: endOfToday
+          gte: chartStart,
+          lte: chartEnd
         }
       },
       include: {
@@ -127,13 +143,17 @@ export default async function DashboardPage() {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 20)
 
-  // Generate last 7 days chart data
-  const chartData = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(startOfToday)
-    d.setDate(d.getDate() - 6 + i)
+  // Generate chart data based on range
+  const diffTime = Math.abs(chartEnd.getTime() - chartStart.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // Include both start and end days
+  const chartLength = Math.min(diffDays, 31) // Cap at 31 days to avoid UI overlap
+
+  const chartData = Array.from({ length: chartLength }).map((_, i) => {
+    const d = new Date(chartStart)
+    d.setDate(d.getDate() + i)
     return {
       dateObj: d,
-      name: d.toLocaleDateString("en-US", { weekday: "short" }),
+      name: d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" }),
       fullDate: d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
       tooling: 0,
       outsole: 0,
@@ -210,9 +230,10 @@ export default async function DashboardPage() {
 
       {/* VISUAL ANALYTICS AREA (Grid 7 cols) */}
       <div className="grid gap-4 md:grid-cols-7">
-        <Card className="col-span-1 md:col-span-4">
-          <CardHeader>
-            <CardTitle>Handover Activity (Last 7 Days)</CardTitle>
+        <Card className="col-span-1 md:col-span-4 flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle>Handover Activity</CardTitle>
+            <DashboardFilter />
           </CardHeader>
           <CardContent className="pt-4">
             <HandoverLineChart data={chartData} />
