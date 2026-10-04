@@ -79,7 +79,6 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
   // BPM & Vamp Press state
   const [codeLast, setCodeLast] = useState("")
   const [sizeGroups, setSizeGroups] = useState<SizeGroup[]>([createInitialSizeGroup()])
-  const [universalStock, setUniversalStock] = useState(0)
 
   // Other Tools state
   const [modelName, setModelName] = useState("")
@@ -90,7 +89,6 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
     setSelectedTool(TOOL_OPTIONS[0])
     setCodeLast("")
     setSizeGroups([createInitialSizeGroup()])
-    setUniversalStock(0)
     setModelName("")
     setGender("")
     setOtherSizeGroups([createInitialOtherSizeGroup()])
@@ -162,7 +160,6 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
         if (group.vampPressStock > 0) payload.push({ toolName: "VAMP PRESS", type: "", size: group.size, devStock: group.vampPressStock })
       })
       if (hasValidationError) return
-      if (universalStock > 0) payload.push({ toolName: "UNIVERSAL PAD", type: "", size: "-", devStock: universalStock })
       
       if (payload.length === 0) {
         setErrorMsg("Minimal satu alat harus memiliki Size dan Stok > 0.")
@@ -359,22 +356,6 @@ export function ManualEntryModal({ onSuccess }: { onSuccess?: () => void }) {
                 >
                   <Plus className="w-4 h-4" /> Tambah Ukuran Baru
                 </Button>
-              </div>
-
-              <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-sm flex items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-semibold text-slate-800 text-sm">UNIVERSAL PAD</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">Size bersifat universal (-)</p>
-                </div>
-                <div className="w-24">
-                  <Input
-                    type="number" min={0} placeholder="0"
-                    value={universalStock === 0 ? "" : universalStock.toString()}
-                    onChange={(e) => setUniversalStock(parseInt(e.target.value, 10) || 0)}
-                    disabled={isPending}
-                    className="h-9 text-center font-semibold bg-white"
-                  />
-                </div>
               </div>
             </>
           ) : (
