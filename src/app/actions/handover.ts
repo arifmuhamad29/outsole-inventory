@@ -103,8 +103,17 @@ export async function getShoeModels(): Promise<string[]> {
   }
 }
 
-export async function getUniqueCodeLasts(): Promise<string[]> {
+export async function getUniqueCodeLasts(forShoeLast: boolean = false): Promise<string[]> {
   try {
+    if (forShoeLast) {
+      const shoeLasts = await prisma.shoeLast.findMany({
+        select: { code: true },
+        distinct: ["code"],
+        orderBy: { code: "asc" }
+      })
+      return shoeLasts.map(b => b.code)
+    }
+
     const bpmStocks = await prisma.bpmTfmStock.findMany({
       select: { codeLast: true },
       distinct: ["codeLast"],

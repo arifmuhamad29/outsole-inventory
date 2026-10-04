@@ -404,11 +404,6 @@ export function ToolingHandoverForm() {
       .then(models => setModelOptions(models))
       .catch(console.error)
       .finally(() => setIsLoadingModels(false))
-
-    getUniqueCodeLasts()
-      .then(codes => setCodeLastOptions(codes))
-      .catch(console.error)
-      .finally(() => setIsLoadingCodeLasts(false))
   }, [])
 
   const {
@@ -441,6 +436,18 @@ export function ToolingHandoverForm() {
   const firstItemToolName = watch("items.0.toolName")
   const isCodeLastMode = CODE_LAST_TOOLS.includes(firstItemToolName || "")
   const isModelMode = !!firstItemToolName && !isCodeLastMode
+
+  useEffect(() => {
+    setIsLoadingCodeLasts(true)
+    const isShoeLast = firstItemToolName === "SHOE LAST" || firstItemToolName === "LASTE"
+    getUniqueCodeLasts(isShoeLast)
+      .then(codes => {
+        setCodeLastOptions(codes)
+        setValue("codeLast", "")
+      })
+      .catch(console.error)
+      .finally(() => setIsLoadingCodeLasts(false))
+  }, [firstItemToolName, setValue])
 
   useEffect(() => {
     if (session?.user && !globalGiver) {
