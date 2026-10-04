@@ -38,75 +38,54 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   const endOfToday = new Date()
   endOfToday.setHours(23, 59, 59, 999)
 
-  // 1. Fetch Aggregations (Parallel)
-  const [
-    outsoleCount,
-    toolingCount,
-    bpmCount,
-    outsoleLowStock,
-    bpmLowStock,
-    todayHandovers,
-    recentInbound,
-    recentTransactionsRaw,
-    recentHandoversRaw,
-    last7DaysHandovers
-  ] = await Promise.all([
-    // Total SKUs breakdown
-    prisma.outsole.count({ where: { isActive: true } }),
-    prisma.toolingItem.count(),
-    prisma.bpmTfmStock.count(),
-    
-    // Low Stock Counts (< 2)
-    prisma.outsole.count({ where: { isActive: true, stock: { lt: 2 } } }),
-    prisma.bpmTfmStock.count({ where: { devStock: { lt: 2 } } }),
-    
-    // Today's Handovers
-    prisma.handover.count({
-      where: {
-        createdAt: {
-          gte: startOfToday,
-          lte: endOfToday
-        }
+  // Fetch Aggregations sequentially to prevent connection pool exhaustion on Supabase
+  const outsoleCount = await prisma.outsole.count({ where: { isActive: true } })
+  const toolingCount = await prisma.toolingItem.count()
+  const bpmCount = await prisma.bpmTfmStock.count()
+  const outsoleLowStock = await prisma.outsole.count({ where: { isActive: true, stock: { lt: 2 } } })
+  const bpmLowStock = await prisma.bpmTfmStock.count({ where: { devStock: { lt: 2 } } })
+  
+  const todayHandovers = await prisma.handover.count({
+    where: {
+      createdAt: {
+        gte: startOfToday,
+        lte: endOfToday
       }
-    }),
+    }
+  })
 
-    // Recent Inbound Transactions
-    prisma.transaction.count({
-      where: { type: 'INBOUND' }
-    }),
+  const recentInbound = await prisma.transaction.count({
+    where: { type: 'INBOUND' }
+  })
 
-    // Recent Transactions
-    prisma.transaction.findMany({
-      take: 20,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { name: true } },
-        outsole: { select: { qrCode: true, model: true, article: true, color: true, size: true } }
-      }
-    }),
+  const recentTransactionsRaw = await prisma.transaction.findMany({
+    take: 20,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { name: true } },
+      outsole: { select: { qrCode: true, model: true, article: true, color: true, size: true } }
+    }
+  })
 
-    // Recent Handovers
-    prisma.handover.findMany({
-      take: 20,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true, size: true } }
+  const recentHandoversRaw = await prisma.handover.findMany({
+    take: 20,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true, size: true } }
+    }
+  })
+  
+  const last7DaysHandovers = await prisma.handover.findMany({
+    where: {
+      createdAt: {
+        gte: chartStart,
+        lte: chartEnd
       }
-    }),
-    
-    // Handovers for Chart
-    prisma.handover.findMany({
-      where: {
-        createdAt: {
-          gte: chartStart,
-          lte: chartEnd
-        }
-      },
-      include: {
-        items: { select: { toolName: true, qty: true, size: true } }
-      }
-    })
-  ])
+    },
+    include: {
+      items: { select: { toolName: true, qty: true, size: true } }
+    }
+  })
 
   const totalSkus = outsoleCount + toolingCount + bpmCount
   const lowStockCount = outsoleLowStock + bpmLowStock
