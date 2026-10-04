@@ -45,6 +45,7 @@ export function DashboardFilter() {
           value={from} 
           onChange={(e) => setFrom(e.target.value)} 
           className="w-[130px] h-9 text-xs sm:text-sm"
+          disabled={isPending}
         />
         <span className="text-sm text-muted-foreground">-</span>
         <Input 
