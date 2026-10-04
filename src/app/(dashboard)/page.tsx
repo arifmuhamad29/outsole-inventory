@@ -164,6 +164,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   let totalOutsoleDocs = 0
   let totalOutsolePairs = 0
   let totalToolingDocs = 0
+  const totalStages: Record<string, number> = {}
 
   last7DaysHandovers.forEach(h => {
     const day = chartData.find(d => d.dateObj.toDateString() === h.createdAt.toDateString())
@@ -185,10 +186,17 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   chartData.forEach(d => {
     totalOutsoleDocs += d.outsole
     totalToolingDocs += d.tooling
-    Object.values(d.stages).forEach(qty => {
+    Object.entries(d.stages).forEach(([stage, qty]) => {
       totalOutsolePairs += qty
+      totalStages[stage] = (totalStages[stage] || 0) + qty
     })
   })
+
+  // Format stage summary
+  const stageSummaryText = Object.entries(totalStages)
+    .sort((a, b) => b[1] - a[1]) // Sort by quantity descending
+    .map(([stage, qty]) => `**${qty} pasang** untuk ${stage}`)
+    .join(', ')
 
   return (
     <div className="space-y-8 pb-8">
@@ -250,9 +258,17 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
           </CardHeader>
           <CardContent className="pt-4 flex flex-col h-full">
             {(fromParam || toParam) && (
-              <div className="mb-4 text-sm bg-blue-50/50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-3 rounded-md border border-blue-100 dark:border-blue-800">
-                <span className="font-semibold">Summary ({chartStart.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })} - {chartEnd.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })}):</span> 
-                {' '}Total <strong>{totalOutsoleDocs} dokumen</strong> Outsole ({totalOutsolePairs} pasang) dan <strong>{totalToolingDocs} dokumen</strong> Tooling telah diserahterimakan.
+              <div className="mb-4 text-sm bg-blue-50/50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-3 rounded-md border border-blue-100 dark:border-blue-800 space-y-1">
+                <div>
+                  <span className="font-semibold">Summary ({chartStart.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })} - {chartEnd.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })}):</span> 
+                  {' '}Total <strong>{totalOutsoleDocs} dokumen</strong> Outsole ({totalOutsolePairs} pasang) dan <strong>{totalToolingDocs} dokumen</strong> Tooling telah diserahterimakan.
+                </div>
+                {totalOutsolePairs > 0 && (
+                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    <span className="font-medium">Rincian Outsole: </span> 
+                    <span dangerouslySetInnerHTML={{ __html: stageSummaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />.
+                  </div>
+                )}
               </div>
             )}
             <HandoverLineChart data={chartData} />
