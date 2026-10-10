@@ -47,7 +47,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   
   const todayHandovers = await prisma.handover.count({
     where: {
-      createdAt: {
+      date: {
         gte: startOfToday,
         lte: endOfToday
       }
@@ -69,7 +69,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
 
   const recentHandoversRaw = await prisma.handover.findMany({
     take: 20,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { date: 'desc' },
     include: {
       items: { take: 1, select: { toolName: true, qty: true, satuan: true, remark: true, size: true } }
     }
@@ -77,7 +77,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   
   const last7DaysHandovers = await prisma.handover.findMany({
     where: {
-      createdAt: {
+      date: {
         gte: chartStart,
         lte: chartEnd
       }
@@ -116,7 +116,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     qty: h.items.reduce((sum, item) => sum + (item.qty || 0), 0),
     unit: h.items[0]?.satuan || 'SET',
     remarks: h.items[0]?.remark || "",
-    createdAt: h.createdAt
+    createdAt: h.date
   }))
 
   // Combine, sort by date descending, and take top 20
@@ -148,7 +148,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   const totalStages: Record<string, number> = {}
 
   last7DaysHandovers.forEach(h => {
-    const day = chartData.find(d => d.dateObj.toDateString() === h.createdAt.toDateString())
+    const day = chartData.find(d => d.dateObj.toDateString() === h.date.toDateString())
     if (day) {
       if (h.modelName === "Outsole Handover") {
         day.outsole += 1
