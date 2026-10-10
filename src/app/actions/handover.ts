@@ -307,6 +307,42 @@ export async function deleteHandoverAction(id: string): Promise<{ success: boole
                   data: { sizes }
                })
              }
+          } else if (item.toolName.trim().toUpperCase() === "OUTSOLE") {
+            const typeMatch = item.type.match(/^(.*?) - (.*?) \((.*)\)$/)
+            const sizeMatch = item.size.match(/^Sz:\s*(.*?)(?:\s*\||$)/)
+            
+            if (typeMatch && sizeMatch) {
+               const model = typeMatch[1].trim()
+               const article = typeMatch[2].trim()
+               const color = typeMatch[3].trim()
+               const sizeStr = sizeMatch[1].trim()
+
+               const outsole = await tx.outsole.findFirst({
+                 where: {
+                   model: model,
+                   article: article,
+                   color: color,
+                   size: sizeStr
+                 }
+               })
+               
+               if (outsole) {
+                 await tx.outsole.update({
+                   where: { id: outsole.id },
+                   data: { stock: outsole.stock + (Number(item.qty) || 0) }
+                 })
+                 
+                 await tx.transaction.create({
+                   data: {
+                     outsoleId: outsole.id,
+                     userId: session.user.id,
+                     type: "INBOUND",
+                     qty: Number(item.qty) || 0,
+                     notes: `Pengembalian stok (Handover dihapus)`
+                   }
+                 })
+               }
+            }
           } else {
             // Find the exact existing stock record
             const existingStock = await tx.bpmTfmStock.findFirst({
