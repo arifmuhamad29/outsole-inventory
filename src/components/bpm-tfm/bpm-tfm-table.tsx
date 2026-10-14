@@ -15,7 +15,6 @@ import {
   Table as TableIcon,
   Wrench,
   Filter,
-  Check,
 } from "lucide-react"
 import {
   Table,
@@ -27,7 +26,6 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,9 +61,10 @@ interface ToolGroup {
   items: BpmTfmStock[]
 }
 
-interface ModelGroup {
+interface ItemGroup {
   key: string
-  modelName: string
+  title: string
+  modelName?: string
   gender?: string
   codeLast?: string
   totalItems: number
@@ -100,9 +99,10 @@ function compareSizes(a: string, b: string): number {
 
 export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: BpmTfmTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedModelKey, setSelectedModelKey] = useState<string>("ALL")
+  const [groupBy, setGroupBy] = useState<"model" | "codeLast">("model")
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string>("ALL")
   const [viewMode, setViewMode] = useState<"table" | "grid">("table")
-  const [expandedModels, setExpandedModels] = useState<Record<string, boolean>>({})
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
   const [isPending, startTransition] = useTransition()
   const [itemToDelete, setItemToDelete] = useState<BpmTfmStock | null>(null)
@@ -124,13 +124,14 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
     })
   }, [data, searchQuery])
 
-  // Group items by Model
-  const modelGroups = useMemo(() => {
+  // Group items by Model OR by Code Last
+  const itemGroups = useMemo(() => {
     const map = new Map<
       string,
       {
         key: string
-        modelName: string
+        title: string
+        modelName?: string
         gender?: string
         codeLast?: string
         items: BpmTfmStock[]
@@ -142,28 +143,51 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
       const hasCode = item.codeLast && item.codeLast.trim() !== "-" && item.codeLast.trim() !== ""
 
       let key = ""
-      let displayModelName = ""
+      let title = ""
       let gender: string | undefined = undefined
       let codeLast: string | undefined = undefined
+      let modelName: string | undefined = undefined
 
-      if (hasModel) {
-        key = item.modelName.trim()
-        displayModelName = item.modelName.trim()
-        if (item.gender && item.gender.trim() !== "-") gender = item.gender.trim()
-        if (hasCode) codeLast = item.codeLast.trim()
-      } else if (hasCode) {
-        key = `CODE_${item.codeLast.trim()}`
-        displayModelName = `Code Last: ${item.codeLast.trim()}`
-        codeLast = item.codeLast.trim()
+      if (groupBy === "model") {
+        // Primary grouping: MODEL
+        if (hasModel) {
+          key = `MODEL_${item.modelName.trim()}`
+          title = item.modelName.trim()
+          modelName = item.modelName.trim()
+          if (item.gender && item.gender.trim() !== "-") gender = item.gender.trim()
+          if (hasCode) codeLast = item.codeLast.trim()
+        } else if (hasCode) {
+          key = `CODE_${item.codeLast.trim()}`
+          title = `Code Last: ${item.codeLast.trim()}`
+          codeLast = item.codeLast.trim()
+        } else {
+          key = "GENERAL_STOCK"
+          title = "General / Stock Lainnya"
+        }
       } else {
-        key = "GENERAL_STOCK"
-        displayModelName = "General / Stock Lainnya"
+        // Primary grouping: CODE LAST
+        if (hasCode) {
+          key = `CODE_${item.codeLast.trim()}`
+          title = `Code Last: ${item.codeLast.trim()}`
+          codeLast = item.codeLast.trim()
+          if (hasModel) modelName = item.modelName.trim()
+          if (item.gender && item.gender.trim() !== "-") gender = item.gender.trim()
+        } else if (hasModel) {
+          key = `MODEL_${item.modelName.trim()}`
+          title = item.modelName.trim()
+          modelName = item.modelName.trim()
+          if (item.gender && item.gender.trim() !== "-") gender = item.gender.trim()
+        } else {
+          key = "GENERAL_STOCK"
+          title = "General / Stock Lainnya"
+        }
       }
 
       if (!map.has(key)) {
         map.set(key, {
           key,
-          modelName: displayModelName,
+          title,
+          modelName,
           gender,
           codeLast,
           items: [],
@@ -172,10 +196,10 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
       map.get(key)!.items.push(item)
     }
 
-    const groups: ModelGroup[] = []
+    const groups: ItemGroup[] = []
 
     for (const [, grp] of map) {
-      // Group items in this model by toolName + type
+      // Group items in this group by toolName + type
       const toolMap = new Map<
         string,
         {
@@ -200,12 +224,12 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
       }
 
       const tools: ToolGroup[] = []
-      let modelTotalStock = 0
+      let groupTotalStock = 0
 
       for (const [, tGrp] of toolMap) {
         tGrp.items.sort((a, b) => compareSizes(a.size, b.size))
         const toolStock = tGrp.items.reduce((sum, it) => sum + it.devStock, 0)
-        modelTotalStock += toolStock
+        groupTotalStock += toolStock
         tools.push({
           toolName: tGrp.toolName,
           type: tGrp.type,
@@ -219,35 +243,36 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
 
       groups.push({
         key: grp.key,
+        title: grp.title,
         modelName: grp.modelName,
         gender: grp.gender,
         codeLast: grp.codeLast,
         totalItems: grp.items.length,
-        totalStock: modelTotalStock,
+        totalStock: groupTotalStock,
         tools,
         items: grp.items,
       })
     }
 
-    groups.sort((a, b) => a.modelName.localeCompare(b.modelName))
+    groups.sort((a, b) => a.title.localeCompare(b.title))
     return groups
-  }, [filteredData])
+  }, [filteredData, groupBy])
 
-  // Automatically expand all models by default on load or search
+  // Automatically expand all groups by default
   useEffect(() => {
-    setExpandedModels((prev) => {
+    setExpandedGroups((prev) => {
       const next = { ...prev }
-      modelGroups.forEach((g) => {
+      itemGroups.forEach((g) => {
         if (next[g.key] === undefined) {
           next[g.key] = true
         }
       })
       return next
     })
-  }, [modelGroups])
+  }, [itemGroups])
 
-  const toggleModel = (key: string) => {
-    setExpandedModels((prev) => ({
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => ({
       ...prev,
       [key]: !prev[key],
     }))
@@ -255,10 +280,10 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
 
   const handleExpandAll = (expand: boolean) => {
     const updated: Record<string, boolean> = {}
-    modelGroups.forEach((g) => {
+    itemGroups.forEach((g) => {
       updated[g.key] = expand
     })
-    setExpandedModels(updated)
+    setExpandedGroups(updated)
   }
 
   const handleDelete = () => {
@@ -286,17 +311,17 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
   }
 
   const displayedGroups = useMemo(() => {
-    if (selectedModelKey === "ALL") return modelGroups
-    return modelGroups.filter((g) => g.key === selectedModelKey)
-  }, [modelGroups, selectedModelKey])
+    if (selectedGroupKey === "ALL") return itemGroups
+    return itemGroups.filter((g) => g.key === selectedGroupKey)
+  }, [itemGroups, selectedGroupKey])
 
   return (
     <div className="flex flex-col space-y-4">
       {/* Top Toolbar */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto flex-1">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto flex-1 flex-wrap">
           {/* Search */}
-          <div className="relative w-full sm:max-w-md">
+          <div className="relative w-full sm:max-w-xs md:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               placeholder="Cari model, nama alat, size, kode last..."
@@ -314,8 +339,42 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
             )}
           </div>
 
+          {/* Group By Selector (Per Model vs Per Code Last) */}
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100/90 p-0.5 shrink-0">
+            <button
+              onClick={() => {
+                setGroupBy("model")
+                setSelectedGroupKey("ALL")
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                groupBy === "model"
+                  ? "bg-white text-primary shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+              title="Kelompokkan berdasarkan Model Sepatu"
+            >
+              <Boxes className="w-3.5 h-3.5" />
+              Per Model
+            </button>
+            <button
+              onClick={() => {
+                setGroupBy("codeLast")
+                setSelectedGroupKey("ALL")
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                groupBy === "codeLast"
+                  ? "bg-white text-primary shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+              title="Kelompokkan berdasarkan Code Last"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Per Code Last
+            </button>
+          </div>
+
           {/* View Mode Toggle */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 shrink-0 self-start sm:self-auto">
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 shrink-0">
             <button
               onClick={() => setViewMode("table")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
@@ -343,19 +402,19 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
           </div>
 
           {/* Expand/Collapse All Button */}
-          {modelGroups.length > 1 && (
+          {itemGroups.length > 1 && (
             <div className="flex items-center gap-1 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const allExpanded = modelGroups.every((g) => expandedModels[g.key])
+                  const allExpanded = itemGroups.every((g) => expandedGroups[g.key])
                   handleExpandAll(!allExpanded)
                 }}
                 className="h-10 text-xs gap-1.5 border-slate-200 text-slate-600 hover:text-slate-900"
               >
                 <ChevronsUpDown className="w-3.5 h-3.5" />
-                {modelGroups.every((g) => expandedModels[g.key]) ? "Tutup Semua" : "Buka Semua"}
+                {itemGroups.every((g) => expandedGroups[g.key]) ? "Tutup Semua" : "Buka Semua"}
               </Button>
             </div>
           )}
@@ -365,37 +424,37 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
         {actions && <div className="flex items-center gap-2.5 w-full lg:w-auto justify-end">{actions}</div>}
       </div>
 
-      {/* Model Filter Pills */}
-      {modelGroups.length > 1 && (
+      {/* Filter Pills */}
+      {itemGroups.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider shrink-0 pr-1">
             <Filter className="w-3.5 h-3.5" />
-            Model:
+            {groupBy === "model" ? "Model:" : "Code Last:"}
           </div>
           <button
-            onClick={() => setSelectedModelKey("ALL")}
+            onClick={() => setSelectedGroupKey("ALL")}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 border ${
-              selectedModelKey === "ALL"
+              selectedGroupKey === "ALL"
                 ? "bg-primary text-primary-foreground border-primary shadow-xs"
                 : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
             }`}
           >
-            Semua Model ({filteredData.length})
+            {groupBy === "model" ? "Semua Model" : "Semua Code Last"} ({filteredData.length})
           </button>
-          {modelGroups.map((grp) => (
+          {itemGroups.map((grp) => (
             <button
               key={grp.key}
-              onClick={() => setSelectedModelKey(grp.key)}
+              onClick={() => setSelectedGroupKey(grp.key)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap shrink-0 border flex items-center gap-1.5 ${
-                selectedModelKey === grp.key
+                selectedGroupKey === grp.key
                   ? "bg-primary text-primary-foreground border-primary shadow-xs"
                   : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
               }`}
             >
-              <span>{grp.modelName}</span>
+              <span>{grp.title}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                  selectedModelKey === grp.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                  selectedGroupKey === grp.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
                 }`}
               >
                 {grp.totalItems}
@@ -408,7 +467,8 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
       {/* Summary Indicator */}
       <div className="flex items-center justify-between px-1 text-xs text-slate-500 font-medium">
         <div>
-          Menampilkan <strong className="text-slate-800">{displayedGroups.length}</strong> Model (
+          Menampilkan <strong className="text-slate-800">{displayedGroups.length}</strong>{" "}
+          {groupBy === "model" ? "Model" : "Grup Code Last"} (
           <strong className="text-slate-800">{filteredData.length}</strong> data stok tooling)
         </div>
         {searchQuery && (
@@ -418,7 +478,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
         )}
       </div>
 
-      {/* Model Cards List */}
+      {/* Group Cards List */}
       {displayedGroups.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
           <div className="flex flex-col items-center gap-3">
@@ -428,7 +488,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
             <h3 className="font-semibold text-slate-800 text-base">Tidak ada data tooling ditemukan</h3>
             <p className="text-xs text-slate-500 max-w-sm">
               {searchQuery
-                ? "Tidak ada model atau alat yang cocok dengan kata kunci pencarian Anda. Coba kata kunci lain."
+                ? "Tidak ada data yang cocok dengan kata kunci pencarian Anda. Coba kata kunci lain."
                 : "Belum ada data stok development tooling. Gunakan tombol 'Bulk Import (CSV)' atau '+ New Entry' untuk menambahkan data."}
             </p>
             {searchQuery && (
@@ -441,35 +501,45 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
       ) : (
         <div className="space-y-4">
           {displayedGroups.map((group) => {
-            const isExpanded = expandedModels[group.key] ?? true
+            const isExpanded = expandedGroups[group.key] ?? true
 
             return (
               <div
                 key={group.key}
                 className="bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 transition-all overflow-hidden"
               >
-                {/* Model Header */}
+                {/* Group Card Header */}
                 <div
-                  onClick={() => toggleModel(group.key)}
+                  onClick={() => toggleGroup(group.key)}
                   className="p-4 md:px-5 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer bg-slate-50/50 hover:bg-slate-100/70 border-b border-slate-100 transition-colors select-none"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <Boxes className="w-5 h-5" />
+                      {groupBy === "model" ? <Boxes className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-900 text-base md:text-lg tracking-tight">
-                          {group.modelName}
+                          {group.title}
                         </span>
+
+                        {/* Gender badge */}
                         {group.gender && (
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 border border-violet-200 uppercase tracking-wider">
                             {group.gender}
                           </span>
                         )}
-                        {group.codeLast && (
+
+                        {/* Complementary badge */}
+                        {groupBy === "model" && group.codeLast && (
                           <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                             Last: {group.codeLast}
+                          </span>
+                        )}
+
+                        {groupBy === "codeLast" && group.modelName && group.modelName !== "-" && (
+                          <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                            Model: {group.modelName}
                           </span>
                         )}
                       </div>
@@ -513,7 +583,7 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                   </div>
                 </div>
 
-                {/* Model Body (Tools & Sizes) */}
+                {/* Group Card Body (Tools & Sizes) */}
                 {isExpanded && (
                   <div className="p-4 md:p-5 space-y-5 animate-in fade-in-50 duration-200">
                     {group.tools.map((tool) => (
@@ -619,6 +689,16 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                                   <TableHead className="font-semibold text-slate-600 text-xs w-[130px]">
                                     UKURAN (SIZE)
                                   </TableHead>
+                                  {groupBy === "codeLast" && (
+                                    <TableHead className="font-semibold text-slate-600 text-xs">
+                                      MODEL
+                                    </TableHead>
+                                  )}
+                                  {groupBy === "model" && (
+                                    <TableHead className="font-semibold text-slate-600 text-xs w-[120px]">
+                                      CODE LAST
+                                    </TableHead>
+                                  )}
                                   {tool.type && (
                                     <TableHead className="font-semibold text-slate-600 text-xs w-[120px]">
                                       TYPE
@@ -650,6 +730,16 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                                         Sz: {item.size}
                                       </span>
                                     </TableCell>
+                                    {groupBy === "codeLast" && (
+                                      <TableCell className="text-slate-700 text-xs py-2.5 font-medium">
+                                        {item.modelName && item.modelName !== "-" ? item.modelName : "—"}
+                                      </TableCell>
+                                    )}
+                                    {groupBy === "model" && (
+                                      <TableCell className="text-slate-600 text-xs py-2.5 font-mono">
+                                        {item.codeLast && item.codeLast !== "-" ? item.codeLast : "—"}
+                                      </TableCell>
+                                    )}
                                     {tool.type && (
                                       <TableCell className="text-slate-600 text-xs py-2.5">
                                         {item.type || "—"}
@@ -732,7 +822,8 @@ export function BpmTfmTable({ data, isReadOnly = false, onRefresh, actions }: Bp
                 <AlertDialogTitle>Hapus Data Stock?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Tindakan ini tidak dapat dibatalkan. Data stok alat{" "}
-                  <strong>{itemToDelete?.toolName}</strong> ({itemToDelete?.modelName !== "-" ? itemToDelete?.modelName : `Last: ${itemToDelete?.codeLast}`}) ukuran{" "}
+                  <strong>{itemToDelete?.toolName}</strong> (
+                  {itemToDelete?.modelName !== "-" ? itemToDelete?.modelName : `Last: ${itemToDelete?.codeLast}`}) ukuran{" "}
                   <strong>{itemToDelete?.size}</strong> akan dihapus secara permanen.
                 </AlertDialogDescription>
               </AlertDialogHeader>
