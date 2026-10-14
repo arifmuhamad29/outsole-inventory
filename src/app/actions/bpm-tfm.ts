@@ -8,6 +8,7 @@ import { createNotification } from "./notification"
 export async function getBpmTfmStocks() {
   const data = await prisma.bpmTfmStock.findMany({
     orderBy: [
+      { modelName: "asc" },
       { codeLast: "asc" },
       { toolName: "asc" },
       { type: "asc" },

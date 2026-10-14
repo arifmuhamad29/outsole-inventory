@@ -31,15 +31,18 @@ export async function exportInventoryData() {
 
 export async function exportBpmTfmData() {
   const items = await prisma.bpmTfmStock.findMany({
-    orderBy: [{ codeLast: "asc" }, { toolName: "asc" }, { size: "asc" }],
+    orderBy: [{ modelName: "asc" }, { codeLast: "asc" }, { toolName: "asc" }, { size: "asc" }],
   })
 
   return items.map((item) => ({
+    "Model": item.modelName !== "-" ? item.modelName : "-",
+    "Gender": item.gender !== "-" ? item.gender : "-",
     "Code Last": item.codeLast,
     "Tool Name": item.toolName,
     Type: item.type || "-",
     Size: item.size,
     "Dev Stock": item.devStock,
+    "Satuan": item.satuan || "SET",
     "Updated At": item.updatedAt.toISOString(),
   }))
 }
