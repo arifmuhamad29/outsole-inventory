@@ -6,7 +6,7 @@ import { createPortal } from "react-dom"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Trash2, Plus, RefreshCw, Loader2, Printer } from "lucide-react"
+import { Trash2, Plus, RefreshCw, Loader2, Printer, Search } from "lucide-react"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 
@@ -80,23 +80,34 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
       } else {
         toast.error("Gagal", { description: res.message })
       }
-    } catch (error) {
+    } catch {
       toast.error("Error", { description: "Terjadi kesalahan sistem" })
     } finally {
       setIsDeleting(null)
     }
   }
 
-  // Filter Data
+  // Filter Data with Article & Item Search support
   const filterData = (data: any[]) => {
+    if (!searchTerm.trim()) return data
+    const search = searchTerm.toLowerCase().trim()
     return data.filter((h) => {
-      const search = searchTerm.toLowerCase()
-      return (
-        h.id.toLowerCase().includes(search) ||
-        h.giver.toLowerCase().includes(search) ||
-        h.recipient.toLowerCase().includes(search) ||
-        h.codeLast?.toLowerCase().includes(search)
-      )
+      const matchId = h.id?.toLowerCase().includes(search)
+      const matchGiver = h.giver?.toLowerCase().includes(search)
+      const matchRecipient = h.recipient?.toLowerCase().includes(search)
+      const matchCodeLast = h.codeLast?.toLowerCase().includes(search)
+      const matchModel = h.modelName?.toLowerCase().includes(search)
+
+      // Search in handover items (Article, Model, Tool Name, Size, Stage, Remark)
+      const matchItems = h.items?.some((i: any) => {
+        const matchType = i.type?.toLowerCase().includes(search) // Contains article & model & color
+        const matchTool = i.toolName?.toLowerCase().includes(search)
+        const matchSize = i.size?.toLowerCase().includes(search) // Contains size & stage
+        const matchRemark = i.remark?.toLowerCase().includes(search)
+        return matchType || matchTool || matchSize || matchRemark
+      })
+
+      return matchId || matchGiver || matchRecipient || matchCodeLast || matchModel || matchItems
     })
   }
 
@@ -110,21 +121,45 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
         <Tabs defaultValue="outsole" className="w-full">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-              <TabsTrigger value="outsole" className="rounded-lg px-6 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
-                Outsole Handover
+              <TabsTrigger
+                value="outsole"
+                className="rounded-lg px-5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm flex items-center gap-2"
+              >
+                <span>Outsole Handover</span>
+                <span className="text-[11px] py-0.5 px-2 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-semibold">
+                  {filteredOutsole.length}
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="tooling" className="rounded-lg px-6 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">
-                Tooling Handover
+              <TabsTrigger
+                value="tooling"
+                className="rounded-lg px-5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm flex items-center gap-2"
+              >
+                <span>Tooling Handover</span>
+                <span className="text-[11px] py-0.5 px-2 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-semibold">
+                  {filteredTooling.length}
+                </span>
               </TabsTrigger>
             </TabsList>
 
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <Input
-                placeholder="Cari ID, Pemberi, Penerima..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-[300px] bg-white dark:bg-slate-800 border-slate-200"
-              />
+              <div className="relative w-full sm:w-[320px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Cari artikel, model, ID, penerima..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-8 bg-white dark:bg-slate-800 border-slate-200 text-sm"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 font-bold p-1"
+                    title="Hapus pencarian"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
@@ -134,6 +169,7 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                     toast.success("Tabel diperbarui")
                   }}
                   className="bg-white dark:bg-slate-800"
+                  title="Perbarui data"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>
@@ -169,7 +205,26 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                   {filteredTooling.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                        Belum ada data Handover Tooling
+                        {searchTerm ? (
+                          <div className="flex flex-col items-center justify-center gap-1.5 py-4">
+                            <p className="font-medium text-slate-700 dark:text-slate-300">
+                              Tidak ada Handover Tooling yang cocok dengan &quot;{searchTerm}&quot;
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              Coba periksa kata kunci artikel, model, ID, atau nama lainnya.
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSearchTerm("")}
+                              className="mt-1 text-xs"
+                            >
+                              Reset Pencarian
+                            </Button>
+                          </div>
+                        ) : (
+                          "Belum ada data Handover Tooling"
+                        )}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -259,7 +314,26 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                   {filteredOutsole.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-32 text-center text-slate-500">
-                        Belum ada data Handover Outsole
+                        {searchTerm ? (
+                          <div className="flex flex-col items-center justify-center gap-1.5 py-4">
+                            <p className="font-medium text-slate-700 dark:text-slate-300">
+                              Tidak ada Handover Outsole yang cocok dengan &quot;{searchTerm}&quot;
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              Coba periksa kata kunci artikel, model, ID, atau nama lainnya.
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSearchTerm("")}
+                              className="mt-1 text-xs"
+                            >
+                              Reset Pencarian
+                            </Button>
+                          </div>
+                        ) : (
+                          "Belum ada data Handover Outsole"
+                        )}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -272,21 +346,59 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                         <TableCell>{h.giver}</TableCell>
                         <TableCell className="font-medium text-slate-900 dark:text-slate-100">{h.recipient}</TableCell>
                         <TableCell>
-                          <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                            {h.items.map((i: any, idx: number) => (
-                              <div key={i.id} className="flex gap-2">
-                                <span>{idx + 1}.</span>
-                                <div>
-                                  <div className="font-medium text-slate-800 dark:text-slate-200">
-                                    {i.qty} {i.satuan} - {i.type.split(' | ')[0]}
-                                  </div>
-                                  <div className="text-[10px] text-slate-500">
-                                    {i.type.includes('| Gender:') ? i.type.split(' | ')[1] : ''} | {i.size}
-                                    {i.remark ? ` | Note: ${i.remark}` : ''}
+                          <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5">
+                            {h.items.map((i: any, idx: number) => {
+                              // Match "${model} - ${article} (${color})"
+                              const typeMatch = i.type ? i.type.match(/^(.*?) - (.*?) \((.*)\)$/) : null;
+                              const model = typeMatch ? typeMatch[1] : null;
+                              const article = typeMatch ? typeMatch[2] : null;
+                              const color = typeMatch ? typeMatch[3] : null;
+
+                              return (
+                                <div key={i.id} className="flex gap-2 items-start py-1 border-b border-slate-100 dark:border-slate-800 last:border-b-0">
+                                  <span className="text-slate-400 font-mono text-[11px] mt-0.5">{idx + 1}.</span>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                        {i.qty} {i.satuan}
+                                      </span>
+                                      {article ? (
+                                        <>
+                                          <span className="text-slate-700 dark:text-slate-300 font-medium">
+                                            - {model}
+                                          </span>
+                                          <span className="px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20 font-mono font-semibold text-[11px]">
+                                            Art: {article}
+                                          </span>
+                                          {color && (
+                                            <span className="text-slate-500 text-[11px]">
+                                              ({color})
+                                            </span>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                                          - {i.type.split(' | ')[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                      {i.type.includes('| Gender:') && (
+                                        <span>{i.type.split(' | ')[1]} •</span>
+                                      )}
+                                      <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded text-[10px] text-slate-600 dark:text-slate-300">
+                                        {i.size}
+                                      </span>
+                                      {i.remark && (
+                                        <span className="text-slate-400 italic">
+                                          • Note: {i.remark}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </TableCell>
                         <TableCell className="text-right align-top">
