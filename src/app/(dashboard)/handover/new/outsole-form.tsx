@@ -27,7 +27,7 @@ export type OutsoleItem = {
   component?: string | null
 }
 
-const STAGE_OPTIONS = ["MST", "EXTREME", "FSR", "SS", "DUPLICATE", "XTR", "FSC", "LINE CONFORM", "OTHER"]
+const STAGE_OPTIONS = ["MST", "EXTREME", "FSR", "SS", "DUPLICATE", "XTR", "FSC", "LINE CONFORM", "GTM", "OTHER"]
 
 type FormValues = {
   date: string
