@@ -83,7 +83,7 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
       }
     },
     include: {
-      items: { select: { toolName: true, qty: true, size: true } }
+      items: { select: { toolName: true, qty: true, size: true, type: true } }
     }
   })
 
@@ -147,15 +147,65 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
   let totalToolingDocs = 0
   const totalStages: Record<string, number> = {}
 
+  interface DuplicateArticleInfo {
+    article: string
+    model: string
+    count: number
+    totalPairs: number
+    dates: string[]
+    docIds: string[]
+  }
+
+  const articleOccurrences = new Map<string, DuplicateArticleInfo>()
+
   last7DaysHandovers.forEach(h => {
     const day = chartData.find(d => d.dateObj.toDateString() === h.date.toDateString())
     if (day) {
       if (h.modelName === "Outsole Handover") {
         day.outsole += 1
+        const formattedDate = h.date.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })
+
         h.items.forEach(item => {
           const match = item.size?.match(/Stage:\s*(.+)$/)
           const stage = match ? match[1].trim() : "Unknown"
           day.stages[stage] = (day.stages[stage] || 0) + 1 // count as 1 article
+
+          // Track article occurrence for summary report notes
+          let model = ""
+          let article = ""
+          if (item.type) {
+            const typeMatch = item.type.match(/^(.*?)\s*-\s*([^\s(]+)(?:\s*\((.*)\))?/)
+            if (typeMatch) {
+              model = typeMatch[1]?.trim() || ""
+              article = typeMatch[2]?.trim() || ""
+            } else {
+              article = item.type.trim()
+            }
+          }
+
+          if (article) {
+            const key = article.toUpperCase()
+            const existing = articleOccurrences.get(key)
+            if (!existing) {
+              articleOccurrences.set(key, {
+                article,
+                model,
+                count: 1,
+                totalPairs: item.qty || 0,
+                dates: [formattedDate],
+                docIds: [h.id]
+              })
+            } else {
+              existing.count += 1
+              existing.totalPairs += (item.qty || 0)
+              if (!existing.dates.includes(formattedDate)) {
+                existing.dates.push(formattedDate)
+              }
+              if (!existing.docIds.includes(h.id)) {
+                existing.docIds.push(h.id)
+              }
+            }
+          }
         })
       } else {
         day.tooling += 1
@@ -178,6 +228,11 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
     .sort((a, b) => b[1] - a[1]) // Sort by quantity descending
     .map(([stage, count]) => `**${count} article** untuk ${stage}`)
     .join(', ')
+
+  // Duplicate / repeated articles in the filtered date range
+  const duplicateArticles = Array.from(articleOccurrences.values())
+    .filter(a => a.count > 1)
+    .sort((a, b) => b.count - a.count || b.totalPairs - a.totalPairs)
 
   return (
     <div className="space-y-8 pb-8">
@@ -239,16 +294,54 @@ export default async function DashboardPage(props: { searchParams: SearchParams 
           </CardHeader>
           <CardContent className="pt-4 flex flex-col h-full">
             {(fromParam || toParam) && (
-              <div className="mb-4 text-sm bg-blue-50/50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-3 rounded-md border border-blue-100 dark:border-blue-800 space-y-1">
+              <div className="mb-4 text-sm bg-blue-50/50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-3.5 rounded-lg border border-blue-100 dark:border-blue-800 space-y-2">
                 <div>
                   <span className="font-semibold">Summary ({chartStart.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })} - {chartEnd.toLocaleDateString("id-ID", { day: '2-digit', month: 'short' })}):</span> 
                   {' '}Total <strong>{totalOutsoleDocs} dokumen</strong> Outsole ({totalOutsoleArticles} article) dan <strong>{totalToolingDocs} dokumen</strong> Tooling telah diserahterimakan.
                 </div>
                 {totalOutsoleArticles > 0 && (
-                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
                     <span className="font-medium">Rincian Outsole: </span> 
                     <span dangerouslySetInnerHTML={{ __html: stageSummaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />.
                   </div>
+                )}
+                {duplicateArticles.length > 0 ? (
+                  <div className="mt-2.5 pt-2.5 border-t border-blue-200/70 dark:border-blue-800/70 text-xs space-y-2">
+                    <div className="flex items-start gap-1.5 font-semibold text-amber-900 dark:text-amber-200">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span>Notes Artikel Berulang: </span>
+                        <span className="font-normal text-slate-700 dark:text-slate-300">
+                          Dalam rentang {diffDays} hari ini, terdapat <strong className="font-bold text-amber-900 dark:text-amber-200">{duplicateArticles.length} article yang sama</strong> diserahterimakan berulang (muncul lebih dari 1 kali):
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-0.5 pl-5">
+                      {duplicateArticles.map((item) => (
+                        <div
+                          key={item.article}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-950 dark:text-amber-200 text-xs shadow-sm"
+                        >
+                          <span className="font-mono font-bold text-amber-900 dark:text-amber-100">{item.article}</span>
+                          {item.model && (
+                            <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">({item.model})</span>
+                          )}
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-200/80 dark:bg-amber-800/60 text-amber-950 dark:text-amber-100">
+                            {item.count}x serah terima
+                          </span>
+                          <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                            • {item.dates.length > 1 ? `muncul di ${item.dates.length} hari (${item.dates.join(', ')})` : `pada ${item.dates[0]}`} • Total: {item.totalPairs} PRS
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  totalOutsoleArticles > 0 && (
+                    <div className="mt-2 pt-2 border-t border-blue-200/50 dark:border-blue-800/50 text-xs text-blue-600 dark:text-blue-400">
+                      <span className="font-medium">Notes: </span> Seluruh {totalOutsoleArticles} article yang diserahterimakan dalam rentang ini berbeda (tidak ada article yang sama/berulang).
+                    </div>
+                  )
                 )}
               </div>
             )}
