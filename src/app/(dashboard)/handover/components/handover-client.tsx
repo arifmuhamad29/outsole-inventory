@@ -35,6 +35,37 @@ import {
 import { deleteHandoverAction } from "@/app/actions/handover"
 import { PrintableHandover } from "@/components/ui/printable-handover"
 
+// Component for stabilo kuning text highlighting
+function HighlightText({ text, query }: { text: string | number | null | undefined; query: string }) {
+  if (text === null || text === undefined || text === "") return null
+  const str = String(text)
+  const trimmed = query.trim()
+  if (!trimmed) return <>{str}</>
+
+  const escapedQuery = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const regex = new RegExp(`(${escapedQuery})`, "gi")
+  const parts = str.split(regex)
+
+  if (parts.length === 1) return <>{str}</>
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.toLowerCase() === trimmed.toLowerCase() ? (
+          <mark
+            key={index}
+            className="bg-yellow-300 text-slate-950 dark:bg-yellow-400 dark:text-slate-950 px-0.5 py-0.2 rounded-xs font-bold shadow-2xs"
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  )
+}
+
 export function HandoverClient({ toolingData, outsoleData, readOnly = false }: { toolingData: any[], outsoleData: any[], readOnly?: boolean }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -230,20 +261,26 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                   ) : (
                     filteredTooling.map((h) => (
                       <TableRow key={h.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <TableCell className="font-mono font-medium text-slate-900 dark:text-slate-100">{h.id}</TableCell>
+                        <TableCell className="font-mono font-medium text-slate-900 dark:text-slate-100">
+                          <HighlightText text={h.id} query={searchTerm} />
+                        </TableCell>
                         <TableCell className="text-slate-600 dark:text-slate-400">
                           {format(new Date(h.date), "dd MMM yyyy, HH:mm 'WIB'")}
                         </TableCell>
-                        <TableCell>{h.giver}</TableCell>
-                        <TableCell className="font-medium text-slate-900 dark:text-slate-100">{h.recipient}</TableCell>
+                        <TableCell>
+                          <HighlightText text={h.giver} query={searchTerm} />
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900 dark:text-slate-100">
+                          <HighlightText text={h.recipient} query={searchTerm} />
+                        </TableCell>
                         <TableCell>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                            {h.codeLast || "-"}
+                            <HighlightText text={h.codeLast || "-"} query={searchTerm} />
                           </span>
                         </TableCell>
                         <TableCell>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                            {h.modelName || "-"}
+                            <HighlightText text={h.modelName || "-"} query={searchTerm} />
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
@@ -253,13 +290,15 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                             </span>
                             <div className="text-[10px] text-slate-500 text-center">
                               {h.items.map((i: any) => (
-                                <div key={i.id}>• {i.qty} {i.satuan} {i.toolName} ({i.type}) - Sz: {i.size}</div>
+                                <div key={i.id}>
+                                  • {i.qty} {i.satuan} <HighlightText text={i.toolName} query={searchTerm} /> (<HighlightText text={i.type} query={searchTerm} />) - Sz: <HighlightText text={i.size} query={searchTerm} />
+                                </div>
                               ))}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-slate-500 text-sm max-w-[200px] truncate" title={h.items[0]?.remark || "-"}>
-                          {h.items[0]?.remark || "-"}
+                          <HighlightText text={h.items[0]?.remark || "-"} query={searchTerm} />
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -339,12 +378,18 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                   ) : (
                     filteredOutsole.map((h) => (
                       <TableRow key={h.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <TableCell className="font-mono font-medium text-slate-900 dark:text-slate-100">{h.id}</TableCell>
+                        <TableCell className="font-mono font-medium text-slate-900 dark:text-slate-100">
+                          <HighlightText text={h.id} query={searchTerm} />
+                        </TableCell>
                         <TableCell className="text-slate-600 dark:text-slate-400">
                           {format(new Date(h.date), "dd MMM yyyy, HH:mm 'WIB'")}
                         </TableCell>
-                        <TableCell>{h.giver}</TableCell>
-                        <TableCell className="font-medium text-slate-900 dark:text-slate-100">{h.recipient}</TableCell>
+                        <TableCell>
+                          <HighlightText text={h.giver} query={searchTerm} />
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900 dark:text-slate-100">
+                          <HighlightText text={h.recipient} query={searchTerm} />
+                        </TableCell>
                         <TableCell>
                           <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5">
                             {h.items.map((i: any, idx: number) => {
@@ -365,33 +410,35 @@ export function HandoverClient({ toolingData, outsoleData, readOnly = false }: {
                                       {article ? (
                                         <>
                                           <span className="text-slate-700 dark:text-slate-300 font-medium">
-                                            - {model}
+                                            - <HighlightText text={model} query={searchTerm} />
                                           </span>
                                           <span className="px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20 font-mono font-semibold text-[11px]">
-                                            Art: {article}
+                                            Art: <HighlightText text={article} query={searchTerm} />
                                           </span>
                                           {color && (
                                             <span className="text-slate-500 text-[11px]">
-                                              ({color})
+                                              (<HighlightText text={color} query={searchTerm} />)
                                             </span>
                                           )}
                                         </>
                                       ) : (
                                         <span className="font-medium text-slate-800 dark:text-slate-200">
-                                          - {i.type.split(' | ')[0]}
+                                          - <HighlightText text={i.type.split(' | ')[0]} query={searchTerm} />
                                         </span>
                                       )}
                                     </div>
                                     <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                       {i.type.includes('| Gender:') && (
-                                        <span>{i.type.split(' | ')[1]} •</span>
+                                        <span>
+                                          <HighlightText text={i.type.split(' | ')[1]} query={searchTerm} /> •
+                                        </span>
                                       )}
                                       <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded text-[10px] text-slate-600 dark:text-slate-300">
-                                        {i.size}
+                                        <HighlightText text={i.size} query={searchTerm} />
                                       </span>
                                       {i.remark && (
                                         <span className="text-slate-400 italic">
-                                          • Note: {i.remark}
+                                          • Note: <HighlightText text={i.remark} query={searchTerm} />
                                         </span>
                                       )}
                                     </div>
