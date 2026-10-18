@@ -365,6 +365,11 @@ model ColorConformHistory {
   status                String    @default("PENDING") // PENDING, APPROVED, REJECTED, APPROVED_WITH_NOTE
   approvalDate          DateTime?
 
+  // Per-component tracking support (MIDSOLE, OUTSOLE, WEDGE, CR)
+  component             String?   // "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+  targetColor           String?   // Target standard color for this component
+  supplierColor         String?   // Sample actual color from supplier
+
   // 4 Components Color Details (Target Color vs Supplier Color, Vendor & Status)
   midsoleTargetColor    String?   // e.g., SEA SALT
   midsoleSupplierColor  String?   // Warna dari supplier
@@ -396,6 +401,7 @@ model ColorConformHistory {
   updatedAt             DateTime  @updatedAt
 
   @@index([article])
+  @@index([component])
   @@index([status])
   @@index([confirmDate])
   @@index([projectDev])
