@@ -347,3 +347,52 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
 }
+
+// ============================================================
+// MODULE: Color Conform History (Konfirmasi Warna Komponen)
+// Records color submission history for bottom components
+// (Midsole, Outsole, Wedge, CR Device) to Project Developers.
+// ============================================================
+model ColorConformHistory {
+  id                    String    @id @default(cuid())
+  article               String    // e.g., P57472N
+  modelName             String?   // e.g., 574 (Kids/Jr)
+  submissionNo          Int       @default(1) // 1 = 1st conform, 2 = 2nd conform, etc.
+  supplier              String?   // Supplier / vendor
+  projectDev            String    // Nama Team Project Developer (e.g., "Arif (PD)")
+  requesterName         String?   // User pemohon konfirmasi
+  confirmDate           DateTime  @default(now())
+  status                String    @default("PENDING") // PENDING, APPROVED, REJECTED, APPROVED_WITH_NOTE
+  approvalDate          DateTime?
+
+  // 4 Components Color Details (Target Color vs Supplier Color & Status)
+  midsoleTargetColor    String?   // e.g., SEA SALT
+  midsoleSupplierColor  String?   // Warna dari supplier
+  midsoleStatus         String?   @default("PENDING") // PENDING, APPROVED, REJECTED, NOT_APPLICABLE
+
+  outsoleTargetColor    String?   // e.g., BLACK
+  outsoleSupplierColor  String?
+  outsoleStatus         String?   @default("PENDING")
+
+  wedgeTargetColor      String?   // e.g., SEA GLASES
+  wedgeSupplierColor    String?
+  wedgeStatus           String?   @default("PENDING")
+
+  crTargetColor         String?   // e.g., SEA GLASES
+  crSupplierColor       String?
+  crStatus              String?   @default("PENDING")
+
+  notes                 String?   // Catatan pengajuan konfirmasi
+  devFeedback           String?   // Feedback / instruksi dari Project Developer
+  imageUrl              String?   // Foto swatch / sampel perbandingan warna
+
+  trackingBatchId       String?   // Optional reference to PurchaseTracking batchId
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([article])
+  @@index([status])
+  @@index([confirmDate])
+  @@index([projectDev])
+}

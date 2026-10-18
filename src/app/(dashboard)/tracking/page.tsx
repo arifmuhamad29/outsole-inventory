@@ -22,8 +22,9 @@ import { id as localeId } from "date-fns/locale"
 import {
   ShoppingCart, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, Package, X, ChevronDown, Check,
-  ImageIcon, UploadCloud, GripVertical, Settings
+  ImageIcon, UploadCloud, GripVertical, Settings, Palette
 } from "lucide-react"
+import Link from "next/link"
 import {
   DndContext,
   closestCenter,
@@ -333,7 +334,19 @@ function SortableRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="min-w-[100px] font-medium">{entry.article}</TableCell>
+      <TableCell className="min-w-[100px] font-medium">
+        <div className="space-y-1">
+          <span className="font-mono font-bold text-foreground">{entry.article}</span>
+          <Link
+            href={`/conform-history?article=${entry.article}`}
+            className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-normal"
+            title={`Lihat / buat riwayat conform color untuk ${entry.article}`}
+          >
+            <Palette className="h-3 w-3" />
+            Conform Color
+          </Link>
+        </div>
+      </TableCell>
       <TableCell className="min-w-[130px] max-w-[180px] whitespace-normal break-words">
         <div className="leading-tight">
           {entry.modelName}
@@ -479,6 +492,17 @@ function SortableRow({
       {canManage && (
         <TableCell className="text-center">
           <div className="flex items-center justify-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="h-8 w-8 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/10 transition-all"
+              title={`Conform Color History: ${entry.article}`}
+            >
+              <Link href={`/conform-history?article=${entry.article}`}>
+                <Palette className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -5,7 +5,7 @@ import { useSession, signIn } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { logOut } from "@/app/actions/auth"
-import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart, Loader2, Footprints } from "lucide-react"
+import { LayoutDashboard, PackagePlus, ScanBarcode, ArrowRightLeft, ClipboardList, FileSpreadsheet, LogOut, Package, List, Wrench, Layers, Send, Menu, ChevronDown, ChevronUp, ShieldAlert, History, ShoppingCart, Loader2, Footprints, Palette } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Reports", href: "/reports", icon: FileSpreadsheet },
     { name: "History / Audit", href: "/history", icon: History },
     { name: "Tracking", href: "/tracking", icon: ShoppingCart },
+    { name: "Conform History", href: "/conform-history", icon: Palette },
   ]
 
   const operatorNavItems = [
@@ -61,6 +62,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: "Handover", href: "/handover", icon: Send },
     { name: "History / Audit", href: "/history", icon: History },
     { name: "Tracking", href: "/tracking", icon: ShoppingCart },
+    { name: "Conform History", href: "/conform-history", icon: Palette },
   ]
 
   const superAdminNavItems = [
@@ -77,6 +79,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       if (item.name === "Outbound" && !permissions.includes("MANAGE_OUTBOUND")) return false;
       if (item.name === "History / Audit" && !permissions.includes("VIEW_HISTORY")) return false;
       if (item.name === "Tracking" && !permissions.includes("VIEW_TRACKING") && !permissions.includes("MANAGE_TRACKING")) return false;
+      if (item.name === "Conform History" && !permissions.includes("VIEW_TRACKING") && !permissions.includes("MANAGE_TRACKING") && role !== "ADMIN") return false;
       if (item.name === "Shoe Last" && !permissions.includes("VIEW_SHOE_LAST") && !permissions.includes("MANAGE_SHOE_LAST")) return false;
       return true;
     });
@@ -110,7 +113,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   by : Arif Setiawan
                 </span>
                 <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                  v2.2.7
+                  v2.2.8
                 </span>
               </div>
             </div>
@@ -180,7 +183,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.2.7
+                v2.2.8
               </span>
             </div>
           </div>
