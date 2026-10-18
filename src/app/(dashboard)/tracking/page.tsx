@@ -492,17 +492,13 @@ function SortableRow({
       {canManage && (
         <TableCell className="text-center">
           <div className="flex items-center justify-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              className="h-8 w-8 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/10 transition-all"
+            <Link
+              href={`/conform-history?article=${entry.article}`}
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-indigo-600 hover:bg-indigo-500/10 transition-all"
               title={`Conform Color History: ${entry.article}`}
             >
-              <Link href={`/conform-history?article=${entry.article}`}>
-                <Palette className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
+              <Palette className="h-3.5 w-3.5" />
+            </Link>
             <Button
               variant="ghost"
               size="icon"
