@@ -262,7 +262,9 @@ export async function updateConformEntry(id: string, data: Partial<ConformEntryI
         message: `Project Developer (${updated.projectDev}) telah memberikan keputusan: ${data.status} untuk article ${updated.article}.`,
         type: data.status === "APPROVED" ? "success" : (data.status === "REJECTED" ? "warning" : "info")
       })
-    } catch (_) {}
+    } catch {
+      // Ignore notification error
+    }
   }
 
   revalidatePath("/conform-history")

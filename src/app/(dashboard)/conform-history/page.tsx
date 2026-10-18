@@ -8,8 +8,7 @@ import { id as localeId } from "date-fns/locale"
 import {
   Palette, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw,
-  History, ArrowRight, UserCheck, Check, ChevronRight,
-  ExternalLink, Layers
+  History, UserCheck, Layers
 } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead,
@@ -274,7 +273,8 @@ function ConformHistoryContent() {
   }
 
   // Handle article selection from dropdown: auto fill colors & model
-  const handleSelectTrackingArticle = (articleVal: string) => {
+  const handleSelectTrackingArticle = (articleVal: string | null) => {
+    if (!articleVal) return
     const found = trackingArticles.find(a => a.article === articleVal)
     if (found) {
       setFormData(prev => ({
@@ -526,7 +526,7 @@ function ConformHistoryContent() {
 
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground shrink-0 hidden sm:inline">Status:</Label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "ALL")}>
             <SelectTrigger className="w-[180px] bg-background">
               <SelectValue placeholder="Semua Status" />
             </SelectTrigger>
@@ -1096,7 +1096,7 @@ function ConformHistoryContent() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Status Persetujuan Akhir</Label>
-              <Select value={reviewStatus} onValueChange={setReviewStatus}>
+              <Select value={reviewStatus} onValueChange={(val) => { if (val) setReviewStatus(val) }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1117,7 +1117,7 @@ function ConformHistoryContent() {
                   <span className="text-[11px] text-muted-foreground block">Midsole:</span>
                   <Select 
                     value={reviewCompStatus.midsole} 
-                    onValueChange={(val) => setReviewCompStatus(prev => ({ ...prev, midsole: val }))}
+                    onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, midsole: val })) }}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
@@ -1133,7 +1133,7 @@ function ConformHistoryContent() {
                   <span className="text-[11px] text-muted-foreground block">Outsole:</span>
                   <Select 
                     value={reviewCompStatus.outsole} 
-                    onValueChange={(val) => setReviewCompStatus(prev => ({ ...prev, outsole: val }))}
+                    onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, outsole: val })) }}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
@@ -1149,7 +1149,7 @@ function ConformHistoryContent() {
                   <span className="text-[11px] text-muted-foreground block">Wedge:</span>
                   <Select 
                     value={reviewCompStatus.wedge} 
-                    onValueChange={(val) => setReviewCompStatus(prev => ({ ...prev, wedge: val }))}
+                    onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, wedge: val })) }}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
@@ -1165,7 +1165,7 @@ function ConformHistoryContent() {
                   <span className="text-[11px] text-muted-foreground block">CR Device:</span>
                   <Select 
                     value={reviewCompStatus.cr} 
-                    onValueChange={(val) => setReviewCompStatus(prev => ({ ...prev, cr: val }))}
+                    onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, cr: val })) }}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
@@ -1227,7 +1227,7 @@ function ConformHistoryContent() {
             <p className="text-center py-8 text-sm text-muted-foreground">Tidak ada riwayat ditemukan.</p>
           ) : (
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-indigo-200 dark:before:bg-indigo-900/60 pt-2">
-              {timelineEntries.map((item, idx) => {
+              {timelineEntries.map((item) => {
                 const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.PENDING
                 const StatusIcon = statusCfg.icon
 
