@@ -196,11 +196,11 @@ export async function createConformEntry(data: ConformEntryInput) {
 
   // Create real-time notification
   try {
-    await createNotification({
-      title: `Color Conform #${nextSubmissionNo}: ${cleanArticle}`,
-      message: `Konfirmasi warna diajukan ke ${data.projectDev.trim()} untuk article ${cleanArticle} (${data.modelName || "-"}).`,
-      type: "info"
-    })
+    await createNotification(
+      `Color Conform #${nextSubmissionNo}: ${cleanArticle}`,
+      `Konfirmasi warna diajukan ke ${data.projectDev.trim()} untuk article ${cleanArticle} (${data.modelName || "-"}).`,
+      "info"
+    )
   } catch (err) {
     console.error("Failed to create notification", err)
   }
@@ -257,11 +257,11 @@ export async function updateConformEntry(id: string, data: Partial<ConformEntryI
   // Create notification if status changed to Approved or Rejected
   if (data.status === "APPROVED" || data.status === "REJECTED" || data.status === "APPROVED_WITH_NOTE") {
     try {
-      await createNotification({
-        title: `Color Conform Decision: ${updated.article}`,
-        message: `Project Developer (${updated.projectDev}) telah memberikan keputusan: ${data.status} untuk article ${updated.article}.`,
-        type: data.status === "APPROVED" ? "success" : (data.status === "REJECTED" ? "warning" : "info")
-      })
+      await createNotification(
+        `Color Conform Decision: ${updated.article}`,
+        `Project Developer (${updated.projectDev}) telah memberikan keputusan: ${data.status} untuk article ${updated.article}.`,
+        data.status === "APPROVED" ? "success" : (data.status === "REJECTED" ? "warning" : "info")
+      )
     } catch {
       // Ignore notification error
     }
