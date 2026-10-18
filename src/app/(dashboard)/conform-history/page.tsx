@@ -214,6 +214,7 @@ function ConformHistoryContent() {
   // Delete State
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Article Picker Modal State (for "+ New Color Conform")
   const [isArticlePickerOpen, setIsArticlePickerOpen] = useState(false)
@@ -425,22 +426,23 @@ function ConformHistoryContent() {
     setIsDeleteOpen(true)
   }
 
-  const confirmDeleteRound = () => {
-    if (!deletingId) return
-    startTransition(async () => {
-      try {
-        const res = await deleteConformEntry(deletingId)
-        if (res.success) {
-          toast.success(res.message)
-          setIsDeleteOpen(false)
-          setDeletingId(null)
-          if (windowData) reloadWindowData(windowData.article)
-          fetchData()
-        }
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Gagal menghapus data")
+  const confirmDeleteRound = async () => {
+    if (!deletingId || isDeleting) return
+    setIsDeleting(true)
+    try {
+      const res = await deleteConformEntry(deletingId)
+      if (res.success) {
+        toast.success(res.message)
+        setIsDeleteOpen(false)
+        setDeletingId(null)
+        if (windowData) await reloadWindowData(windowData.article)
+        fetchData()
       }
-    })
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menghapus data")
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   // Filtered tracking articles for picker modal
@@ -1384,7 +1386,12 @@ function ConformHistoryContent() {
       {/* ========================================================================= */}
       {/* DIALOG: CONFIRM DELETE ROUND */}
       {/* ========================================================================= */}
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <AlertDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!isDeleting) setIsDeleteOpen(open)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Putaran CFM Ini?</AlertDialogTitle>
@@ -1393,9 +1400,23 @@ function ConformHistoryContent() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteRound} className="bg-red-600 hover:bg-red-700 text-white">
-              Hapus
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                confirmDeleteRound()
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed min-w-[95px] transition-all gap-1.5"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                  Menghapus...
+                </>
+              ) : (
+                "Hapus"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
