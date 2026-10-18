@@ -139,6 +139,10 @@ function ConformHistoryContent() {
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [selectedArticleForTimeline, setSelectedArticleForTimeline] = useState("")
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  
+  // Searchable article picker states
+  const [isArticlePickerOpen, setIsArticlePickerOpen] = useState(false)
+  const [articleSearchQuery, setArticleSearchQuery] = useState("")
 
   const [isPending, startTransition] = useTransition()
 
@@ -218,6 +222,8 @@ function ConformHistoryContent() {
   // Open Form for New Conform
   const handleOpenNew = (prefill?: Partial<ConformEntryInput>) => {
     setSelectedEntry(null)
+    setIsArticlePickerOpen(!prefill?.article)
+    setArticleSearchQuery("")
     setFormData({
       article: prefill?.article || "",
       modelName: prefill?.modelName || "",
@@ -247,6 +253,8 @@ function ConformHistoryContent() {
   // Open Form to Edit
   const handleOpenEdit = (entry: ConformRecord) => {
     setSelectedEntry(entry)
+    setIsArticlePickerOpen(false)
+    setArticleSearchQuery("")
     setFormData({
       article: entry.article,
       modelName: entry.modelName || "",
@@ -288,10 +296,19 @@ function ConformHistoryContent() {
         crTargetColor: found.crDeviceColor || "",
         trackingBatchId: found.batchId,
       }))
-    } else {
-      setFormData(prev => ({ ...prev, article: articleVal }))
+      setIsArticlePickerOpen(false)
     }
   }
+
+  const filteredTrackingArticles = trackingArticles.filter((item) => {
+    if (!articleSearchQuery.trim()) return true
+    const query = articleSearchQuery.toLowerCase()
+    return (
+      item.article.toLowerCase().includes(query) ||
+      item.modelName.toLowerCase().includes(query) ||
+      (item.supplier && item.supplier.toLowerCase().includes(query))
+    )
+  })
 
   // Save (Create or Update)
   const handleSubmitForm = (e: React.FormEvent) => {
@@ -847,52 +864,125 @@ function ConformHistoryContent() {
           </DialogHeader>
 
           <form onSubmit={handleSubmitForm} className="space-y-4 pt-2">
-            {/* ARTICLE & TRACKING DROPDOWN */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Article Tracking <span className="text-red-500">*</span>
-                </Label>
-                {trackingArticles.length > 0 ? (
-                  <div className="space-y-1">
-                    <Select
-                      value={formData.article}
-                      onValueChange={handleSelectTrackingArticle}
-                    >
-                      <SelectTrigger className="font-mono">
-                        <SelectValue placeholder="Pilih artikel dari Tracking..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {trackingArticles.map(a => (
-                          <SelectItem key={a.article} value={a.article} className="font-mono">
-                            {a.article} - {a.modelName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground">
-                      Pilih dari tracking untuk auto-fill warna komponen, atau ketik manual di bawah.
-                    </p>
-                  </div>
-                ) : (
-                  <Input
-                    placeholder="Contoh: P57472N"
-                    className="font-mono uppercase"
-                    value={formData.article}
-                    onChange={(e) => setFormData(prev => ({ ...prev, article: e.target.value.toUpperCase() }))}
-                    required
-                  />
-                )}
-              </div>
+            {/* ARTICLE TRACKING PICKER (SEARCHABLE & AUTOFILL) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold flex items-center justify-between">
+                <span>Article Tracking <span className="text-red-500">*</span></span>
+                <span className="text-[11px] text-muted-foreground font-normal">
+                  (Pilih dari artikel terdaftar di Purchase Tracking)
+                </span>
+              </Label>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Model Name</Label>
-                <Input
-                  placeholder="Contoh: 574 (Kids/Jr)"
-                  value={formData.modelName || ""}
-                  onChange={(e) => setFormData(prev => ({ ...prev, modelName: e.target.value }))}
-                />
-              </div>
+              {/* CARD INFO JIKA ARTIKEL SUDAH DIPILIH */}
+              {formData.article && !isArticlePickerOpen ? (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 shadow-sm transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white font-mono font-bold text-xs shadow-sm">
+                      ART
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-base text-foreground">
+                          {formData.article}
+                        </span>
+                        <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                          {formData.modelName || "-"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        Supplier: <strong className="text-foreground">{formData.supplier || "-"}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsArticlePickerOpen(true)
+                      setArticleSearchQuery("")
+                    }}
+                    className="h-8 text-xs border-indigo-200 hover:bg-indigo-100 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 gap-1.5"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    Ganti Article
+                  </Button>
+                </div>
+              ) : (
+                /* SEARCHABLE ARTICLE PICKER BOX */
+                <div className="space-y-2 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-950/20">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari kode article (misal: P57472N) atau nama model..."
+                      value={articleSearchQuery}
+                      onChange={(e) => setArticleSearchQuery(e.target.value)}
+                      className="pl-9 bg-background font-medium"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                    {filteredTrackingArticles.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-muted-foreground">
+                        Tidak ada article yang cocok di Purchase Tracking.
+                      </div>
+                    ) : (
+                      filteredTrackingArticles.map((item) => {
+                        const isSelected = formData.article === item.article
+                        return (
+                          <div
+                            key={item.article}
+                            onClick={() => handleSelectTrackingArticle(item.article)}
+                            className={cn(
+                              "p-2.5 rounded-lg border cursor-pointer transition-all flex flex-col gap-1 text-xs",
+                              isSelected
+                                ? "bg-indigo-100 dark:bg-indigo-900/50 border-indigo-500 shadow-sm"
+                                : "bg-background hover:bg-muted/60 border-slate-200 dark:border-slate-800"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-sm text-foreground bg-primary/10 text-primary px-1.5 py-0.2 rounded border border-primary/20">
+                                  {item.article}
+                                </span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                  {item.modelName}
+                                </span>
+                              </div>
+                              {item.supplier && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {item.supplier}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5">
+                              {item.midsoleColor && <span>MID: <strong className="text-foreground">{item.midsoleColor}</strong></span>}
+                              {item.outsoleColor && <span>OUT: <strong className="text-foreground">{item.outsoleColor}</strong></span>}
+                              {item.wedgeColor && <span>WDG: <strong className="text-foreground">{item.wedgeColor}</strong></span>}
+                              {item.crDeviceColor && <span>CR: <strong className="text-foreground">{item.crDeviceColor}</strong></span>}
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+
+                  {formData.article && isArticlePickerOpen && (
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsArticlePickerOpen(false)}
+                        className="h-7 text-xs"
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* DEVELOPER & SUPPLIER */}
