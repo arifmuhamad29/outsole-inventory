@@ -341,6 +341,7 @@ export interface ComponentStatusSummary {
 export interface ArticleConformSummary {
   article: string
   modelName: string | null
+  imageUrl: string | null
   projectDev: string
   supplier: string | null
   trackingBatchId: string | null
@@ -418,9 +419,10 @@ export async function getGroupedConformArticles(params?: {
     const firstEntry = entries[0]
 
     const modelName = firstEntry?.modelName || tracking?.modelName || "-"
-    const projectDev = firstEntry?.projectDev || "Arif (PD)"
+    const projectDev = firstEntry?.projectDev || "-"
     const supplier = firstEntry?.supplier || tracking?.supplier || "-"
     const trackingBatchId = firstEntry?.trackingBatchId || tracking?.batchId || null
+    const imageUrl = tracking?.imageUrl || firstEntry?.imageUrl || null
 
     const parseComponentRounds = (compKey: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR", defaultTargetColor: string | null) => {
       // Find all rounds for this component
@@ -535,6 +537,7 @@ export async function getGroupedConformArticles(params?: {
     summaries.push({
       article: artKey,
       modelName,
+      imageUrl,
       projectDev,
       supplier,
       trackingBatchId,
@@ -705,7 +708,7 @@ export async function getArticleConformDetails(article: string) {
     article: cleanArticle,
     modelName: tracking?.modelName || rawEntries[0]?.modelName || "-",
     defaultSupplier: tracking?.supplier || rawEntries[0]?.supplier || "-",
-    projectDev: rawEntries[0]?.projectDev || "Arif (PD)",
+    projectDev: rawEntries[0]?.projectDev || "-",
     trackingBatchId: tracking?.batchId || rawEntries[0]?.trackingBatchId || null,
     imageUrl: tracking?.imageUrl || rawEntries[0]?.imageUrl || null,
     components: {
@@ -876,4 +879,43 @@ export async function reviewComponentCfmRound(id: string, data: {
     message: `Keputusan untuk ${updated.component || "komponen"} round #${updated.submissionNo} berhasil disimpan.`, 
     data: updated 
   }
+}
+
+// 7e. Custom Update Project Developer & Supplier for an Article
+export async function updateArticleDevAndSupplier(data: {
+  article: string
+  projectDev: string
+  supplier?: string
+}) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const cleanArticle = data.article.trim().toUpperCase()
+  const dev = data.projectDev.trim() || "-"
+  const supp = data.supplier !== undefined ? (data.supplier.trim() || null) : undefined
+
+  // Update existing entries in colorConformHistory
+  await prisma.colorConformHistory.updateMany({
+    where: { article: { equals: cleanArticle, mode: "insensitive" } },
+    data: {
+      projectDev: dev,
+      ...(supp !== undefined ? { supplier: supp } : {})
+    }
+  })
+
+  // Also update PurchaseTracking if supplier changed
+  if (supp !== undefined) {
+    try {
+      await prisma.purchaseTracking.updateMany({
+        where: { article: { equals: cleanArticle, mode: "insensitive" } },
+        data: { supplier: supp }
+      })
+    } catch {
+      // ignore
+    }
+  }
+
+  revalidatePath("/conform-history")
+  revalidatePath("/tracking")
+  return { success: true, message: "Developer & Vendor berhasil diperbarui" }
 }

@@ -42,6 +42,7 @@ import {
   reviewComponentCfmRound,
   deleteConformEntry,
   getArticlesFromTracking,
+  updateArticleDevAndSupplier,
   ArticleConformSummary,
   ComponentStatusSummary,
 } from "@/app/actions/conform"
@@ -194,8 +195,14 @@ function ConformHistoryContent() {
     targetColor: "",
     supplierColor: "",
     supplier: "",
+    projectDev: "",
     notes: "",
   })
+
+  // Edit Developer & Vendor Modal State
+  const [isEditDevVendorOpen, setIsEditDevVendorOpen] = useState(false)
+  const [editProjectDev, setEditProjectDev] = useState("")
+  const [editSupplier, setEditSupplier] = useState("")
 
   // Review Dialog State (PD Review)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
@@ -261,14 +268,14 @@ function ConformHistoryContent() {
     try {
       const data = await getArticleConformDetails(articleCode)
       setWindowData(data as unknown as WindowArticleData)
-      setReviewProjectDev(data.projectDev || session?.user?.name || "Arif (PD)")
+      setReviewProjectDev(data.projectDev && data.projectDev !== "-" ? data.projectDev : "")
     } catch (err) {
       console.error(err)
       toast.error("Gagal memuat detail artikel")
     } finally {
       setWindowLoading(false)
     }
-  }, [session?.user?.name])
+  }, [])
 
   // Auto-open window if initialArticle param present
   useEffect(() => {
@@ -293,6 +300,36 @@ function ConformHistoryContent() {
     setIsAddRoundOpen(false)
   }
 
+  // Open Edit Developer & Vendor Modal
+  const handleOpenEditDevVendor = () => {
+    if (!windowData) return
+    setEditProjectDev(windowData.projectDev && windowData.projectDev !== "-" ? windowData.projectDev : "")
+    setEditSupplier(windowData.defaultSupplier && windowData.defaultSupplier !== "-" ? windowData.defaultSupplier : "")
+    setIsEditDevVendorOpen(true)
+  }
+
+  // Save Developer & Vendor
+  const handleSaveDevVendor = () => {
+    if (!windowData) return
+    startTransition(async () => {
+      try {
+        const res = await updateArticleDevAndSupplier({
+          article: windowData.article,
+          projectDev: editProjectDev.trim() || "-",
+          supplier: editSupplier.trim() || "-",
+        })
+        if (res.success) {
+          toast.success(res.message)
+          setIsEditDevVendorOpen(false)
+          reloadWindowData(windowData.article)
+          fetchData()
+        }
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Gagal memperbarui developer & vendor")
+      }
+    })
+  }
+
   // Open Add Round Form for active component
   const handleOpenAddRound = () => {
     if (!windowData) return
@@ -301,7 +338,8 @@ function ConformHistoryContent() {
       confirmDate: format(new Date(), "yyyy-MM-dd"),
       targetColor: compData.targetColor !== "-" ? compData.targetColor : "",
       supplierColor: "",
-      supplier: compData.defaultSupplier || windowData.defaultSupplier || "",
+      supplier: compData.defaultSupplier || (windowData.defaultSupplier !== "-" ? windowData.defaultSupplier : ""),
+      projectDev: windowData.projectDev !== "-" ? windowData.projectDev : "",
       notes: "",
     })
     setIsAddRoundOpen(true)
@@ -325,7 +363,7 @@ function ConformHistoryContent() {
           targetColor: addRoundForm.targetColor.trim(),
           supplierColor: addRoundForm.supplierColor.trim() || undefined,
           supplier: addRoundForm.supplier.trim() || undefined,
-          projectDev: windowData.projectDev,
+          projectDev: addRoundForm.projectDev.trim() || (windowData.projectDev !== "-" ? windowData.projectDev : "-"),
           confirmDate: new Date(addRoundForm.confirmDate),
           notes: addRoundForm.notes.trim() || undefined,
           trackingBatchId: windowData.trackingBatchId || undefined,
@@ -348,7 +386,11 @@ function ConformHistoryContent() {
     setSelectedRoundForReview(round)
     setReviewStatus(round.status === "PENDING" ? "APPROVED" : round.status)
     setReviewFeedback(round.devFeedback || "")
-    setReviewProjectDev(round.projectDev || session?.user?.name || "Arif (PD)")
+    setReviewProjectDev(
+      round.projectDev && round.projectDev !== "-"
+        ? round.projectDev
+        : (windowData?.projectDev && windowData.projectDev !== "-" ? windowData.projectDev : "")
+    )
     setIsReviewOpen(true)
   }
 
@@ -361,7 +403,7 @@ function ConformHistoryContent() {
         const res = await reviewComponentCfmRound(selectedRoundForReview.id, {
           status: reviewStatus,
           devFeedback: reviewFeedback.trim(),
-          projectDev: reviewProjectDev.trim(),
+          projectDev: reviewProjectDev.trim() || "-",
         })
 
         if (res.success) {
@@ -399,54 +441,6 @@ function ConformHistoryContent() {
         toast.error(err instanceof Error ? err.message : "Gagal menghapus data")
       }
     })
-  }
-
-  // Helper render badge for component summary in table
-  const renderComponentSummaryPill = (summary: ComponentStatusSummary, compKey: ComponentKey) => {
-    const cfg = COMPONENT_CONFIG[compKey]
-    const statusCfg = STATUS_CONFIG[summary.status] || STATUS_CONFIG.NOT_SUBMITTED
-
-    if (summary.status === "NOT_SUBMITTED" && !summary.targetColor) {
-      return (
-        <div className="text-[11px] text-muted-foreground/60 italic">
-          -
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-1 p-2 rounded-lg bg-card border shadow-xs hover:border-primary/40 transition-colors">
-        <div className="flex items-center justify-between gap-1">
-          <span className="font-bold text-[11px] text-foreground flex items-center gap-1">
-            <span className={cn("inline-block w-2 h-2 rounded-full", cfg.color.replace("from-", "bg-"))} />
-            {cfg.short}
-          </span>
-          <Badge
-            variant="outline"
-            className={cn("text-[9px] px-1 py-0 font-medium leading-none shrink-0", statusCfg.color, statusCfg.bg)}
-          >
-            {summary.roundsCount > 0 ? `${summary.latestRoundNo} CFM • ${statusCfg.label}` : statusCfg.label}
-          </Badge>
-        </div>
-
-        <div className="text-[11px] leading-tight text-muted-foreground flex flex-col gap-0.5">
-          <div className="truncate">
-            <span className="text-slate-400">Target:</span>{" "}
-            <span className="font-semibold text-foreground">{summary.targetColor || "-"}</span>
-          </div>
-          {summary.latestSampleColor && summary.latestSampleColor !== summary.targetColor && (
-            <div className="truncate text-amber-700 dark:text-amber-300 font-medium">
-              Spl: {summary.latestSampleColor}
-            </div>
-          )}
-          {summary.supplier && (
-            <div className="truncate text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
-              {summary.supplier}
-            </div>
-          )}
-        </div>
-      </div>
-    )
   }
 
   // Filtered tracking articles for picker modal
@@ -588,26 +582,22 @@ function ConformHistoryContent() {
         </div>
       </div>
 
-      {/* MAIN TABLE: DAFTAR ARTIKEL DENGAN TOMBOL EDIT */}
-      <Card className="shadow-xs overflow-hidden">
+      {/* MAIN TABLE: DAFTAR ARTIKEL (FOTO, ARTIKEL, PROGRESS, EDIT) */}
+      <Card className="shadow-xs overflow-hidden border">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead className="w-[180px]">Artikel & Model</TableHead>
-                <TableHead className="w-[150px]">Developer & Vendor</TableHead>
-                <TableHead className="w-[170px]">1. Midsole (MID)</TableHead>
-                <TableHead className="w-[170px]">2. Outsole (OUT)</TableHead>
-                <TableHead className="w-[170px]">3. Wedge (WDG)</TableHead>
-                <TableHead className="w-[170px]">4. CR Device (CR)</TableHead>
-                <TableHead className="w-[140px]">Progress & Status</TableHead>
-                <TableHead className="w-[120px] text-right">Aksi</TableHead>
+                <TableHead className="w-[85px] pl-4">Foto</TableHead>
+                <TableHead className="w-[240px]">Artikel & Model</TableHead>
+                <TableHead className="min-w-[300px]">Progress Konfirmasi Warna</TableHead>
+                <TableHead className="w-[120px] text-right pr-4">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-40 text-center">
+                  <TableCell colSpan={4} className="h-40 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
                       <span className="text-xs text-muted-foreground">Memuat data konfirmasi warna...</span>
@@ -616,7 +606,7 @@ function ConformHistoryContent() {
                 </TableRow>
               ) : articles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-32 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={4} className="h-32 text-center text-sm text-muted-foreground">
                     Tidak ada artikel yang cocok dengan filter.
                   </TableCell>
                 </TableRow>
@@ -629,81 +619,98 @@ function ConformHistoryContent() {
                       key={item.article} 
                       className="hover:bg-muted/30 transition-colors"
                     >
-                      {/* ARTICLE & MODEL */}
-                      <TableCell className="align-top py-3">
+                      {/* 1. FOTO ARTIKEL */}
+                      <TableCell className="align-middle py-3.5 pl-4">
+                        {item.imageUrl ? (
+                          <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-border shadow-2xs group bg-muted/20 shrink-0">
+                            <img
+                              src={item.imageUrl}
+                              alt={item.article}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg border border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center text-muted-foreground/50 shrink-0">
+                            <Palette className="h-5 w-5 stroke-[1.5]" />
+                            <span className="text-[9px] mt-0.5 font-medium">No Foto</span>
+                          </div>
+                        )}
+                      </TableCell>
+
+                      {/* 2. ARTIKEL & MODEL */}
+                      <TableCell className="align-middle py-3.5">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-sm text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-sm text-foreground bg-muted/70 px-2.5 py-0.5 rounded border border-border/70">
                               {item.article}
                             </span>
+                            <span className="text-sm font-bold text-foreground">
+                              {item.modelName || "-"}
+                            </span>
                           </div>
-                          <div className="text-xs font-semibold text-foreground">
-                            {item.modelName || "-"}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* DEVELOPER & VENDOR */}
-                      <TableCell className="align-top py-3">
-                        <div className="space-y-1 text-xs">
-                          <div className="flex items-center gap-1 font-medium text-foreground">
-                            <UserCheck className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                            <span>{item.projectDev}</span>
-                          </div>
-                          {item.supplier && item.supplier !== "-" && (
-                            <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                              <span className="truncate">{item.supplier}</span>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* 4 COMPONENTS STATUS */}
-                      <TableCell className="align-top py-3">
-                        {renderComponentSummaryPill(item.midsole, "MIDSOLE")}
-                      </TableCell>
-
-                      <TableCell className="align-top py-3">
-                        {renderComponentSummaryPill(item.outsole, "OUTSOLE")}
-                      </TableCell>
-
-                      <TableCell className="align-top py-3">
-                        {renderComponentSummaryPill(item.wedge, "WEDGE")}
-                      </TableCell>
-
-                      <TableCell className="align-top py-3">
-                        {renderComponentSummaryPill(item.cr, "CR")}
-                      </TableCell>
-
-                      {/* OVERALL PROGRESS & STATUS */}
-                      <TableCell className="align-top py-3">
-                        <div className="space-y-1.5">
-                          <Badge
-                            variant="outline"
-                            className={cn("text-[10px] font-semibold gap-1 px-2 py-0.5", statusCfg.color, statusCfg.bg)}
-                          >
-                            <statusCfg.icon className="h-3 w-3" />
-                            {item.overallStatus === "ALL_APPROVED" ? "All Approved" : statusCfg.label}
-                          </Badge>
-
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                              <span>Approved</span>
-                              <span>{item.approvedCount} / 4</span>
-                            </div>
-                            <Progress value={(item.approvedCount / 4) * 100} className="h-1.5" />
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                            <span>Dev: <strong className="text-foreground">{item.projectDev !== "-" ? item.projectDev : "Belum diset"}</strong></span>
+                            {item.supplier && item.supplier !== "-" && (
+                              <span>• Vendor: <strong className="text-foreground">{item.supplier}</strong></span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
 
-                      {/* ACTION: TOMBOL EDIT / BUKA WINDOW */}
-                      <TableCell className="align-top py-3 text-right">
+                      {/* 3. PROGRESS KONFIRMASI WARNA */}
+                      <TableCell className="align-middle py-3.5">
+                        <div className="space-y-2 max-w-lg">
+                          <div className="flex items-center justify-between gap-2">
+                            <Badge
+                              variant="outline"
+                              className={cn("text-[11px] font-semibold gap-1.5 px-2.5 py-0.5 rounded-full", statusCfg.color, statusCfg.bg)}
+                            >
+                              <statusCfg.icon className="h-3 w-3" />
+                              {item.overallStatus === "ALL_APPROVED" ? "All 4 Approved" : statusCfg.label}
+                            </Badge>
+                            <span className="text-xs font-semibold text-foreground">
+                              {item.approvedCount} / 4 Approved {item.totalRounds > 0 ? `(${item.totalRounds} Putaran)` : ""}
+                            </span>
+                          </div>
+
+                          <Progress value={(item.approvedCount / 4) * 100} className="h-2 rounded-full" />
+
+                          {/* 4 Komponen Mini Status Indicator */}
+                          <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                            {[
+                              { short: "MID", name: "Midsole", data: item.midsole, dot: null },
+                              { short: "OUT", name: "Outsole", data: item.outsole, dot: null },
+                              { short: "WDG", name: "Wedge", data: item.wedge, dot: "bg-amber-500" },
+                              { short: "CR", name: "CR Device", data: item.cr, dot: "bg-emerald-500" },
+                            ].map((c) => {
+                              const cCfg = STATUS_CONFIG[c.data.status] || STATUS_CONFIG.NOT_SUBMITTED
+                              return (
+                                <div
+                                  key={c.short}
+                                  className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded border text-center font-medium truncate flex items-center justify-center gap-1",
+                                    cCfg.color,
+                                    cCfg.bg
+                                  )}
+                                  title={`${c.name}: ${cCfg.label} (${c.data.roundsCount} CFM)`}
+                                >
+                                  {c.dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", c.dot)} />}
+                                  <span className="font-bold">{c.short}:</span>
+                                  <span>{c.data.roundsCount > 0 ? `${c.data.roundsCount} CFM` : "-"}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* 4. ACTION: TOMBOL EDIT / BUKA WINDOW */}
+                      <TableCell className="align-middle py-3.5 text-right pr-4">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenWindow(item.article)}
-                          className="h-8 px-2.5 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 gap-1.5 shadow-xs font-semibold"
+                          className="h-9 px-3 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 gap-1.5 shadow-xs font-semibold rounded-lg"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           Edit CFM
@@ -746,9 +753,20 @@ function ConformHistoryContent() {
                         {windowData.modelName}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <span>Project Developer: <strong className="text-foreground font-semibold">{windowData.projectDev}</strong></span>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                      <span>Project Developer: <strong className="text-foreground font-semibold">{windowData.projectDev !== "-" ? windowData.projectDev : "Belum diset"}</strong></span>
                       <span>• Supplier: <strong className="text-foreground font-semibold">{windowData.defaultSupplier || "-"}</strong></span>
+                      {canManage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleOpenEditDevVendor}
+                          className="h-5 px-1.5 text-[10px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 gap-1 font-semibold rounded border border-indigo-200 dark:border-indigo-800 ml-1"
+                        >
+                          <Pencil className="h-2.5 w-2.5" />
+                          Ubah
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -897,7 +915,7 @@ function ConformHistoryContent() {
                           </CardHeader>
                           <CardContent className="p-4 pt-2">
                             <form onSubmit={handleSubmitAddRound} className="space-y-3">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                   <Label className="text-[11px] font-semibold">Tanggal Pengajuan</Label>
                                   <Input
@@ -906,6 +924,16 @@ function ConformHistoryContent() {
                                     onChange={(e) => setAddRoundForm(prev => ({ ...prev, confirmDate: e.target.value }))}
                                     className="h-8 text-xs"
                                     required
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Label className="text-[11px] font-semibold">Project Developer (PD)</Label>
+                                  <Input
+                                    placeholder="Nama Project Developer"
+                                    value={addRoundForm.projectDev}
+                                    onChange={(e) => setAddRoundForm(prev => ({ ...prev, projectDev: e.target.value }))}
+                                    className="h-8 text-xs"
                                   />
                                 </div>
 
@@ -1282,6 +1310,72 @@ function ConformHistoryContent() {
           <DialogFooter className="pt-2">
             <Button variant="outline" onClick={() => setIsArticlePickerOpen(false)} className="h-8 text-xs">
               Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* DIALOG: EDIT DEVELOPER & VENDOR ARTIKEL */}
+      {/* ========================================================================= */}
+      <Dialog open={isEditDevVendorOpen} onOpenChange={setIsEditDevVendorOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-indigo-600" />
+              Kustomisasi Developer & Vendor
+            </DialogTitle>
+            <DialogDescription>
+              Atur Project Developer dan Supplier/Vendor default untuk artikel{" "}
+              <strong className="text-foreground">{windowData?.article}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Nama Project Developer (PD)</Label>
+              <Input
+                placeholder="Misal: Budi (PD) / Team PD..."
+                value={editProjectDev}
+                onChange={(e) => setEditProjectDev(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Nama team atau personil Project Developer yang bertanggung jawab mengonfirmasi warna artikel ini.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Supplier / Vendor Default</Label>
+              <Input
+                placeholder="Misal: Pou Chen / Feng Tay..."
+                value={editSupplier}
+                onChange={(e) => setEditSupplier(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Supplier/vendor artikel ini yang dapat disesuaikan per komponen nanti jika berbeda.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditDevVendorOpen(false)}
+              className="h-8 text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveDevVendor}
+              disabled={isPending}
+              className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+            >
+              {isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Simpan Perubahan
             </Button>
           </DialogFooter>
         </DialogContent>
