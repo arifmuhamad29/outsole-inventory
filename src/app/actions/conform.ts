@@ -18,18 +18,22 @@ export interface ConformEntryInput {
   // 4 Bottom Components
   midsoleTargetColor?: string
   midsoleSupplierColor?: string
+  midsoleSupplier?: string
   midsoleStatus?: string
 
   outsoleTargetColor?: string
   outsoleSupplierColor?: string
+  outsoleSupplier?: string
   outsoleStatus?: string
 
   wedgeTargetColor?: string
   wedgeSupplierColor?: string
+  wedgeSupplier?: string
   wedgeStatus?: string
 
   crTargetColor?: string
   crSupplierColor?: string
+  crSupplier?: string
   crStatus?: string
 
   notes?: string
@@ -67,6 +71,10 @@ export async function getConformHistories(params?: {
       { modelName: { contains: s, mode: "insensitive" } },
       { projectDev: { contains: s, mode: "insensitive" } },
       { supplier: { contains: s, mode: "insensitive" } },
+      { midsoleSupplier: { contains: s, mode: "insensitive" } },
+      { outsoleSupplier: { contains: s, mode: "insensitive" } },
+      { wedgeSupplier: { contains: s, mode: "insensitive" } },
+      { crSupplier: { contains: s, mode: "insensitive" } },
       { notes: { contains: s, mode: "insensitive" } },
       { devFeedback: { contains: s, mode: "insensitive" } },
     ]
@@ -173,18 +181,22 @@ export async function createConformEntry(data: ConformEntryInput) {
 
       midsoleTargetColor: data.midsoleTargetColor || null,
       midsoleSupplierColor: data.midsoleSupplierColor || null,
+      midsoleSupplier: data.midsoleSupplier || null,
       midsoleStatus: data.midsoleStatus || "PENDING",
 
       outsoleTargetColor: data.outsoleTargetColor || null,
       outsoleSupplierColor: data.outsoleSupplierColor || null,
+      outsoleSupplier: data.outsoleSupplier || null,
       outsoleStatus: data.outsoleStatus || "PENDING",
 
       wedgeTargetColor: data.wedgeTargetColor || null,
       wedgeSupplierColor: data.wedgeSupplierColor || null,
+      wedgeSupplier: data.wedgeSupplier || null,
       wedgeStatus: data.wedgeStatus || "PENDING",
 
       crTargetColor: data.crTargetColor || null,
       crSupplierColor: data.crSupplierColor || null,
+      crSupplier: data.crSupplier || null,
       crStatus: data.crStatus || "PENDING",
 
       notes: data.notes || null,
@@ -233,18 +245,22 @@ export async function updateConformEntry(id: string, data: Partial<ConformEntryI
 
   if (data.midsoleTargetColor !== undefined) updateData.midsoleTargetColor = data.midsoleTargetColor
   if (data.midsoleSupplierColor !== undefined) updateData.midsoleSupplierColor = data.midsoleSupplierColor
+  if (data.midsoleSupplier !== undefined) updateData.midsoleSupplier = data.midsoleSupplier
   if (data.midsoleStatus !== undefined) updateData.midsoleStatus = data.midsoleStatus
 
   if (data.outsoleTargetColor !== undefined) updateData.outsoleTargetColor = data.outsoleTargetColor
   if (data.outsoleSupplierColor !== undefined) updateData.outsoleSupplierColor = data.outsoleSupplierColor
+  if (data.outsoleSupplier !== undefined) updateData.outsoleSupplier = data.outsoleSupplier
   if (data.outsoleStatus !== undefined) updateData.outsoleStatus = data.outsoleStatus
 
   if (data.wedgeTargetColor !== undefined) updateData.wedgeTargetColor = data.wedgeTargetColor
   if (data.wedgeSupplierColor !== undefined) updateData.wedgeSupplierColor = data.wedgeSupplierColor
+  if (data.wedgeSupplier !== undefined) updateData.wedgeSupplier = data.wedgeSupplier
   if (data.wedgeStatus !== undefined) updateData.wedgeStatus = data.wedgeStatus
 
   if (data.crTargetColor !== undefined) updateData.crTargetColor = data.crTargetColor
   if (data.crSupplierColor !== undefined) updateData.crSupplierColor = data.crSupplierColor
+  if (data.crSupplier !== undefined) updateData.crSupplier = data.crSupplier
   if (data.crStatus !== undefined) updateData.crStatus = data.crStatus
 
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl

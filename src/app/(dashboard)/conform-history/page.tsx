@@ -56,15 +56,19 @@ interface ConformRecord {
   approvalDate: Date | string | null
   midsoleTargetColor: string | null
   midsoleSupplierColor: string | null
+  midsoleSupplier: string | null
   midsoleStatus: string | null
   outsoleTargetColor: string | null
   outsoleSupplierColor: string | null
+  outsoleSupplier: string | null
   outsoleStatus: string | null
   wedgeTargetColor: string | null
   wedgeSupplierColor: string | null
+  wedgeSupplier: string | null
   wedgeStatus: string | null
   crTargetColor: string | null
   crSupplierColor: string | null
+  crSupplier: string | null
   crStatus: string | null
   notes: string | null
   devFeedback: string | null
@@ -156,15 +160,19 @@ function ConformHistoryContent() {
     status: "PENDING",
     midsoleTargetColor: "",
     midsoleSupplierColor: "",
+    midsoleSupplier: "",
     midsoleStatus: "PENDING",
     outsoleTargetColor: "",
     outsoleSupplierColor: "",
+    outsoleSupplier: "",
     outsoleStatus: "PENDING",
     wedgeTargetColor: "",
     wedgeSupplierColor: "",
+    wedgeSupplier: "",
     wedgeStatus: "PENDING",
     crTargetColor: "",
     crSupplierColor: "",
+    crSupplier: "",
     crStatus: "PENDING",
     notes: "",
     devFeedback: "",
@@ -233,15 +241,19 @@ function ConformHistoryContent() {
       status: "PENDING",
       midsoleTargetColor: prefill?.midsoleTargetColor || "",
       midsoleSupplierColor: prefill?.midsoleSupplierColor || "",
+      midsoleSupplier: prefill?.midsoleSupplier || prefill?.supplier || "",
       midsoleStatus: "PENDING",
       outsoleTargetColor: prefill?.outsoleTargetColor || "",
       outsoleSupplierColor: prefill?.outsoleSupplierColor || "",
+      outsoleSupplier: prefill?.outsoleSupplier || prefill?.supplier || "",
       outsoleStatus: "PENDING",
       wedgeTargetColor: prefill?.wedgeTargetColor || "",
       wedgeSupplierColor: prefill?.wedgeSupplierColor || "",
+      wedgeSupplier: prefill?.wedgeSupplier || prefill?.supplier || "",
       wedgeStatus: "PENDING",
       crTargetColor: prefill?.crTargetColor || "",
       crSupplierColor: prefill?.crSupplierColor || "",
+      crSupplier: prefill?.crSupplier || prefill?.supplier || "",
       crStatus: "PENDING",
       notes: prefill?.notes || "",
       devFeedback: "",
@@ -264,15 +276,19 @@ function ConformHistoryContent() {
       status: entry.status,
       midsoleTargetColor: entry.midsoleTargetColor || "",
       midsoleSupplierColor: entry.midsoleSupplierColor || "",
+      midsoleSupplier: entry.midsoleSupplier || "",
       midsoleStatus: entry.midsoleStatus || "PENDING",
       outsoleTargetColor: entry.outsoleTargetColor || "",
       outsoleSupplierColor: entry.outsoleSupplierColor || "",
+      outsoleSupplier: entry.outsoleSupplier || "",
       outsoleStatus: entry.outsoleStatus || "PENDING",
       wedgeTargetColor: entry.wedgeTargetColor || "",
       wedgeSupplierColor: entry.wedgeSupplierColor || "",
+      wedgeSupplier: entry.wedgeSupplier || "",
       wedgeStatus: entry.wedgeStatus || "PENDING",
       crTargetColor: entry.crTargetColor || "",
       crSupplierColor: entry.crSupplierColor || "",
+      crSupplier: entry.crSupplier || "",
       crStatus: entry.crStatus || "PENDING",
       notes: entry.notes || "",
       devFeedback: entry.devFeedback || "",
@@ -291,9 +307,13 @@ function ConformHistoryContent() {
         modelName: found.modelName,
         supplier: found.supplier || prev.supplier,
         midsoleTargetColor: found.midsoleColor || "",
+        midsoleSupplier: found.supplier || prev.midsoleSupplier || "",
         outsoleTargetColor: found.outsoleColor || "",
+        outsoleSupplier: found.supplier || prev.outsoleSupplier || "",
         wedgeTargetColor: found.wedgeColor || "",
+        wedgeSupplier: found.supplier || prev.wedgeSupplier || "",
         crTargetColor: found.crDeviceColor || "",
+        crSupplier: found.supplier || prev.crSupplier || "",
         trackingBatchId: found.batchId,
       }))
       setIsArticlePickerOpen(false)
@@ -408,9 +428,17 @@ function ConformHistoryContent() {
       supplier: entry.supplier || "",
       projectDev: entry.projectDev,
       midsoleTargetColor: entry.midsoleTargetColor || "",
+      midsoleSupplierColor: entry.midsoleSupplierColor || "",
+      midsoleSupplier: entry.midsoleSupplier || "",
       outsoleTargetColor: entry.outsoleTargetColor || "",
+      outsoleSupplierColor: entry.outsoleSupplierColor || "",
+      outsoleSupplier: entry.outsoleSupplier || "",
       wedgeTargetColor: entry.wedgeTargetColor || "",
+      wedgeSupplierColor: entry.wedgeSupplierColor || "",
+      wedgeSupplier: entry.wedgeSupplier || "",
       crTargetColor: entry.crTargetColor || "",
+      crSupplierColor: entry.crSupplierColor || "",
+      crSupplier: entry.crSupplier || "",
       notes: `Resubmission / Conform ulang setelah Submission #${entry.submissionNo}`,
       trackingBatchId: entry.trackingBatchId || "",
     })
@@ -668,6 +696,11 @@ function ConformHistoryContent() {
                               {entry.midsoleSupplierColor || <span className="opacity-50 italic">Sama dg target</span>}
                             </span>
                           </div>
+                          {entry.midsoleSupplier && (
+                            <div className="text-[11px] leading-tight text-indigo-600 dark:text-indigo-400 font-medium">
+                              Vendor: <span>{entry.midsoleSupplier}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* OUTSOLE */}
@@ -689,10 +722,15 @@ function ConformHistoryContent() {
                               {entry.outsoleSupplierColor || <span className="opacity-50 italic">Sama dg target</span>}
                             </span>
                           </div>
+                          {entry.outsoleSupplier && (
+                            <div className="text-[11px] leading-tight text-indigo-600 dark:text-indigo-400 font-medium">
+                              Vendor: <span>{entry.outsoleSupplier}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* WEDGE */}
-                        {(entry.wedgeTargetColor || entry.wedgeSupplierColor) && (
+                        {(entry.wedgeTargetColor || entry.wedgeSupplierColor || entry.wedgeSupplier) && (
                           <div className="p-2 rounded-md bg-muted/30 border border-slate-100 dark:border-slate-800 space-y-0.5">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300">WDG (Wedge):</span>
@@ -711,11 +749,16 @@ function ConformHistoryContent() {
                                 {entry.wedgeSupplierColor || <span className="opacity-50 italic">Sama dg target</span>}
                               </span>
                             </div>
+                            {entry.wedgeSupplier && (
+                              <div className="text-[11px] leading-tight text-indigo-600 dark:text-indigo-400 font-medium">
+                                Vendor: <span>{entry.wedgeSupplier}</span>
+                              </div>
+                            )}
                           </div>
                         )}
 
                         {/* CR DEVICE */}
-                        {(entry.crTargetColor || entry.crSupplierColor) && (
+                        {(entry.crTargetColor || entry.crSupplierColor || entry.crSupplier) && (
                           <div className="p-2 rounded-md bg-muted/30 border border-slate-100 dark:border-slate-800 space-y-0.5">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300">CR (Device):</span>
@@ -734,6 +777,11 @@ function ConformHistoryContent() {
                                 {entry.crSupplierColor || <span className="opacity-50 italic">Sama dg target</span>}
                               </span>
                             </div>
+                            {entry.crSupplier && (
+                              <div className="text-[11px] leading-tight text-indigo-600 dark:text-indigo-400 font-medium">
+                                Vendor: <span>{entry.crSupplier}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -985,8 +1033,8 @@ function ConformHistoryContent() {
               )}
             </div>
 
-            {/* DEVELOPER & SUPPLIER */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* DEVELOPER & PEMOHON */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
                   Team Project Developer <span className="text-red-500">*</span>
@@ -996,15 +1044,6 @@ function ConformHistoryContent() {
                   value={formData.projectDev}
                   onChange={(e) => setFormData(prev => ({ ...prev, projectDev: e.target.value }))}
                   required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Supplier / Vendor</Label>
-                <Input
-                  placeholder="Contoh: Feng Tay, Pou Chen"
-                  value={formData.supplier || ""}
-                  onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
                 />
               </div>
 
@@ -1049,6 +1088,17 @@ function ConformHistoryContent() {
                       className="h-8 text-xs"
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold">
+                      Vendor / Supplier Midsole
+                    </Label>
+                    <Input
+                      placeholder="Contoh: Pou Chen, Feng Tay"
+                      value={formData.midsoleSupplier || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, midsoleSupplier: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
                 </div>
 
                 {/* 2. OUTSOLE */}
@@ -1073,6 +1123,17 @@ function ConformHistoryContent() {
                       placeholder="Warna dari supplier jika ada beda"
                       value={formData.outsoleSupplierColor || ""}
                       onChange={(e) => setFormData(prev => ({ ...prev, outsoleSupplierColor: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold">
+                      Vendor / Supplier Outsole
+                    </Label>
+                    <Input
+                      placeholder="Contoh: Pou Chen, Feng Tay"
+                      value={formData.outsoleSupplier || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, outsoleSupplier: e.target.value }))}
                       className="h-8 text-xs"
                     />
                   </div>
@@ -1103,6 +1164,17 @@ function ConformHistoryContent() {
                       className="h-8 text-xs"
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold">
+                      Vendor / Supplier Wedge
+                    </Label>
+                    <Input
+                      placeholder="Contoh: Pou Chen, Feng Tay"
+                      value={formData.wedgeSupplier || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, wedgeSupplier: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
                 </div>
 
                 {/* 4. CR DEVICE */}
@@ -1127,6 +1199,17 @@ function ConformHistoryContent() {
                       placeholder="Warna dari supplier jika ada beda"
                       value={formData.crSupplierColor || ""}
                       onChange={(e) => setFormData(prev => ({ ...prev, crSupplierColor: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold">
+                      Vendor / Supplier CR Device
+                    </Label>
+                    <Input
+                      placeholder="Contoh: Pou Chen, Feng Tay"
+                      value={formData.crSupplier || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, crSupplier: e.target.value }))}
                       className="h-8 text-xs"
                     />
                   </div>
@@ -1204,7 +1287,9 @@ function ConformHistoryContent() {
               <Label className="text-xs font-bold">Status Tiap Komponen:</Label>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-[11px] text-muted-foreground block">Midsole:</span>
+                  <span className="text-[11px] text-muted-foreground block truncate">
+                    Midsole {selectedEntry?.midsoleSupplier ? `(${selectedEntry.midsoleSupplier})` : ""}:
+                  </span>
                   <Select 
                     value={reviewCompStatus.midsole} 
                     onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, midsole: val })) }}
@@ -1220,7 +1305,9 @@ function ConformHistoryContent() {
                   </Select>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block">Outsole:</span>
+                  <span className="text-[11px] text-muted-foreground block truncate">
+                    Outsole {selectedEntry?.outsoleSupplier ? `(${selectedEntry.outsoleSupplier})` : ""}:
+                  </span>
                   <Select 
                     value={reviewCompStatus.outsole} 
                     onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, outsole: val })) }}
@@ -1236,7 +1323,9 @@ function ConformHistoryContent() {
                   </Select>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block">Wedge:</span>
+                  <span className="text-[11px] text-muted-foreground block truncate">
+                    Wedge {selectedEntry?.wedgeSupplier ? `(${selectedEntry.wedgeSupplier})` : ""}:
+                  </span>
                   <Select 
                     value={reviewCompStatus.wedge} 
                     onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, wedge: val })) }}
@@ -1252,7 +1341,9 @@ function ConformHistoryContent() {
                   </Select>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block">CR Device:</span>
+                  <span className="text-[11px] text-muted-foreground block truncate">
+                    CR Device {selectedEntry?.crSupplier ? `(${selectedEntry.crSupplier})` : ""}:
+                  </span>
                   <Select 
                     value={reviewCompStatus.cr} 
                     onValueChange={(val) => { if (val) setReviewCompStatus(prev => ({ ...prev, cr: val })) }}
@@ -1351,35 +1442,63 @@ function ConformHistoryContent() {
 
                       {/* Components summary */}
                       <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2 rounded">
-                        <div>
-                          <span className="text-muted-foreground font-medium">MID: </span>
-                          <span className="text-foreground">{item.midsoleTargetColor || "-"}</span>
-                          {item.midsoleSupplierColor && (
-                            <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.midsoleSupplierColor})</span>
-                          )}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground font-medium">OUT: </span>
-                          <span className="text-foreground">{item.outsoleTargetColor || "-"}</span>
-                          {item.outsoleSupplierColor && (
-                            <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.outsoleSupplierColor})</span>
-                          )}
-                        </div>
-                        {(item.wedgeTargetColor || item.wedgeSupplierColor) && (
+                        <div className="space-y-0.5">
                           <div>
-                            <span className="text-muted-foreground font-medium">WDG: </span>
-                            <span className="text-foreground">{item.wedgeTargetColor || "-"}</span>
-                            {item.wedgeSupplierColor && (
-                              <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.wedgeSupplierColor})</span>
+                            <span className="text-muted-foreground font-medium">MID: </span>
+                            <span className="text-foreground">{item.midsoleTargetColor || "-"}</span>
+                            {item.midsoleSupplierColor && (
+                              <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.midsoleSupplierColor})</span>
+                            )}
+                          </div>
+                          {item.midsoleSupplier && (
+                            <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                              Vendor: {item.midsoleSupplier}
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-0.5">
+                          <div>
+                            <span className="text-muted-foreground font-medium">OUT: </span>
+                            <span className="text-foreground">{item.outsoleTargetColor || "-"}</span>
+                            {item.outsoleSupplierColor && (
+                              <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.outsoleSupplierColor})</span>
+                            )}
+                          </div>
+                          {item.outsoleSupplier && (
+                            <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                              Vendor: {item.outsoleSupplier}
+                            </div>
+                          )}
+                        </div>
+                        {(item.wedgeTargetColor || item.wedgeSupplierColor || item.wedgeSupplier) && (
+                          <div className="space-y-0.5">
+                            <div>
+                              <span className="text-muted-foreground font-medium">WDG: </span>
+                              <span className="text-foreground">{item.wedgeTargetColor || "-"}</span>
+                              {item.wedgeSupplierColor && (
+                                <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.wedgeSupplierColor})</span>
+                              )}
+                            </div>
+                            {item.wedgeSupplier && (
+                              <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                Vendor: {item.wedgeSupplier}
+                              </div>
                             )}
                           </div>
                         )}
-                        {(item.crTargetColor || item.crSupplierColor) && (
-                          <div>
-                            <span className="text-muted-foreground font-medium">CR: </span>
-                            <span className="text-foreground">{item.crTargetColor || "-"}</span>
-                            {item.crSupplierColor && (
-                              <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.crSupplierColor})</span>
+                        {(item.crTargetColor || item.crSupplierColor || item.crSupplier) && (
+                          <div className="space-y-0.5">
+                            <div>
+                              <span className="text-muted-foreground font-medium">CR: </span>
+                              <span className="text-foreground">{item.crTargetColor || "-"}</span>
+                              {item.crSupplierColor && (
+                                <span className="text-amber-700 dark:text-amber-300 font-semibold"> (Spl: {item.crSupplierColor})</span>
+                              )}
+                            </div>
+                            {item.crSupplier && (
+                              <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                Vendor: {item.crSupplier}
+                              </div>
                             )}
                           </div>
                         )}

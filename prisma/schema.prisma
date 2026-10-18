@@ -365,21 +365,25 @@ model ColorConformHistory {
   status                String    @default("PENDING") // PENDING, APPROVED, REJECTED, APPROVED_WITH_NOTE
   approvalDate          DateTime?
 
-  // 4 Components Color Details (Target Color vs Supplier Color & Status)
+  // 4 Components Color Details (Target Color vs Supplier Color, Vendor & Status)
   midsoleTargetColor    String?   // e.g., SEA SALT
   midsoleSupplierColor  String?   // Warna dari supplier
+  midsoleSupplier       String?   // Vendor / Supplier Midsole
   midsoleStatus         String?   @default("PENDING") // PENDING, APPROVED, REJECTED, NOT_APPLICABLE
 
   outsoleTargetColor    String?   // e.g., BLACK
   outsoleSupplierColor  String?
+  outsoleSupplier       String?   // Vendor / Supplier Outsole
   outsoleStatus         String?   @default("PENDING")
 
   wedgeTargetColor      String?   // e.g., SEA GLASES
   wedgeSupplierColor    String?
+  wedgeSupplier         String?   // Vendor / Supplier Wedge
   wedgeStatus           String?   @default("PENDING")
 
   crTargetColor         String?   // e.g., SEA GLASES
   crSupplierColor       String?
+  crSupplier            String?   // Vendor / Supplier CR Device
   crStatus              String?   @default("PENDING")
 
   notes                 String?   // Catatan pengajuan konfirmasi
