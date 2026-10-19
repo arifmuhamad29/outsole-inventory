@@ -682,14 +682,17 @@ export async function getArticleConformDetails(article: string) {
 
   const modelUpper = (tracking?.modelName || "").trim().toUpperCase()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orConditions: any[] = [
+    { article: { equals: cleanArticle, mode: "insensitive" } }
+  ]
+  if (modelUpper && modelUpper !== "-") {
+    orConditions.push({ modelName: { equals: modelUpper, mode: "insensitive" } })
+  }
+
   const rawEntries = await prisma.colorConformHistory.findMany({
     where: {
-      OR: [
-        { article: { equals: cleanArticle, mode: "insensitive" } },
-        ...(modelUpper && modelUpper !== "-" ? [{
-          modelName: { equals: modelUpper, mode: "insensitive" }
-        }] : [])
-      ]
+      OR: orConditions
     },
     orderBy: [
       { confirmDate: "asc" },
@@ -1548,20 +1551,25 @@ export async function updateComponentGroupDevAndSupplier(data: {
   const colorUpper = data.targetColor.trim().toUpperCase()
   const articleList = (data.articles || []).map(a => a.trim().toUpperCase())
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orFilters: any[] = [
+    {
+      modelName: { equals: modelUpper, mode: "insensitive" },
+      component: compUpper,
+      targetColor: { equals: colorUpper, mode: "insensitive" }
+    }
+  ]
+  if (articleList.length > 0) {
+    orFilters.push({
+      article: { in: articleList },
+      component: compUpper
+    })
+  }
+
   // Update colorConformHistory matching this group
   await prisma.colorConformHistory.updateMany({
     where: {
-      OR: [
-        {
-          modelName: { equals: modelUpper, mode: "insensitive" },
-          component: compUpper,
-          targetColor: { equals: colorUpper, mode: "insensitive" }
-        },
-        ...(articleList.length > 0 ? [{
-          article: { in: articleList },
-          component: compUpper
-        }] : [])
-      ]
+      OR: orFilters
     },
     data: {
       projectDev: dev,
