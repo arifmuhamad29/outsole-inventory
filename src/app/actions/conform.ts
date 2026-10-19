@@ -395,7 +395,7 @@ let cachedTrackingRows: {
   }>
 } | null = null
 
-export function clearTrackingCache() {
+export async function clearTrackingCache() {
   cachedTrackingRows = null
 }
 
