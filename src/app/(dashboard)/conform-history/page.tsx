@@ -8,7 +8,7 @@ import { id as localeId } from "date-fns/locale"
 import {
   Palette, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw,
-  UserCheck, Layers, Calendar, Sparkles, Users
+  UserCheck, Layers, Calendar, Sparkles, Users, X
 } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead,
@@ -194,9 +194,19 @@ function ConformHistoryContent() {
 
   // Common Search & Filter States
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState(initialArticle)
+  const [searchInput, setSearchInput] = useState(initialArticle)
+  const [appliedSearch, setAppliedSearch] = useState(initialArticle)
   const [statusFilter, setStatusFilter] = useState("ALL")
   const [componentFilter, setComponentFilter] = useState("ALL")
+
+  const handleSearch = () => {
+    setAppliedSearch(searchInput.trim())
+  }
+
+  const handleClearSearch = () => {
+    setSearchInput("")
+    setAppliedSearch("")
+  }
 
   // Data for View 1: By Component & Color
   const [componentGroups, setComponentGroups] = useState<ComponentColorGroupSummary[]>([])
@@ -280,7 +290,7 @@ function ConformHistoryContent() {
     try {
       if (currentView === "BY_COMPONENT") {
         const compRes = await getGroupedComponentColorSummaries({
-          search: searchQuery,
+          search: appliedSearch,
           statusFilter,
           componentFilter,
         })
@@ -291,7 +301,7 @@ function ConformHistoryContent() {
         }
       } else {
         const artRes = await getGroupedConformArticles({
-          search: searchQuery,
+          search: appliedSearch,
           statusFilter,
         })
         setArticles(artRes.summaries)
@@ -303,7 +313,7 @@ function ConformHistoryContent() {
     } finally {
       setLoading(false)
     }
-  }, [viewMode, searchQuery, statusFilter, componentFilter, stats.total])
+  }, [viewMode, appliedSearch, statusFilter, componentFilter, stats.total])
 
   // Lazy-load article picker options only when opened
   const handleOpenArticlePicker = async () => {
@@ -330,10 +340,7 @@ function ConformHistoryContent() {
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchData()
-    }, 250)
-    return () => clearTimeout(timer)
+    fetchData()
   }, [fetchData])
 
   // Open Window Modal for an Article
@@ -793,14 +800,41 @@ function ConformHistoryContent() {
 
           {/* FILTER & SEARCH BAR (BY COMPONENT) */}
           <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari warna, model, vendor, developer, artikel..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-xs"
-              />
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari warna, model, vendor, developer, artikel..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleSearch()
+                    }
+                  }}
+                  className="pl-9 pr-8 h-9 text-xs"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    title="Hapus pencarian"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSearch}
+                className="h-9 px-3.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs gap-1.5 shrink-0"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Cari
+              </Button>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
@@ -1069,14 +1103,41 @@ function ConformHistoryContent() {
 
           {/* FILTER & SEARCH BAR (BY ARTICLE) */}
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari artikel, model, vendor, developer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-xs"
-              />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari artikel, model, vendor, developer..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleSearch()
+                    }
+                  }}
+                  className="pl-9 pr-8 h-9 text-xs"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                    title="Hapus pencarian"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSearch}
+                className="h-9 px-3.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs gap-1.5 shrink-0"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Cari
+              </Button>
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
