@@ -1960,7 +1960,7 @@ function ConformHistoryContent() {
                                 <div className={cn(
                                   "absolute -left-[29px] top-2 flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-xs",
                                   isLatest ? "border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-900" : "border-slate-400"
-                                Sha)}>
+                                )}>
                                   <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                                     {round.roundNo}
                                   </span>
