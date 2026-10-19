@@ -194,7 +194,7 @@ model ToolingItem {
   phases      ToolingPhase[]
 
   @@index([modelId])
-  @@unique([modelId, name])
+  @@unique([modelId, category, name])
 }
 
 model ToolingPhase {

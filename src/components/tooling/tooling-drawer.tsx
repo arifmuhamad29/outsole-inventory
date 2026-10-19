@@ -235,9 +235,10 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   if (!model || !isOpen) return null
 
   const handleAddNewItem = (category: string) => {
-    const newItemId = `new-item-${Date.now()}`
+    const timestamp = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+    const newItemId = `new-item-${timestamp}`
     const newPhases = ["MST", "EXTREME", "FSR"].map(pt => ({
-      id: `new-phase-${pt}-${Date.now()}`,
+      id: `new-phase-${pt}-${timestamp}`,
       phaseType: pt,
       qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
     }))
@@ -312,40 +313,91 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   const handleSave = () => {
     if (!model) return
 
+    const activeLocalItems = localItems.filter(i => !deletedItemsList.includes(i.id))
+
+    // 1. Validation: check for empty tooling names
+    for (const item of activeLocalItems) {
+      const name = (itemNames[item.id] ?? item.name ?? "").trim()
+      if (!name) {
+        alert("Nama tooling tidak boleh kosong. Harap isi semua nama tooling sebelum menyimpan.")
+        return
+      }
+    }
+    for (const item of newItemsList) {
+      const name = (itemNames[item.id] || "").trim()
+      if (!name) {
+        alert("Nama tooling baru tidak boleh kosong. Harap isi nama tooling sebelum menyimpan.")
+        return
+      }
+    }
+
+    // 2. Validation: check for duplicate names within the same category
+    const categoryMap = new Map<string, Set<string>>()
+
+    for (const item of activeLocalItems) {
+      const cat = item.category
+      const rawName = itemNames[item.id] ?? item.name ?? ""
+      const lowerName = rawName.trim().toLowerCase()
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, new Set())
+      }
+      const set = categoryMap.get(cat)!
+      if (set.has(lowerName)) {
+        alert(`Nama tooling "${rawName.trim()}" duplikat pada kategori ${cat}. Setiap tooling harus memiliki nama yang unik dalam kategorinya.`)
+        return
+      }
+      set.add(lowerName)
+    }
+
+    for (const item of newItemsList) {
+      const cat = item.category
+      const rawName = itemNames[item.id] || ""
+      const lowerName = rawName.trim().toLowerCase()
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, new Set())
+      }
+      const set = categoryMap.get(cat)!
+      if (set.has(lowerName)) {
+        alert(`Nama tooling "${rawName.trim()}" duplikat pada kategori ${cat}. Setiap tooling harus memiliki nama yang unik dalam kategorinya.`)
+        return
+      }
+      set.add(lowerName)
+    }
+
+    // 3. Construct payload (excluding deleted items from items array)
     const payload = {
       phases: Object.entries(phaseData)
         .filter(([id]) => !id.startsWith("new-phase-"))
         .map(([id, data]) => ({
           id,
-          qty: data.qty || null,
+          qty: data.qty?.trim() || null,
           orderDate: data.orderDate || null,
           targetETA: data.targetETA || null,
           actualETA: data.actualETA || null,
           status: data.status,
         })),
-      items: Object.entries(itemRemarks)
-        .filter(([id]) => !id.startsWith("new-item-"))
-        .map(([id, remark]) => {
-          let sortOrder = 0;
-          for (const ids of Object.values(orderedItemIds)) {
-            const idx = ids.indexOf(id)
-            if (idx !== -1) sortOrder = idx
-          }
-          return {
-            id,
-            name: itemNames[id] || "",
-            remark: remark || null,
-            sortOrder,
-            phases: localItems.find(i => i.id === id)?.phases.map(p => ({
-              phaseType: p.phaseType,
-              qty: phaseData[p.id]?.qty || null,
-              orderDate: phaseData[p.id]?.orderDate || null,
-              targetETA: phaseData[p.id]?.targetETA || null,
-              actualETA: phaseData[p.id]?.actualETA || null,
-              status: phaseData[p.id]?.status || "ON PROCESS",
-            })) || []
-          }
-        }),
+      items: activeLocalItems.map((item) => {
+        let sortOrder = 0;
+        for (const ids of Object.values(orderedItemIds)) {
+          const idx = ids.indexOf(item.id)
+          if (idx !== -1) sortOrder = idx
+        }
+        return {
+          id: item.id,
+          category: item.category,
+          name: (itemNames[item.id] ?? item.name).trim(),
+          remark: itemRemarks[item.id]?.trim() || null,
+          sortOrder,
+          phases: item.phases.map(p => ({
+            phaseType: p.phaseType,
+            qty: phaseData[p.id]?.qty?.trim() || null,
+            orderDate: phaseData[p.id]?.orderDate || null,
+            targetETA: phaseData[p.id]?.targetETA || null,
+            actualETA: phaseData[p.id]?.actualETA || null,
+            status: phaseData[p.id]?.status || "ON PROCESS",
+          }))
+        }
+      }),
       newItems: newItemsList.map(ni => {
         let sortOrder = 0;
         for (const ids of Object.values(orderedItemIds)) {
@@ -354,17 +406,17 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
         }
         return {
           category: ni.category,
-          name: itemNames[ni.id] || "",
-          remark: itemRemarks[ni.id] || null,
+          name: (itemNames[ni.id] || "").trim(),
+          remark: itemRemarks[ni.id]?.trim() || null,
           sortOrder,
           phases: ni.phases.map(p => ({
-          phaseType: p.phaseType,
-          qty: phaseData[p.id]?.qty || null,
-          orderDate: phaseData[p.id]?.orderDate || null,
-          targetETA: phaseData[p.id]?.targetETA || null,
-          actualETA: phaseData[p.id]?.actualETA || null,
-          status: phaseData[p.id]?.status || "ON PROCESS",
-        }))
+            phaseType: p.phaseType,
+            qty: phaseData[p.id]?.qty?.trim() || null,
+            orderDate: phaseData[p.id]?.orderDate || null,
+            targetETA: phaseData[p.id]?.targetETA || null,
+            actualETA: phaseData[p.id]?.actualETA || null,
+            status: phaseData[p.id]?.status || "ON PROCESS",
+          }))
         }
       }),
       deletedItemIds: deletedItemsList

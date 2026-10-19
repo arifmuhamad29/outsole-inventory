@@ -43,6 +43,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
   phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[],
   items: { 
     id: string, 
+    category?: string,
     name: string, 
     remark: string | null, 
     sortOrder: number,
@@ -63,78 +64,134 @@ export async function updateModelToolingAction(modelId: string, payload: {
       return { success: false, message: "Unauthorized Access: Anda tidak memiliki izin untuk mengedit tooling" }
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Tooling phases are now updated via upsert in step 2b to handle new virtual phases.
+    const deletedIds = new Set(payload.deletedItemIds || [])
 
-      // 2. Update Tooling Items (Name & Remarks) - TWO-PASS TRANSACTION to prevent Swap Collisions
-      // PASS 1: Assign temporary names to bypass unique constraint during swaps
-      for (const item of payload.items) {
-        if (item.id) {
-          await tx.toolingItem.update({
-            where: { id: item.id },
-            data: {
-              name: `${item.name}_temp_${Math.random().toString(36).substring(7)}`,
-            }
-          })
+    // 1. Filter out items that are marked for deletion
+    const activeExistingItems = (payload.items || []).filter(item => item.id && !deletedIds.has(item.id))
+    const newItems = payload.newItems || []
+
+    // 2. Validate empty names
+    for (const item of activeExistingItems) {
+      if (!item.name || !item.name.trim()) {
+        return { success: false, message: "Nama tooling tidak boleh kosong. Harap isi semua nama tooling." }
+      }
+    }
+    for (const item of newItems) {
+      if (!item.name || !item.name.trim()) {
+        return { success: false, message: "Nama tooling baru tidak boleh kosong. Harap isi semua nama tooling." }
+      }
+    }
+
+    // 3. Validate duplicate names within the same category
+    const categoryNameSets = new Map<string, Set<string>>()
+
+    for (const item of activeExistingItems) {
+      const cat = item.category || "GENERAL"
+      const trimmedName = item.name.trim()
+      const lower = trimmedName.toLowerCase()
+      if (!categoryNameSets.has(cat)) {
+        categoryNameSets.set(cat, new Set())
+      }
+      const set = categoryNameSets.get(cat)!
+      if (set.has(lower)) {
+        return { 
+          success: false, 
+          message: `Terdapat nama tooling duplikat "${trimmedName}" pada kategori ${cat}. Pastikan setiap nama tooling unik dalam kategorinya.` 
         }
       }
+      set.add(lower)
+    }
 
-      // PASS 2: Apply the final actual names and upsert phases
-      for (const item of payload.items) {
-        if (item.id) {
-          await tx.toolingItem.update({
-            where: { id: item.id },
-            data: {
-              name: item.name,
-              remark: item.remark,
-              sortOrder: item.sortOrder
+    for (const item of newItems) {
+      const cat = item.category || "GENERAL"
+      const trimmedName = item.name.trim()
+      const lower = trimmedName.toLowerCase()
+      if (!categoryNameSets.has(cat)) {
+        categoryNameSets.set(cat, new Set())
+      }
+      const set = categoryNameSets.get(cat)!
+      if (set.has(lower)) {
+        return { 
+          success: false, 
+          message: `Terdapat nama tooling duplikat "${trimmedName}" pada kategori ${cat}. Pastikan setiap nama tooling unik dalam kategorinya.` 
+        }
+      }
+      set.add(lower)
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Step 1: DELETE items marked for deletion FIRST
+      // This prevents unique constraint collisions if an item is re-created or renamed
+      if (payload.deletedItemIds && payload.deletedItemIds.length > 0) {
+        await tx.toolingItem.deleteMany({
+          where: { id: { in: payload.deletedItemIds } }
+        })
+      }
+
+      // Step 2: Update existing Tooling Items (Two-pass update to handle name swaps safely)
+      // PASS 1: Assign temporary names to bypass unique constraint during swaps/reordering
+      for (const item of activeExistingItems) {
+        await tx.toolingItem.update({
+          where: { id: item.id },
+          data: {
+            name: `${item.name.trim()}_temp_${Math.random().toString(36).substring(7)}`,
+          }
+        })
+      }
+
+      // PASS 2: Apply the final actual names, remarks, sortOrder, and upsert phases
+      for (const item of activeExistingItems) {
+        await tx.toolingItem.update({
+          where: { id: item.id },
+          data: {
+            name: item.name.trim(),
+            remark: item.remark?.trim() || null,
+            sortOrder: item.sortOrder
+          }
+        })
+        
+        if (item.phases) {
+          for (const p of item.phases) {
+            const pOrderDate = p.orderDate ? new Date(p.orderDate) : null
+            const pTargetETA = p.targetETA ? new Date(p.targetETA) : null
+            let pActualETA = p.actualETA ? new Date(p.actualETA) : null
+            if (p.status === "VERIFIED" && !pActualETA) {
+              pActualETA = new Date()
             }
-          })
-          
-          if (item.phases) {
-            for (const p of item.phases) {
-              const pOrderDate = p.orderDate ? new Date(p.orderDate) : null
-              const pTargetETA = p.targetETA ? new Date(p.targetETA) : null
-              let pActualETA = p.actualETA ? new Date(p.actualETA) : null
-              if (p.status === "VERIFIED" && !pActualETA) {
-                pActualETA = new Date()
+
+            await tx.toolingPhase.upsert({
+              where: { itemId_phaseType: { itemId: item.id, phaseType: p.phaseType } },
+              update: {
+                qty: p.qty?.trim() || null,
+                orderDate: pOrderDate,
+                targetETA: pTargetETA,
+                actualETA: pActualETA,
+                status: p.status,
+              },
+              create: {
+                itemId: item.id,
+                phaseType: p.phaseType,
+                qty: p.qty?.trim() || null,
+                orderDate: pOrderDate,
+                targetETA: pTargetETA,
+                actualETA: pActualETA,
+                status: p.status,
               }
-
-              await tx.toolingPhase.upsert({
-                where: { itemId_phaseType: { itemId: item.id, phaseType: p.phaseType } },
-                update: {
-                  qty: p.qty,
-                  orderDate: pOrderDate,
-                  targetETA: pTargetETA,
-                  actualETA: pActualETA,
-                  status: p.status,
-                },
-                create: {
-                  itemId: item.id,
-                  phaseType: p.phaseType,
-                  qty: p.qty,
-                  orderDate: pOrderDate,
-                  targetETA: pTargetETA,
-                  actualETA: pActualETA,
-                  status: p.status,
-                }
-              })
-            }
+            })
           }
         }
       }
 
-      // 3. Create new Tooling Items (and nested phases)
-      if (payload.newItems && payload.newItems.length > 0) {
-        for (const newItem of payload.newItems) {
-          // If name is completely empty and no phases have data, you could optionally skip it,
-          // but we will insert whatever the user sent.
+      // Step 3: Create new Tooling Items (and nested phases)
+      if (newItems.length > 0) {
+        for (const newItem of newItems) {
+          const trimmedName = newItem.name.trim()
           await tx.toolingItem.create({
             data: {
               modelId,
               category: newItem.category,
-              name: newItem.name || "Untitled Tooling",
-              remark: newItem.remark,
+              name: trimmedName,
+              remark: newItem.remark?.trim() || null,
               sortOrder: newItem.sortOrder,
               phases: {
                 create: newItem.phases.map(p => {
@@ -147,7 +204,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
                   
                   return {
                     phaseType: p.phaseType,
-                    qty: p.qty,
+                    qty: p.qty?.trim() || null,
                     orderDate: pOrderDate,
                     targetETA: pTargetETA,
                     actualETA: pActualETA,
@@ -160,14 +217,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
         }
       }
 
-      // 4. Delete items marked for deletion
-      if (payload.deletedItemIds && payload.deletedItemIds.length > 0) {
-        await tx.toolingItem.deleteMany({
-          where: { id: { in: payload.deletedItemIds } }
-        })
-      }
-
-      // 5. Update Model lastUpdated timestamp
+      // Step 4: Update Model lastUpdated timestamp
       await tx.shoeModel.update({
         where: { id: modelId },
         data: { lastUpdated: new Date() }
@@ -178,8 +228,14 @@ export async function updateModelToolingAction(modelId: string, payload: {
 
     revalidatePath("/tooling")
     return { success: true, message: "Perubahan berhasil disimpan!" }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Batch update Tooling Error:", error)
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+      return { 
+        success: false, 
+        message: "Gagal menyimpan perubahan: Terdapat duplikasi nama tooling pada model ini. Pastikan setiap tooling memiliki nama yang unik." 
+      }
+    }
     return { success: false, message: error instanceof Error ? error.message : "Gagal menyimpan perubahan" }
   }
 }
@@ -332,8 +388,9 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
       // Upsert ToolingItem
       const toolingItem = await prisma.toolingItem.upsert({
         where: { 
-          modelId_name: {
+          modelId_category_name: {
             modelId: shoeModel.id,
+            category,
             name: toolingName
           }
         },
