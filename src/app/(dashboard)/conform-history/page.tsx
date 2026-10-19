@@ -1313,7 +1313,7 @@ function ConformHistoryContent() {
       {/* WINDOWED MODAL 1: COMPONENT GROUP WINDOW (SHARED PER-COMPONENT CFM) */}
       {/* ========================================================================= */}
       <Dialog open={isCompGroupWindowOpen} onOpenChange={setIsCompGroupWindowOpen}>
-        <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-background border shadow-2xl rounded-xl">
+        <DialogContent className="sm:max-w-4xl md:max-w-5xl lg:max-w-6xl w-[96vw] max-h-[92vh] overflow-y-auto p-0 bg-background border shadow-2xl rounded-xl">
           {compGroupWindowLoading ? (
             <div className="flex flex-col items-center justify-center p-16 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -1708,7 +1708,7 @@ function ConformHistoryContent() {
       {/* WINDOWED MODAL 2: ARTICLE WINDOW (PER-ARTICLE MULTI-ROUND TIMELINE) */}
       {/* ========================================================================= */}
       <Dialog open={isWindowOpen} onOpenChange={setIsWindowOpen}>
-        <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-background border shadow-2xl rounded-xl">
+        <DialogContent className="sm:max-w-4xl md:max-w-5xl lg:max-w-6xl w-[96vw] max-h-[92vh] overflow-y-auto p-0 bg-background border shadow-2xl rounded-xl">
           {windowLoading ? (
             <div className="flex flex-col items-center justify-center p-16 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -2172,13 +2172,13 @@ function ConformHistoryContent() {
       {/* DIALOG: PROJECT DEVELOPER REVIEW & DECISION */}
       {/* ========================================================================= */}
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl w-[94vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-indigo-600" />
               Keputusan Project Developer
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs">
               Tentukan hasil evaluasi warna untuk {selectedRoundForReview?.component} round #{selectedRoundForReview?.roundNo}{" "}
               {windowData?.article ? `artikel ${windowData.article}` : compGroupWindowData?.modelName ? `(Model ${compGroupWindowData.modelName} - ${compGroupWindowData.targetColor})` : ""}.
             </DialogDescription>
@@ -2196,21 +2196,29 @@ function ConformHistoryContent() {
               <Input
                 value={reviewProjectDev}
                 onChange={(e) => setReviewProjectDev(e.target.value)}
-                className="h-8 text-xs"
+                className="h-9 text-xs"
               />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Status Keputusan</Label>
               <Select value={reviewStatus} onValueChange={(val) => { if (val) setReviewStatus(val) }}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="w-full h-9 text-xs flex justify-between">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="APPROVED">✅ APPROVED (Disetujui / OK to Proceed)</SelectItem>
-                  <SelectItem value="APPROVED_WITH_NOTE">ℹ️ APPROVED WITH NOTE (Disetujui Bersyarat)</SelectItem>
-                  <SelectItem value="REJECTED">❌ REJECTED / REVISE (Ditolak / Minta Kirim Ulang)</SelectItem>
-                  <SelectItem value="PENDING">⏳ PENDING (Masih Menunggu Evaluasi)</SelectItem>
+                <SelectContent className="w-[var(--anchor-width)] min-w-[360px] max-w-[95vw] text-xs">
+                  <SelectItem value="APPROVED" className="text-xs py-2 cursor-pointer">
+                    ✅ APPROVED (Disetujui / OK to Proceed)
+                  </SelectItem>
+                  <SelectItem value="APPROVED_WITH_NOTE" className="text-xs py-2 cursor-pointer">
+                    ℹ️ APPROVED WITH NOTE (Disetujui Bersyarat)
+                  </SelectItem>
+                  <SelectItem value="REJECTED" className="text-xs py-2 cursor-pointer">
+                    ❌ REJECTED / REVISE (Ditolak / Minta Kirim Ulang)
+                  </SelectItem>
+                  <SelectItem value="PENDING" className="text-xs py-2 cursor-pointer">
+                    ⏳ PENDING (Masih Menunggu Evaluasi)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2247,7 +2255,7 @@ function ConformHistoryContent() {
       {/* DIALOG: SELECT ARTICLE MODAL (LAUNCH WINDOW) */}
       {/* ========================================================================= */}
       <Dialog open={isArticlePickerOpen} onOpenChange={setIsArticlePickerOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg md:max-w-xl w-[92vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-indigo-600" />
@@ -2312,7 +2320,7 @@ function ConformHistoryContent() {
       {/* DIALOG: EDIT DEVELOPER & VENDOR ARTIKEL */}
       {/* ========================================================================= */}
       <Dialog open={isEditDevVendorOpen} onOpenChange={setIsEditDevVendorOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg w-[92vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-indigo-600" />
@@ -2378,7 +2386,7 @@ function ConformHistoryContent() {
       {/* DIALOG: EDIT DEVELOPER & VENDOR KOMPONEN GROUP */}
       {/* ========================================================================= */}
       <Dialog open={isCompGroupEditDevVendorOpen} onOpenChange={setIsCompGroupEditDevVendorOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg w-[92vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-indigo-600" />
