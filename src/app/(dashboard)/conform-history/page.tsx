@@ -276,36 +276,42 @@ function ConformHistoryContent() {
 
   const [isPending, startTransition] = useTransition()
 
-  // Fetch all data for both views
-  const fetchData = useCallback(async () => {
+  // Active Tab Driven Fetching for maximum performance
+  const fetchData = useCallback(async (forcedView?: "BY_COMPONENT" | "BY_ARTICLE") => {
+    const currentView = forcedView || viewMode
     setLoading(true)
     try {
-      const [artRes, compRes] = await Promise.all([
-        getGroupedConformArticles({
-          search: searchQuery,
-          statusFilter,
-        }),
-        getGroupedComponentColorSummaries({
+      if (currentView === "BY_COMPONENT") {
+        const compRes = await getGroupedComponentColorSummaries({
           search: searchQuery,
           statusFilter,
           componentFilter,
-        }),
-      ])
-      setArticles(artRes.summaries)
-      setStats(artRes.stats)
-      setComponentGroups(compRes.summaries)
-      setCompStats(compRes.stats)
+        })
+        setComponentGroups(compRes.summaries)
+        setCompStats(compRes.stats)
+        if (compRes.totalArticles && stats.total === 0) {
+          setStats(prev => ({ ...prev, total: compRes.totalArticles }))
+        }
+      } else {
+        const artRes = await getGroupedConformArticles({
+          search: searchQuery,
+          statusFilter,
+        })
+        setArticles(artRes.summaries)
+        setStats(artRes.stats)
+      }
     } catch (err) {
       console.error(err)
       toast.error("Gagal memuat data Color Conform")
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, statusFilter, componentFilter])
+  }, [viewMode, searchQuery, statusFilter, componentFilter, stats.total])
 
-  // Load tracking articles for picker
-  useEffect(() => {
-    async function loadTrackingArticles() {
+  // Lazy-load article picker options only when opened
+  const handleOpenArticlePicker = async () => {
+    setIsArticlePickerOpen(true)
+    if (trackingArticles.length === 0) {
       try {
         const data = await getArticlesFromTracking()
         setTrackingArticles(data as unknown as TrackingArticleOption[])
@@ -313,8 +319,18 @@ function ConformHistoryContent() {
         console.error("Gagal memuat artikel tracking", err)
       }
     }
-    loadTrackingArticles()
-  }, [])
+  }
+
+  // Switch tab with instant responsiveness
+  const handleSwitchView = (newMode: "BY_COMPONENT" | "BY_ARTICLE") => {
+    if (newMode === viewMode) return
+    setViewMode(newMode)
+    if (newMode === "BY_ARTICLE" && articles.length === 0) {
+      fetchData("BY_ARTICLE")
+    } else if (newMode === "BY_COMPONENT" && componentGroups.length === 0) {
+      fetchData("BY_COMPONENT")
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -662,7 +678,7 @@ function ConformHistoryContent() {
           </Button>
           {canManage && (
             <Button
-              onClick={() => setIsArticlePickerOpen(true)}
+              onClick={handleOpenArticlePicker}
               className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20"
             >
               <Plus className="h-4 w-4" />
@@ -676,7 +692,7 @@ function ConformHistoryContent() {
       <div className="flex border-b border-border bg-muted/20 rounded-xl p-1 gap-1">
         <button
           type="button"
-          onClick={() => setViewMode("BY_COMPONENT")}
+          onClick={() => handleSwitchView("BY_COMPONENT")}
           className={cn(
             "flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer",
             viewMode === "BY_COMPONENT"
@@ -699,7 +715,7 @@ function ConformHistoryContent() {
 
         <button
           type="button"
-          onClick={() => setViewMode("BY_ARTICLE")}
+          onClick={() => handleSwitchView("BY_ARTICLE")}
           className={cn(
             "flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer",
             viewMode === "BY_ARTICLE"

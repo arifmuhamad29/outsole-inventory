@@ -377,25 +377,35 @@ export interface ComponentColorGroupSummary {
   latestId: string | null
 }
 
-// 7a. Get Grouped Article Summaries for Table
-export async function getGroupedConformArticles(params?: {
-  search?: string
-  statusFilter?: string
-}) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error("Unauthorized")
+// ==========================================
+// CACHE FOR TRACKING ARTICLES (30s TTL)
+// ==========================================
+let cachedTrackingRows: {
+  timestamp: number
+  data: Array<{
+    batchId: string
+    article: string
+    modelName: string | null
+    supplier: string | null
+    midsoleColor: string | null
+    outsoleColor: string | null
+    wedgeColor: string | null
+    crDeviceColor: string | null
+    imageUrl: string | null
+  }>
+} | null = null
 
-  // Fetch all conform histories
-  const allEntries = await prisma.colorConformHistory.findMany({
-    orderBy: [
-      { confirmDate: "desc" },
-      { submissionNo: "desc" },
-      { createdAt: "desc" }
-    ]
-  })
+export function clearTrackingCache() {
+  cachedTrackingRows = null
+}
 
-  // Fetch tracking articles for metadata & fallback colors
-  const trackingRows = await prisma.purchaseTracking.findMany({
+async function getCachedTrackingRows() {
+  const now = Date.now()
+  if (cachedTrackingRows && (now - cachedTrackingRows.timestamp < 30000)) {
+    return cachedTrackingRows.data
+  }
+
+  const rows = await prisma.purchaseTracking.findMany({
     distinct: ["article"],
     orderBy: { article: "asc" },
     select: {
@@ -410,6 +420,98 @@ export async function getGroupedConformArticles(params?: {
       imageUrl: true,
     }
   })
+
+  cachedTrackingRows = {
+    timestamp: now,
+    data: rows,
+  }
+  return rows
+}
+
+// ==========================================
+// FAST IN-MEMORY INDEXING FOR CONFORM ENTRIES
+// ==========================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildConformIndexes(allEntries: any[]) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const modelCompColorEntries = new Map<string, any[]>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const articleCompColorEntries = new Map<string, any[]>()
+
+  for (const e of allEntries) {
+    const eModel = (e.modelName || "-").trim().toUpperCase()
+    const eArt = (e.article || "").trim().toUpperCase()
+
+    const pairs: { comp: string; color: string }[] = []
+    if (e.component) {
+      const cUpper = e.component.toUpperCase()
+      const color = (e.targetColor || e.supplierColor || "").trim().toUpperCase()
+      if (color && color !== "-") pairs.push({ comp: cUpper, color })
+    } else {
+      if (e.midsoleTargetColor || e.midsoleSupplierColor) {
+        const c = (e.midsoleTargetColor || e.midsoleSupplierColor || "").trim().toUpperCase()
+        if (c && c !== "-") pairs.push({ comp: "MIDSOLE", color: c })
+      }
+      if (e.outsoleTargetColor || e.outsoleSupplierColor) {
+        const c = (e.outsoleTargetColor || e.outsoleSupplierColor || "").trim().toUpperCase()
+        if (c && c !== "-") pairs.push({ comp: "OUTSOLE", color: c })
+      }
+      if (e.wedgeTargetColor || e.wedgeSupplierColor) {
+        const c = (e.wedgeTargetColor || e.wedgeSupplierColor || "").trim().toUpperCase()
+        if (c && c !== "-") pairs.push({ comp: "WEDGE", color: c })
+      }
+      if (e.crTargetColor || e.crSupplierColor) {
+        const c = (e.crTargetColor || e.crSupplierColor || "").trim().toUpperCase()
+        if (c && c !== "-") pairs.push({ comp: "CR", color: c })
+      }
+    }
+
+    for (const pair of pairs) {
+      if (eModel !== "-") {
+        const mcKey = `${eModel}:::${pair.comp}:::${pair.color}`
+        let list = modelCompColorEntries.get(mcKey)
+        if (!list) {
+          list = []
+          modelCompColorEntries.set(mcKey, list)
+        }
+        list.push(e)
+      }
+      if (eArt) {
+        const acKey = `${eArt}:::${pair.comp}:::${pair.color}`
+        let list = articleCompColorEntries.get(acKey)
+        if (!list) {
+          list = []
+          articleCompColorEntries.set(acKey, list)
+        }
+        list.push(e)
+      }
+    }
+  }
+
+  return { modelCompColorEntries, articleCompColorEntries }
+}
+
+// 7a. Get Grouped Article Summaries for Table
+export async function getGroupedConformArticles(params?: {
+  search?: string
+  statusFilter?: string
+}) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  // Parallel fetch: all conform histories and cached tracking rows
+  const [allEntries, trackingRows] = await Promise.all([
+    prisma.colorConformHistory.findMany({
+      orderBy: [
+        { confirmDate: "desc" },
+        { submissionNo: "desc" },
+        { createdAt: "desc" }
+      ]
+    }),
+    getCachedTrackingRows()
+  ])
+
+  const { modelCompColorEntries } = buildConformIndexes(allEntries)
 
   const trackingMap = new Map<string, typeof trackingRows[0]>()
   for (const t of trackingRows) {
@@ -467,21 +569,11 @@ export async function getGroupedConformArticles(params?: {
         }
       }
 
-      // 2. Shared rounds for the same model & targetColor
+      // 2. Shared rounds for the same model & targetColor via fast Map lookup O(1)
       if (targetColorUpper && targetColorUpper !== "-" && modelUpper !== "-") {
-        for (const e of allEntries) {
-          const eModel = (e.modelName || "-").trim().toUpperCase()
-          let eComp = e.component?.toUpperCase()
-          let eColor = e.targetColor?.trim().toUpperCase()
-
-          if (!eComp) {
-            if (compKey === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (e.midsoleTargetColor || e.midsoleSupplierColor)?.trim().toUpperCase() }
-            else if (compKey === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (e.outsoleTargetColor || e.outsoleSupplierColor)?.trim().toUpperCase() }
-            else if (compKey === "WEDGE") { eComp = "WEDGE"; eColor = (e.wedgeTargetColor || e.wedgeSupplierColor)?.trim().toUpperCase() }
-            else if (compKey === "CR") { eComp = "CR"; eColor = (e.crTargetColor || e.crSupplierColor)?.trim().toUpperCase() }
-          }
-
-          if (eComp === compKey && eModel === modelUpper && eColor === targetColorUpper) {
+        const shared = modelCompColorEntries.get(`${modelUpper}:::${compKey}:::${targetColorUpper}`)
+        if (shared) {
+          for (const e of shared) {
             compEntriesMap.set(e.id, e)
           }
         }
@@ -701,18 +793,8 @@ export async function getArticleConformDetails(article: string) {
     ]
   })
 
-  // All tracking articles for shared component lookup
-  const allTracking = await prisma.purchaseTracking.findMany({
-    distinct: ["article"],
-    select: {
-      article: true,
-      modelName: true,
-      midsoleColor: true,
-      outsoleColor: true,
-      wedgeColor: true,
-      crDeviceColor: true,
-    }
-  })
+  // All tracking articles for shared component lookup (cached)
+  const allTracking = await getCachedTrackingRows()
 
   // Build rounds for each of the 4 components
   const buildRoundsFor = (compKey: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR", defaultTargetColor: string | null) => {
@@ -1052,31 +1134,19 @@ export async function getGroupedComponentColorSummaries(params?: {
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  // Fetch all tracking rows
-  const trackingRows = await prisma.purchaseTracking.findMany({
-    distinct: ["article"],
-    orderBy: { article: "asc" },
-    select: {
-      batchId: true,
-      article: true,
-      modelName: true,
-      supplier: true,
-      midsoleColor: true,
-      outsoleColor: true,
-      wedgeColor: true,
-      crDeviceColor: true,
-      imageUrl: true,
-    }
-  })
+  // Fetch cached tracking rows and conform histories in parallel
+  const [trackingRows, allEntries] = await Promise.all([
+    getCachedTrackingRows(),
+    prisma.colorConformHistory.findMany({
+      orderBy: [
+        { confirmDate: "asc" },
+        { submissionNo: "asc" },
+        { createdAt: "asc" }
+      ]
+    })
+  ])
 
-  // Fetch all conform histories
-  const allEntries = await prisma.colorConformHistory.findMany({
-    orderBy: [
-      { confirmDate: "asc" },
-      { submissionNo: "asc" },
-      { createdAt: "asc" }
-    ]
-  })
+  const { modelCompColorEntries, articleCompColorEntries } = buildConformIndexes(allEntries)
 
   type GroupKey = string // e.g. "574:::MIDSOLE:::SEA SALT"
   const groupMap = new Map<GroupKey, {
@@ -1167,24 +1237,17 @@ export async function getGroupedComponentColorSummaries(params?: {
 
     const compEntriesMap = new Map<string, typeof allEntries[0]>()
 
-    for (const e of allEntries) {
-      const eModel = (e.modelName || "-").trim().toUpperCase()
-      let eComp = e.component?.toUpperCase()
-      let eColor = e.targetColor?.trim().toUpperCase()
+    // O(1) match by model + component + color
+    const directEntries = modelCompColorEntries.get(`${modelUpper}:::${compUpper}:::${colorUpper}`)
+    if (directEntries) {
+      for (const e of directEntries) compEntriesMap.set(e.id, e)
+    }
 
-      if (!eComp) {
-        if (compUpper === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (e.midsoleTargetColor || e.midsoleSupplierColor)?.trim().toUpperCase() }
-        else if (compUpper === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (e.outsoleTargetColor || e.outsoleSupplierColor)?.trim().toUpperCase() }
-        else if (compUpper === "WEDGE") { eComp = "WEDGE"; eColor = (e.wedgeTargetColor || e.wedgeSupplierColor)?.trim().toUpperCase() }
-        else if (compUpper === "CR") { eComp = "CR"; eColor = (e.crTargetColor || e.crSupplierColor)?.trim().toUpperCase() }
-      }
-
-      if (eComp !== compUpper) continue
-
-      if (eModel === modelUpper && eColor === colorUpper && modelUpper !== "-") {
-        compEntriesMap.set(e.id, e)
-      } else if (eColor === colorUpper && articleList.includes(e.article.trim().toUpperCase())) {
-        compEntriesMap.set(e.id, e)
+    // O(1) match per article for this component + color
+    for (const art of articleList) {
+      const artEntries = articleCompColorEntries.get(`${art}:::${compUpper}:::${colorUpper}`)
+      if (artEntries) {
+        for (const e of artEntries) compEntriesMap.set(e.id, e)
       }
     }
 
@@ -1312,20 +1375,8 @@ export async function getComponentColorGroupDetails(groupId: string) {
   const compUpper = rawComp.trim().toUpperCase() as "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
   const colorUpper = rawColor.trim().toUpperCase()
 
-  // 1. Tracking articles using this component & color
-  const allTracking = await prisma.purchaseTracking.findMany({
-    distinct: ["article"],
-    select: {
-      article: true,
-      modelName: true,
-      supplier: true,
-      midsoleColor: true,
-      outsoleColor: true,
-      wedgeColor: true,
-      crDeviceColor: true,
-      imageUrl: true,
-    }
-  })
+  // 1. Tracking articles using this component & color (cached)
+  const allTracking = await getCachedTrackingRows()
 
   const matchedArticles: { article: string; imageUrl: string | null }[] = []
   const suppliers = new Set<string>()
