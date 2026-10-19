@@ -25,6 +25,7 @@ import {
   ImageIcon, UploadCloud, GripVertical, Settings, Palette
 } from "lucide-react"
 import Link from "next/link"
+import { BulkTracking } from "@/components/features/bulk-tracking"
 import {
   DndContext,
   closestCenter,
@@ -878,13 +879,16 @@ export default function TrackingPage() {
         </div>
 
         {canManage && (
-          <Button
-            onClick={handleAdd}
-            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <BulkTracking onImportSuccess={fetchData} activeSeasonId={activeSeasonId} />
+            <Button
+              onClick={handleAdd}
+              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Order
+            </Button>
+          </div>
         )}
       </div>
 

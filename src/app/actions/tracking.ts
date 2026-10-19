@@ -5,6 +5,13 @@ import prisma from "@/lib/prisma"
 import { createNotification } from "./notification"
 import { revalidatePath } from "next/cache"
 import { randomUUID } from "crypto"
+import { clearTrackingCache } from "./conform"
+import {
+  bulkTrackingSchema,
+  normalizeGender,
+  normalizeOrderStatus,
+  normalizeBottomTreatment,
+} from "@/schemas/tracking"
 
 // ============================
 // SEASONS
@@ -414,7 +421,9 @@ export async function createTrackingEntry(data: {
       })
     ])
 
+    await clearTrackingCache()
     revalidatePath("/tracking")
+    revalidatePath("/conform-history")
 
     await createNotification(
       "Tracking Baru",
@@ -521,7 +530,9 @@ export async function updateTrackingEntry(
       })
     ])
 
+    await clearTrackingCache()
     revalidatePath("/tracking")
+    revalidatePath("/conform-history")
     return { success: true, message: "Tracking data updated successfully" }
   } catch (error) {
     console.error("Update Tracking Error:", error)
@@ -543,7 +554,9 @@ export async function deleteTrackingEntry(batchId: string) {
       where: { batchId },
     })
 
+    await clearTrackingCache()
     revalidatePath("/tracking")
+    revalidatePath("/conform-history")
     return { success: true, message: "Tracking data deleted successfully" }
   } catch (error) {
     console.error("Delete Tracking Error:", error)
@@ -574,3 +587,283 @@ export async function updateBatchOrder(orderedBatchIds: string[]) {
     return { success: false, message: "Gagal merubah urutan" }
   }
 }
+
+// ============================
+// BULK IMPORT: Purchase Tracking via CSV
+// ============================
+export async function processBulkTrackingAction(
+  rows: unknown[],
+  fallbackSeasonId?: string | null
+) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" }
+    }
+    const role = session.user.role
+    const permissions = session.user.permissions || []
+    const canManage = role === "SUPER_ADMIN" || permissions.includes("MANAGE_TRACKING")
+    if (!canManage) {
+      return { success: false, message: "Forbidden: Anda tidak memiliki izin Kelola Tracking" }
+    }
+
+    // STRICT server-side Zod re-validation
+    const validation = bulkTrackingSchema.safeParse(rows)
+    if (!validation.success) {
+      const errors = validation.error.issues.map((issue) => {
+        const rowIndex = typeof issue.path[0] === "number" ? issue.path[0] : null
+        const field = issue.path[1] || "unknown"
+        const rowLabel = rowIndex !== null ? `Row ${rowIndex + 2}` : "Unknown row"
+        return `${rowLabel}: '${String(field)}' — ${issue.message}`
+      })
+      return {
+        success: false,
+        message: `Upload ditolak: ${validation.error.issues.length} kesalahan validasi ditemukan.`,
+        details: {
+          successCount: 0,
+          errorCount: validation.error.issues.length,
+          errors: errors.slice(0, 25),
+        },
+      }
+    }
+
+    const validatedRows = validation.data
+    if (validatedRows.length > 500) {
+      return { success: false, message: "Maksimal 500 baris per sekali import." }
+    }
+
+    // Additional semantic validation (Gender)
+    const semanticErrors: string[] = []
+    for (let i = 0; i < validatedRows.length; i++) {
+      const row = validatedRows[i]
+      const gender = normalizeGender(row.Gender)
+      if (!gender) {
+        semanticErrors.push(`Row ${i + 2}: Gender '${row.Gender}' tidak valid. Pilihan: Men, Women, Unisex, Infant, Kids/Jr`)
+      }
+    }
+    if (semanticErrors.length > 0) {
+      return {
+        success: false,
+        message: `Upload ditolak: Terdapat ${semanticErrors.length} kesalahan gender.`,
+        details: {
+          successCount: 0,
+          errorCount: semanticErrors.length,
+          errors: semanticErrors.slice(0, 25),
+        },
+      }
+    }
+
+    // Fetch existing seasons
+    const existingSeasons = await prisma.season.findMany()
+    const seasonMap = new Map<string, string>() // lowercase name -> seasonId
+    existingSeasons.forEach((s) => seasonMap.set(s.name.trim().toLowerCase(), s.id))
+
+    // Fallback season
+    let defaultSeason = existingSeasons.find((s) => s.id === fallbackSeasonId)
+    if (!defaultSeason) {
+      defaultSeason = existingSeasons.find((s) => s.name.toUpperCase() === "SS27") || existingSeasons[0]
+    }
+    if (!defaultSeason) {
+      defaultSeason = await prisma.season.create({ data: { name: "SS27" } })
+      seasonMap.set("ss27", defaultSeason.id)
+    }
+
+    // Helper to resolve or auto-create season
+    async function resolveSeasonId(seasonName?: string): Promise<string> {
+      if (!seasonName || !seasonName.trim()) {
+        return defaultSeason!.id
+      }
+      const trimmed = seasonName.trim()
+      const lower = trimmed.toLowerCase()
+      if (seasonMap.has(lower)) {
+        return seasonMap.get(lower)!
+      }
+      const created = await prisma.season.create({
+        data: { name: trimmed }
+      })
+      seasonMap.set(lower, created.id)
+      return created.id
+    }
+
+    // Pre-resolve all seasons
+    for (const row of validatedRows) {
+      if (row.Season?.trim()) {
+        await resolveSeasonId(row.Season.trim())
+      }
+    }
+
+    // Group rows into batches
+    interface GroupBatch {
+      batchId: string
+      seasonId: string
+      article: string
+      modelName: string
+      genderCategory: string
+      poNumber: string | null
+      supplier: string | null
+      midsoleMaterial: string | null
+      midsoleColor: string | null
+      outsoleMaterial: string | null
+      outsoleColor: string | null
+      wedgeMaterial: string | null
+      wedgeColor: string | null
+      crDeviceMaterial: string | null
+      crDeviceColor: string | null
+      bottomTreatment: string | null
+      orderStatus: string
+      isOrdered: boolean
+      notes: string | null
+      sizes: Map<string, number>
+    }
+
+    const groups = new Map<string, GroupBatch>()
+
+    for (const row of validatedRows) {
+      const seasonId = await resolveSeasonId(row.Season?.trim())
+      const article = row.Article.trim().toUpperCase()
+      const modelName = row.Model.trim().toUpperCase()
+      const gender = normalizeGender(row.Gender)!
+      const poNumber = row.PONumber && row.PONumber !== "-" ? row.PONumber.trim() : null
+      const groupKey = `${seasonId}:::${article}:::${modelName}:::${gender}:::${poNumber || "-"}`
+
+      const statusInfo = normalizeOrderStatus(row.OrderStatus)
+      const bottomTreatment = normalizeBottomTreatment(row.BottomTreatment)
+
+      let group = groups.get(groupKey)
+      if (!group) {
+        group = {
+          batchId: randomUUID(),
+          seasonId,
+          article,
+          modelName,
+          genderCategory: gender,
+          poNumber,
+          supplier: row.Supplier?.trim() || null,
+          midsoleMaterial: row.MidsoleMaterial?.trim() || null,
+          midsoleColor: row.MidsoleColor?.trim() || null,
+          outsoleMaterial: row.OutsoleMaterial?.trim() || null,
+          outsoleColor: row.OutsoleColor?.trim() || null,
+          wedgeMaterial: row.WedgeMaterial?.trim() || null,
+          wedgeColor: row.WedgeColor?.trim() || null,
+          crDeviceMaterial: row.CRMaterial?.trim() || null,
+          crDeviceColor: row.CRColor?.trim() || null,
+          bottomTreatment,
+          orderStatus: statusInfo.orderStatus,
+          isOrdered: statusInfo.isOrdered,
+          notes: row.Notes?.trim() || null,
+          sizes: new Map<string, number>(),
+        }
+        groups.set(groupKey, group)
+      } else {
+        // Update empty attributes with any provided data
+        if (!group.supplier && row.Supplier?.trim()) group.supplier = row.Supplier.trim()
+        if (!group.midsoleColor && row.MidsoleColor?.trim()) group.midsoleColor = row.MidsoleColor.trim()
+        if (!group.midsoleMaterial && row.MidsoleMaterial?.trim()) group.midsoleMaterial = row.MidsoleMaterial.trim()
+        if (!group.outsoleColor && row.OutsoleColor?.trim()) group.outsoleColor = row.OutsoleColor.trim()
+        if (!group.outsoleMaterial && row.OutsoleMaterial?.trim()) group.outsoleMaterial = row.OutsoleMaterial.trim()
+        if (!group.wedgeColor && row.WedgeColor?.trim()) group.wedgeColor = row.WedgeColor.trim()
+        if (!group.wedgeMaterial && row.WedgeMaterial?.trim()) group.wedgeMaterial = row.WedgeMaterial.trim()
+        if (!group.crDeviceColor && row.CRColor?.trim()) group.crDeviceColor = row.CRColor.trim()
+        if (!group.crDeviceMaterial && row.CRMaterial?.trim()) group.crDeviceMaterial = row.CRMaterial.trim()
+        if (!group.bottomTreatment && bottomTreatment) group.bottomTreatment = bottomTreatment
+        if (group.orderStatus === "NOT_ORDERED" && statusInfo.orderStatus !== "NOT_ORDERED") {
+          group.orderStatus = statusInfo.orderStatus
+          group.isOrdered = statusInfo.isOrdered
+        }
+        if (!group.notes && row.Notes?.trim()) group.notes = row.Notes.trim()
+      }
+
+      // Add/aggregate size quantity
+      const cleanSize = row.Size.trim()
+      const currentQty = group.sizes.get(cleanSize) || 0
+      group.sizes.set(cleanSize, currentQty + Number(row.Quantity))
+    }
+
+    // Build database records
+    const recordsToCreate: {
+      batchId: string
+      seasonId: string
+      article: string
+      modelName: string
+      genderCategory: string
+      poNumber: string | null
+      supplier: string | null
+      midsoleMaterial: string | null
+      midsoleColor: string | null
+      outsoleMaterial: string | null
+      outsoleColor: string | null
+      wedgeMaterial: string | null
+      wedgeColor: string | null
+      crDeviceMaterial: string | null
+      crDeviceColor: string | null
+      bottomTreatment: string | null
+      orderStatus: string
+      isOrdered: boolean
+      notes: string | null
+      size: string
+      quantity: number
+    }[] = []
+
+    for (const group of groups.values()) {
+      for (const [size, quantity] of group.sizes.entries()) {
+        recordsToCreate.push({
+          batchId: group.batchId,
+          seasonId: group.seasonId,
+          article: group.article,
+          modelName: group.modelName,
+          genderCategory: group.genderCategory,
+          poNumber: group.poNumber,
+          supplier: group.supplier,
+          midsoleMaterial: group.midsoleMaterial,
+          midsoleColor: group.midsoleColor,
+          outsoleMaterial: group.outsoleMaterial,
+          outsoleColor: group.outsoleColor,
+          wedgeMaterial: group.wedgeMaterial,
+          wedgeColor: group.wedgeColor,
+          crDeviceMaterial: group.crDeviceMaterial,
+          crDeviceColor: group.crDeviceColor,
+          bottomTreatment: group.bottomTreatment,
+          orderStatus: group.orderStatus,
+          isOrdered: group.isOrdered,
+          notes: group.notes,
+          size,
+          quantity,
+        })
+      }
+    }
+
+    // Atomic insert
+    await prisma.purchaseTracking.createMany({
+      data: recordsToCreate,
+    })
+
+    // Invalidate caches & paths
+    await clearTrackingCache()
+    revalidatePath("/tracking")
+    revalidatePath("/conform-history")
+
+    await createNotification(
+      "Bulk Tracking Berhasil",
+      `Berhasil mengimpor ${groups.size} PO Matrix (${recordsToCreate.length} baris ukuran).`,
+      "info"
+    )
+
+    return {
+      success: true,
+      message: `Berhasil mengimpor ${groups.size} PO Matrix (${recordsToCreate.length} ukuran total).`,
+      details: {
+        successCount: recordsToCreate.length,
+        errorCount: 0,
+        errors: [],
+        batchesCount: groups.size,
+      },
+    }
+  } catch (error) {
+    console.error("Process Bulk Tracking Error:", error)
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Gagal mengimpor data tracking.",
+    }
+  }
+}
+
