@@ -1358,7 +1358,8 @@ export async function getGroupedComponentColorSummaries(params?: {
       approved,
       pending,
       rejected,
-    }
+    },
+    totalArticles: trackingRows.length,
   }
 }
 
