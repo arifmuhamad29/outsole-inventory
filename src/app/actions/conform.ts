@@ -355,6 +355,28 @@ export interface ArticleConformSummary {
   lastUpdated: Date
 }
 
+export interface ComponentColorGroupSummary {
+  id: string // compound id: `${modelName}:::${component}:::${targetColor}`
+  modelName: string
+  component: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+  targetColor: string
+  defaultSupplier: string | null
+  projectDev: string
+  articles: {
+    article: string
+    imageUrl: string | null
+  }[]
+  roundsCount: number
+  latestRoundNo: number
+  status: "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "APPROVED_WITH_NOTE" | "REJECTED"
+  latestConfirmDate: Date | null
+  latestApprovalDate: Date | null
+  latestSupplierColor: string | null
+  latestNotes: string | null
+  latestFeedback: string | null
+  latestId: string | null
+}
+
 // 7a. Get Grouped Article Summaries for Table
 export async function getGroupedConformArticles(params?: {
   search?: string
@@ -425,17 +447,47 @@ export async function getGroupedConformArticles(params?: {
     const imageUrl = tracking?.imageUrl || firstEntry?.imageUrl || null
 
     const parseComponentRounds = (compKey: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR", defaultTargetColor: string | null) => {
-      // Find all rounds for this component
-      const compEntries = entries.filter((e) => {
-        if (e.component) return e.component.toUpperCase() === compKey
-        // Legacy fallback
-        if (compKey === "MIDSOLE") return !!(e.midsoleTargetColor || e.midsoleSupplierColor)
-        if (compKey === "OUTSOLE") return !!(e.outsoleTargetColor || e.outsoleSupplierColor)
-        if (compKey === "WEDGE") return !!(e.wedgeTargetColor || e.wedgeSupplierColor)
-        if (compKey === "CR") return !!(e.crTargetColor || e.crSupplierColor)
-        return false
-      })
+      const targetColorUpper = defaultTargetColor?.trim().toUpperCase()
+      const modelUpper = modelName.trim().toUpperCase()
 
+      // Find all rounds for this component: both article-specific and shared across model & color
+      const compEntriesMap = new Map<string, typeof allEntries[0]>()
+
+      // 1. Article-specific rounds
+      for (const e of entries) {
+        let eComp = e.component?.toUpperCase()
+        if (!eComp) {
+          if (compKey === "MIDSOLE" && (e.midsoleTargetColor || e.midsoleSupplierColor)) eComp = "MIDSOLE"
+          else if (compKey === "OUTSOLE" && (e.outsoleTargetColor || e.outsoleSupplierColor)) eComp = "OUTSOLE"
+          else if (compKey === "WEDGE" && (e.wedgeTargetColor || e.wedgeSupplierColor)) eComp = "WEDGE"
+          else if (compKey === "CR" && (e.crTargetColor || e.crSupplierColor)) eComp = "CR"
+        }
+        if (eComp === compKey) {
+          compEntriesMap.set(e.id, e)
+        }
+      }
+
+      // 2. Shared rounds for the same model & targetColor
+      if (targetColorUpper && targetColorUpper !== "-" && modelUpper !== "-") {
+        for (const e of allEntries) {
+          const eModel = (e.modelName || "-").trim().toUpperCase()
+          let eComp = e.component?.toUpperCase()
+          let eColor = e.targetColor?.trim().toUpperCase()
+
+          if (!eComp) {
+            if (compKey === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (e.midsoleTargetColor || e.midsoleSupplierColor)?.trim().toUpperCase() }
+            else if (compKey === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (e.outsoleTargetColor || e.outsoleSupplierColor)?.trim().toUpperCase() }
+            else if (compKey === "WEDGE") { eComp = "WEDGE"; eColor = (e.wedgeTargetColor || e.wedgeSupplierColor)?.trim().toUpperCase() }
+            else if (compKey === "CR") { eComp = "CR"; eColor = (e.crTargetColor || e.crSupplierColor)?.trim().toUpperCase() }
+          }
+
+          if (eComp === compKey && eModel === modelUpper && eColor === targetColorUpper) {
+            compEntriesMap.set(e.id, e)
+          }
+        }
+      }
+
+      const compEntries = Array.from(compEntriesMap.values())
       // Sort by submissionNo asc, then confirmDate asc
       compEntries.sort((a, b) => a.submissionNo - b.submissionNo)
 
@@ -628,8 +680,17 @@ export async function getArticleConformDetails(article: string) {
     }
   })
 
+  const modelUpper = (tracking?.modelName || "").trim().toUpperCase()
+
   const rawEntries = await prisma.colorConformHistory.findMany({
-    where: { article: { equals: cleanArticle, mode: "insensitive" } },
+    where: {
+      OR: [
+        { article: { equals: cleanArticle, mode: "insensitive" } },
+        ...(modelUpper && modelUpper !== "-" ? [{
+          modelName: { equals: modelUpper, mode: "insensitive" }
+        }] : [])
+      ]
+    },
     orderBy: [
       { confirmDate: "asc" },
       { submissionNo: "asc" },
@@ -637,20 +698,66 @@ export async function getArticleConformDetails(article: string) {
     ]
   })
 
+  // All tracking articles for shared component lookup
+  const allTracking = await prisma.purchaseTracking.findMany({
+    distinct: ["article"],
+    select: {
+      article: true,
+      modelName: true,
+      midsoleColor: true,
+      outsoleColor: true,
+      wedgeColor: true,
+      crDeviceColor: true,
+    }
+  })
+
   // Build rounds for each of the 4 components
   const buildRoundsFor = (compKey: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR", defaultTargetColor: string | null) => {
-    const list = rawEntries.filter((e) => {
-      if (e.component) return e.component.toUpperCase() === compKey
-      if (compKey === "MIDSOLE") return !!(e.midsoleTargetColor || e.midsoleSupplierColor)
-      if (compKey === "OUTSOLE") return !!(e.outsoleTargetColor || e.outsoleSupplierColor)
-      if (compKey === "WEDGE") return !!(e.wedgeTargetColor || e.wedgeSupplierColor)
-      if (compKey === "CR") return !!(e.crTargetColor || e.crSupplierColor)
-      return false
-    })
+    const targetColorUpper = defaultTargetColor?.trim().toUpperCase()
 
+    const listMap = new Map<string, typeof rawEntries[0]>()
+
+    for (const item of rawEntries) {
+      let eComp = item.component?.toUpperCase()
+      let eColor = item.targetColor?.trim().toUpperCase()
+
+      if (!eComp) {
+        if (compKey === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (item.midsoleTargetColor || item.midsoleSupplierColor)?.trim().toUpperCase() }
+        else if (compKey === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (item.outsoleTargetColor || item.outsoleSupplierColor)?.trim().toUpperCase() }
+        else if (compKey === "WEDGE") { eComp = "WEDGE"; eColor = (item.wedgeTargetColor || item.wedgeSupplierColor)?.trim().toUpperCase() }
+        else if (compKey === "CR") { eComp = "CR"; eColor = (item.crTargetColor || item.crSupplierColor)?.trim().toUpperCase() }
+      }
+
+      if (eComp !== compKey) continue
+
+      const isThisArticle = item.article.toUpperCase() === cleanArticle
+      const eModel = (item.modelName || "-").trim().toUpperCase()
+
+      if (isThisArticle) {
+        listMap.set(item.id, item)
+      } else if (targetColorUpper && targetColorUpper !== "-" && eColor === targetColorUpper && eModel === modelUpper && modelUpper !== "-") {
+        listMap.set(item.id, item)
+      }
+    }
+
+    const list = Array.from(listMap.values())
     list.sort((a, b) => a.submissionNo - b.submissionNo)
 
-    return list.map((item, index) => {
+    // Calculate other articles that share this exact component & color
+    const sharedArticles = allTracking
+      .filter(t => {
+        if (t.article.toUpperCase() === cleanArticle) return false
+        if ((t.modelName || "").trim().toUpperCase() !== modelUpper || modelUpper === "-") return false
+        let tColor: string | null = null
+        if (compKey === "MIDSOLE") tColor = t.midsoleColor
+        else if (compKey === "OUTSOLE") tColor = t.outsoleColor
+        else if (compKey === "WEDGE") tColor = t.wedgeColor
+        else if (compKey === "CR") tColor = t.crDeviceColor
+        return targetColorUpper && targetColorUpper !== "-" && (tColor || "").trim().toUpperCase() === targetColorUpper
+      })
+      .map(t => t.article.toUpperCase())
+
+    const rounds = list.map((item, index) => {
       let status = item.status
       let targetColor = item.targetColor
       let supplierColor = item.supplierColor
@@ -697,44 +804,52 @@ export async function getArticleConformDetails(article: string) {
         imageUrl: item.imageUrl,
       }
     })
+
+    return { rounds, sharedArticles }
   }
 
-  const midsoleRounds = buildRoundsFor("MIDSOLE", tracking?.midsoleColor || null)
-  const outsoleRounds = buildRoundsFor("OUTSOLE", tracking?.outsoleColor || null)
-  const wedgeRounds = buildRoundsFor("WEDGE", tracking?.wedgeColor || null)
-  const crRounds = buildRoundsFor("CR", tracking?.crDeviceColor || null)
+  const midsoleData = buildRoundsFor("MIDSOLE", tracking?.midsoleColor || null)
+  const outsoleData = buildRoundsFor("OUTSOLE", tracking?.outsoleColor || null)
+  const wedgeData = buildRoundsFor("WEDGE", tracking?.wedgeColor || null)
+  const crData = buildRoundsFor("CR", tracking?.crDeviceColor || null)
+
+  const firstEntry = rawEntries[0]
 
   return {
     article: cleanArticle,
-    modelName: tracking?.modelName || rawEntries[0]?.modelName || "-",
-    defaultSupplier: tracking?.supplier || rawEntries[0]?.supplier || "-",
-    projectDev: rawEntries[0]?.projectDev || "-",
-    trackingBatchId: tracking?.batchId || rawEntries[0]?.trackingBatchId || null,
-    imageUrl: tracking?.imageUrl || rawEntries[0]?.imageUrl || null,
+    modelName: tracking?.modelName || firstEntry?.modelName || "-",
+    defaultSupplier: tracking?.supplier || firstEntry?.supplier || "-",
+    projectDev: firstEntry?.projectDev || "-",
+    trackingBatchId: tracking?.batchId || firstEntry?.trackingBatchId || null,
+    imageUrl: tracking?.imageUrl || firstEntry?.imageUrl || null,
     components: {
       MIDSOLE: {
-        targetColor: tracking?.midsoleColor || midsoleRounds[0]?.targetColor || "-",
-        defaultSupplier: midsoleRounds[midsoleRounds.length - 1]?.supplier || tracking?.supplier || "",
-        rounds: midsoleRounds,
-        currentStatus: midsoleRounds.length > 0 ? midsoleRounds[midsoleRounds.length - 1].status : "NOT_SUBMITTED",
+        targetColor: tracking?.midsoleColor || midsoleData.rounds[0]?.targetColor || "-",
+        defaultSupplier: midsoleData.rounds[midsoleData.rounds.length - 1]?.supplier || tracking?.supplier || "",
+        rounds: midsoleData.rounds,
+        sharedArticles: midsoleData.sharedArticles,
+        currentStatus: midsoleData.rounds.length > 0 ? midsoleData.rounds[midsoleData.rounds.length - 1].status : "NOT_SUBMITTED",
       },
       OUTSOLE: {
-        targetColor: tracking?.outsoleColor || outsoleRounds[0]?.targetColor || "-",
-        defaultSupplier: outsoleRounds[outsoleRounds.length - 1]?.supplier || tracking?.supplier || "",
-        rounds: outsoleRounds,
-        currentStatus: outsoleRounds.length > 0 ? outsoleRounds[outsoleRounds.length - 1].status : "NOT_SUBMITTED",
+        targetColor: tracking?.outsoleColor || outsoleData.rounds[0]?.targetColor || "-",
+        defaultSupplier: outsoleData.rounds[outsoleData.rounds.length - 1]?.supplier || tracking?.supplier || "",
+        rounds: outsoleData.rounds,
+        sharedArticles: outsoleData.sharedArticles,
+        currentStatus: outsoleData.rounds.length > 0 ? outsoleData.rounds[outsoleData.rounds.length - 1].status : "NOT_SUBMITTED",
       },
       WEDGE: {
-        targetColor: tracking?.wedgeColor || wedgeRounds[0]?.targetColor || "-",
-        defaultSupplier: wedgeRounds[wedgeRounds.length - 1]?.supplier || tracking?.supplier || "",
-        rounds: wedgeRounds,
-        currentStatus: wedgeRounds.length > 0 ? wedgeRounds[wedgeRounds.length - 1].status : "NOT_SUBMITTED",
+        targetColor: tracking?.wedgeColor || wedgeData.rounds[0]?.targetColor || "-",
+        defaultSupplier: wedgeData.rounds[wedgeData.rounds.length - 1]?.supplier || tracking?.supplier || "",
+        rounds: wedgeData.rounds,
+        sharedArticles: wedgeData.sharedArticles,
+        currentStatus: wedgeData.rounds.length > 0 ? wedgeData.rounds[wedgeData.rounds.length - 1].status : "NOT_SUBMITTED",
       },
       CR: {
-        targetColor: tracking?.crDeviceColor || crRounds[0]?.targetColor || "-",
-        defaultSupplier: crRounds[crRounds.length - 1]?.supplier || tracking?.supplier || "",
-        rounds: crRounds,
-        currentStatus: crRounds.length > 0 ? crRounds[crRounds.length - 1].status : "NOT_SUBMITTED",
+        targetColor: tracking?.crDeviceColor || crData.rounds[0]?.targetColor || "-",
+        defaultSupplier: crData.rounds[crData.rounds.length - 1]?.supplier || tracking?.supplier || "",
+        rounds: crData.rounds,
+        sharedArticles: crData.sharedArticles,
+        currentStatus: crData.rounds.length > 0 ? crData.rounds[crData.rounds.length - 1].status : "NOT_SUBMITTED",
       },
     }
   }
@@ -918,4 +1033,553 @@ export async function updateArticleDevAndSupplier(data: {
   revalidatePath("/conform-history")
   revalidatePath("/tracking")
   return { success: true, message: "Developer & Vendor berhasil diperbarui" }
+}
+
+// ==========================================
+// 8. COMPONENT COLOR GROUPING ACTIONS (TAB 1)
+// Groups color conforms by Model + Component + Target Color
+// Allows 1-time CFM submission & approval shared across all articles
+// ==========================================
+
+export async function getGroupedComponentColorSummaries(params?: {
+  search?: string
+  statusFilter?: string
+  componentFilter?: string
+}) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  // Fetch all tracking rows
+  const trackingRows = await prisma.purchaseTracking.findMany({
+    distinct: ["article"],
+    orderBy: { article: "asc" },
+    select: {
+      batchId: true,
+      article: true,
+      modelName: true,
+      supplier: true,
+      midsoleColor: true,
+      outsoleColor: true,
+      wedgeColor: true,
+      crDeviceColor: true,
+      imageUrl: true,
+    }
+  })
+
+  // Fetch all conform histories
+  const allEntries = await prisma.colorConformHistory.findMany({
+    orderBy: [
+      { confirmDate: "asc" },
+      { submissionNo: "asc" },
+      { createdAt: "asc" }
+    ]
+  })
+
+  type GroupKey = string // e.g. "574:::MIDSOLE:::SEA SALT"
+  const groupMap = new Map<GroupKey, {
+    modelName: string
+    component: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+    targetColor: string
+    suppliers: Set<string>
+    articles: Map<string, string | null> // article -> imageUrl
+  }>()
+
+  // 1. Group from tracking
+  for (const t of trackingRows) {
+    const model = (t.modelName || "-").trim().toUpperCase()
+    const art = t.article.trim().toUpperCase()
+    const img = t.imageUrl
+
+    const comps: { key: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"; color: string | null }[] = [
+      { key: "MIDSOLE", color: t.midsoleColor },
+      { key: "OUTSOLE", color: t.outsoleColor },
+      { key: "WEDGE", color: t.wedgeColor },
+      { key: "CR", color: t.crDeviceColor },
+    ]
+
+    for (const c of comps) {
+      const color = c.color?.trim().toUpperCase()
+      if (color && color !== "-" && color !== "") {
+        const groupKey = `${model}:::${c.key}:::${color}`
+        if (!groupMap.has(groupKey)) {
+          groupMap.set(groupKey, {
+            modelName: t.modelName || "-",
+            component: c.key,
+            targetColor: color,
+            suppliers: new Set(),
+            articles: new Map(),
+          })
+        }
+        const g = groupMap.get(groupKey)!
+        if (t.supplier && t.supplier.trim() && t.supplier !== "-") {
+          g.suppliers.add(t.supplier.trim())
+        }
+        g.articles.set(art, img)
+      }
+    }
+  }
+
+  // 2. Also incorporate any conform entries (in case created manually)
+  for (const e of allEntries) {
+    const model = (e.modelName || "-").trim().toUpperCase()
+    let comp = e.component?.toUpperCase() as "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR" | undefined
+    let targetColor = e.targetColor?.trim().toUpperCase()
+
+    if (!comp) {
+      if (e.midsoleTargetColor) { comp = "MIDSOLE"; targetColor = e.midsoleTargetColor.trim().toUpperCase() }
+      else if (e.outsoleTargetColor) { comp = "OUTSOLE"; targetColor = e.outsoleTargetColor.trim().toUpperCase() }
+      else if (e.wedgeTargetColor) { comp = "WEDGE"; targetColor = e.wedgeTargetColor.trim().toUpperCase() }
+      else if (e.crTargetColor) { comp = "CR"; targetColor = e.crTargetColor.trim().toUpperCase() }
+    }
+
+    if (comp && targetColor && targetColor !== "-" && targetColor !== "") {
+      const groupKey = `${model}:::${comp}:::${targetColor}`
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, {
+          modelName: e.modelName || "-",
+          component: comp,
+          targetColor: targetColor,
+          suppliers: new Set(),
+          articles: new Map(),
+        })
+      }
+      const g = groupMap.get(groupKey)!
+      if (e.supplier && e.supplier.trim() && e.supplier !== "-") {
+        g.suppliers.add(e.supplier.trim())
+      }
+      if (e.article && e.article.trim()) {
+        g.articles.set(e.article.trim().toUpperCase(), e.imageUrl || null)
+      }
+    }
+  }
+
+  // 3. For each group, calculate rounds & status
+  const summaries: ComponentColorGroupSummary[] = []
+
+  for (const [groupKey, g] of groupMap.entries()) {
+    const modelUpper = g.modelName.trim().toUpperCase()
+    const compUpper = g.component
+    const colorUpper = g.targetColor.trim().toUpperCase()
+    const articleList = Array.from(g.articles.keys())
+
+    const compEntriesMap = new Map<string, typeof allEntries[0]>()
+
+    for (const e of allEntries) {
+      const eModel = (e.modelName || "-").trim().toUpperCase()
+      let eComp = e.component?.toUpperCase()
+      let eColor = e.targetColor?.trim().toUpperCase()
+
+      if (!eComp) {
+        if (compUpper === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (e.midsoleTargetColor || e.midsoleSupplierColor)?.trim().toUpperCase() }
+        else if (compUpper === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (e.outsoleTargetColor || e.outsoleSupplierColor)?.trim().toUpperCase() }
+        else if (compUpper === "WEDGE") { eComp = "WEDGE"; eColor = (e.wedgeTargetColor || e.wedgeSupplierColor)?.trim().toUpperCase() }
+        else if (compUpper === "CR") { eComp = "CR"; eColor = (e.crTargetColor || e.crSupplierColor)?.trim().toUpperCase() }
+      }
+
+      if (eComp !== compUpper) continue
+
+      if (eModel === modelUpper && eColor === colorUpper && modelUpper !== "-") {
+        compEntriesMap.set(e.id, e)
+      } else if (eColor === colorUpper && articleList.includes(e.article.trim().toUpperCase())) {
+        compEntriesMap.set(e.id, e)
+      }
+    }
+
+    const compEntries = Array.from(compEntriesMap.values())
+    compEntries.sort((a, b) => a.submissionNo - b.submissionNo)
+
+    let status: ComponentColorGroupSummary["status"] = "NOT_SUBMITTED"
+    let latestRoundNo = 0
+    let latestConfirmDate: Date | null = null
+    let latestApprovalDate: Date | null = null
+    let latestSupplierColor: string | null = null
+    let latestNotes: string | null = null
+    let latestFeedback: string | null = null
+    let latestId: string | null = null
+    let projectDev = "-"
+    let defaultSupplier = Array.from(g.suppliers)[0] || null
+
+    if (compEntries.length > 0) {
+      const latest = compEntries[compEntries.length - 1]
+      status = (latest.status || "PENDING") as ComponentColorGroupSummary["status"]
+      latestRoundNo = latest.submissionNo || compEntries.length
+      latestConfirmDate = latest.confirmDate
+      latestApprovalDate = latest.approvalDate
+      latestSupplierColor = latest.supplierColor || latest.midsoleSupplierColor || latest.outsoleSupplierColor || latest.wedgeSupplierColor || latest.crSupplierColor || null
+      latestNotes = latest.notes
+      latestFeedback = latest.devFeedback
+      latestId = latest.id
+      projectDev = latest.projectDev || "-"
+      defaultSupplier = latest.supplier || defaultSupplier
+    }
+
+    const articlesArray = Array.from(g.articles.entries()).map(([article, imageUrl]) => ({
+      article,
+      imageUrl
+    }))
+
+    summaries.push({
+      id: groupKey,
+      modelName: g.modelName,
+      component: g.component,
+      targetColor: g.targetColor,
+      defaultSupplier,
+      projectDev,
+      articles: articlesArray,
+      roundsCount: compEntries.length,
+      latestRoundNo,
+      status,
+      latestConfirmDate,
+      latestApprovalDate,
+      latestSupplierColor,
+      latestNotes,
+      latestFeedback,
+      latestId,
+    })
+  }
+
+  // Filter
+  let filtered = summaries
+
+  if (params?.componentFilter && params.componentFilter !== "ALL") {
+    filtered = filtered.filter(i => i.component === params.componentFilter)
+  }
+
+  if (params?.statusFilter && params.statusFilter !== "ALL") {
+    if (params.statusFilter === "SUBMITTED") {
+      filtered = filtered.filter(i => i.roundsCount > 0)
+    } else if (params.statusFilter === "PENDING") {
+      filtered = filtered.filter(i => i.status === "PENDING")
+    } else if (params.statusFilter === "APPROVED" || params.statusFilter === "ALL_APPROVED") {
+      filtered = filtered.filter(i => i.status === "APPROVED" || i.status === "APPROVED_WITH_NOTE")
+    } else if (params.statusFilter === "REJECTED") {
+      filtered = filtered.filter(i => i.status === "REJECTED")
+    }
+  }
+
+  if (params?.search && params.search.trim() !== "") {
+    const s = params.search.trim().toLowerCase()
+    filtered = filtered.filter(item =>
+      item.targetColor.toLowerCase().includes(s) ||
+      item.modelName.toLowerCase().includes(s) ||
+      item.component.toLowerCase().includes(s) ||
+      (item.defaultSupplier && item.defaultSupplier.toLowerCase().includes(s)) ||
+      (item.projectDev && item.projectDev.toLowerCase().includes(s)) ||
+      item.articles.some(a => a.article.toLowerCase().includes(s))
+    )
+  }
+
+  filtered.sort((a, b) => {
+    if (a.roundsCount > 0 && b.roundsCount === 0) return -1
+    if (a.roundsCount === 0 && b.roundsCount > 0) return 1
+    const tB = b.latestConfirmDate ? new Date(b.latestConfirmDate).getTime() : 0
+    const tA = a.latestConfirmDate ? new Date(a.latestConfirmDate).getTime() : 0
+    if (tB !== tA) return tB - tA
+    return a.modelName.localeCompare(b.modelName)
+  })
+
+  const total = summaries.length
+  const submitted = summaries.filter(s => s.roundsCount > 0).length
+  const approved = summaries.filter(s => s.status === "APPROVED" || s.status === "APPROVED_WITH_NOTE").length
+  const pending = summaries.filter(s => s.status === "PENDING").length
+  const rejected = summaries.filter(s => s.status === "REJECTED").length
+
+  return {
+    summaries: filtered,
+    stats: {
+      total,
+      submitted,
+      approved,
+      pending,
+      rejected,
+    }
+  }
+}
+
+export async function getComponentColorGroupDetails(groupId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const [rawModel, rawComp, rawColor] = groupId.split(":::")
+  if (!rawModel || !rawComp || !rawColor) {
+    throw new Error("Invalid groupId")
+  }
+
+  const modelUpper = rawModel.trim().toUpperCase()
+  const compUpper = rawComp.trim().toUpperCase() as "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+  const colorUpper = rawColor.trim().toUpperCase()
+
+  // 1. Tracking articles using this component & color
+  const allTracking = await prisma.purchaseTracking.findMany({
+    distinct: ["article"],
+    select: {
+      article: true,
+      modelName: true,
+      supplier: true,
+      midsoleColor: true,
+      outsoleColor: true,
+      wedgeColor: true,
+      crDeviceColor: true,
+      imageUrl: true,
+    }
+  })
+
+  const matchedArticles: { article: string; imageUrl: string | null }[] = []
+  const suppliers = new Set<string>()
+
+  for (const t of allTracking) {
+    const tModel = (t.modelName || "-").trim().toUpperCase()
+    if (tModel !== modelUpper && modelUpper !== "-") continue
+
+    let tColor: string | null = null
+    if (compUpper === "MIDSOLE") tColor = t.midsoleColor
+    else if (compUpper === "OUTSOLE") tColor = t.outsoleColor
+    else if (compUpper === "WEDGE") tColor = t.wedgeColor
+    else if (compUpper === "CR") tColor = t.crDeviceColor
+
+    if (tColor && tColor.trim().toUpperCase() === colorUpper) {
+      matchedArticles.push({ article: t.article.trim().toUpperCase(), imageUrl: t.imageUrl })
+      if (t.supplier && t.supplier.trim() && t.supplier !== "-") suppliers.add(t.supplier.trim())
+    }
+  }
+
+  // 2. Conform entries for this group
+  const allEntries = await prisma.colorConformHistory.findMany({
+    orderBy: [
+      { confirmDate: "asc" },
+      { submissionNo: "asc" },
+      { createdAt: "asc" }
+    ]
+  })
+
+  const articleList = matchedArticles.map(a => a.article)
+
+  const compEntriesMap = new Map<string, typeof allEntries[0]>()
+  for (const e of allEntries) {
+    const eModel = (e.modelName || "-").trim().toUpperCase()
+    let eComp = e.component?.toUpperCase()
+    let eColor = e.targetColor?.trim().toUpperCase()
+
+    if (!eComp) {
+      if (compUpper === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (e.midsoleTargetColor || e.midsoleSupplierColor)?.trim().toUpperCase() }
+      else if (compUpper === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (e.outsoleTargetColor || e.outsoleSupplierColor)?.trim().toUpperCase() }
+      else if (compUpper === "WEDGE") { eComp = "WEDGE"; eColor = (e.wedgeTargetColor || e.wedgeSupplierColor)?.trim().toUpperCase() }
+      else if (compUpper === "CR") { eComp = "CR"; eColor = (e.crTargetColor || e.crSupplierColor)?.trim().toUpperCase() }
+    }
+
+    if (eComp !== compUpper) continue
+
+    if (eModel === modelUpper && eColor === colorUpper && modelUpper !== "-") {
+      compEntriesMap.set(e.id, e)
+    } else if (eColor === colorUpper && articleList.includes(e.article.trim().toUpperCase())) {
+      compEntriesMap.set(e.id, e)
+    }
+  }
+
+  const compEntries = Array.from(compEntriesMap.values())
+  compEntries.sort((a, b) => a.submissionNo - b.submissionNo)
+
+  const rounds = compEntries.map((item, index) => ({
+    id: item.id,
+    roundNo: item.submissionNo || (index + 1),
+    component: compUpper,
+    targetColor: item.targetColor || colorUpper,
+    supplierColor: item.supplierColor || "-",
+    supplier: item.supplier || Array.from(suppliers)[0] || "-",
+    status: item.status || "PENDING",
+    confirmDate: item.confirmDate,
+    approvalDate: item.approvalDate,
+    projectDev: item.projectDev,
+    requesterName: item.requesterName || "Operator",
+    notes: item.notes,
+    devFeedback: item.devFeedback,
+    imageUrl: item.imageUrl,
+  }))
+
+  const latest = rounds[rounds.length - 1]
+
+  return {
+    id: groupId,
+    modelName: rawModel,
+    component: compUpper,
+    targetColor: rawColor,
+    defaultSupplier: latest?.supplier || Array.from(suppliers)[0] || "",
+    projectDev: latest?.projectDev || "-",
+    articles: matchedArticles,
+    rounds,
+    currentStatus: latest?.status || "NOT_SUBMITTED",
+  }
+}
+
+export async function submitSharedComponentColorRound(data: {
+  modelName: string
+  component: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+  targetColor: string
+  supplierColor?: string
+  supplier?: string
+  projectDev: string
+  confirmDate?: Date | string
+  notes?: string
+  imageUrl?: string
+  articles?: string[]
+}) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const comp = data.component.toUpperCase() as "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+  const modelUpper = data.modelName.trim().toUpperCase()
+  const colorUpper = data.targetColor.trim().toUpperCase()
+
+  // Find existing rounds for this model + component + color
+  const allEntries = await prisma.colorConformHistory.findMany({
+    orderBy: [
+      { confirmDate: "asc" },
+      { submissionNo: "asc" },
+      { createdAt: "asc" }
+    ]
+  })
+
+  const articleList = (data.articles || []).map(a => a.trim().toUpperCase())
+
+  const compEntriesMap = new Map<string, typeof allEntries[0]>()
+  for (const e of allEntries) {
+    const eModel = (e.modelName || "-").trim().toUpperCase()
+    let eComp = e.component?.toUpperCase()
+    let eColor = e.targetColor?.trim().toUpperCase()
+
+    if (!eComp) {
+      if (comp === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (e.midsoleTargetColor || e.midsoleSupplierColor)?.trim().toUpperCase() }
+      else if (comp === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (e.outsoleTargetColor || e.outsoleSupplierColor)?.trim().toUpperCase() }
+      else if (comp === "WEDGE") { eComp = "WEDGE"; eColor = (e.wedgeTargetColor || e.wedgeSupplierColor)?.trim().toUpperCase() }
+      else if (comp === "CR") { eComp = "CR"; eColor = (e.crTargetColor || e.crSupplierColor)?.trim().toUpperCase() }
+    }
+
+    if (eComp !== comp) continue
+
+    if (eModel === modelUpper && eColor === colorUpper && modelUpper !== "-") {
+      compEntriesMap.set(e.id, e)
+    } else if (eColor === colorUpper && articleList.includes(e.article.trim().toUpperCase())) {
+      compEntriesMap.set(e.id, e)
+    }
+  }
+
+  const existingRounds = Array.from(compEntriesMap.values())
+  existingRounds.sort((a, b) => a.submissionNo - b.submissionNo)
+
+  const nextRoundNo = existingRounds.length > 0 ? (existingRounds[existingRounds.length - 1].submissionNo + 1) : 1
+  const primaryArticle = (data.articles && data.articles.length > 0) ? data.articles[0] : `${modelUpper} - ${comp}`
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const legacyFields: Record<string, any> = {}
+  if (comp === "MIDSOLE") {
+    legacyFields.midsoleTargetColor = data.targetColor
+    legacyFields.midsoleSupplierColor = data.supplierColor || null
+    legacyFields.midsoleSupplier = data.supplier || null
+    legacyFields.midsoleStatus = "PENDING"
+  } else if (comp === "OUTSOLE") {
+    legacyFields.outsoleTargetColor = data.targetColor
+    legacyFields.outsoleSupplierColor = data.supplierColor || null
+    legacyFields.outsoleSupplier = data.supplier || null
+    legacyFields.outsoleStatus = "PENDING"
+  } else if (comp === "WEDGE") {
+    legacyFields.wedgeTargetColor = data.targetColor
+    legacyFields.wedgeSupplierColor = data.supplierColor || null
+    legacyFields.wedgeSupplier = data.supplier || null
+    legacyFields.wedgeStatus = "PENDING"
+  } else if (comp === "CR") {
+    legacyFields.crTargetColor = data.targetColor
+    legacyFields.crSupplierColor = data.supplierColor || null
+    legacyFields.crSupplier = data.supplier || null
+    legacyFields.crStatus = "PENDING"
+  }
+
+  const entry = await prisma.colorConformHistory.create({
+    data: {
+      article: primaryArticle,
+      modelName: data.modelName.trim(),
+      component: comp,
+      submissionNo: nextRoundNo,
+      supplier: data.supplier?.trim() || null,
+      targetColor: data.targetColor.trim(),
+      supplierColor: data.supplierColor?.trim() || null,
+      projectDev: data.projectDev.trim(),
+      requesterName: session.user.name || "Operator",
+      confirmDate: data.confirmDate ? new Date(data.confirmDate) : new Date(),
+      status: "PENDING",
+      notes: data.notes?.trim() || null,
+      imageUrl: data.imageUrl || null,
+      ...legacyFields
+    }
+  })
+
+  try {
+    await createNotification(
+      `CFM #${nextRoundNo} (${comp} - ${data.targetColor}): Model ${data.modelName}`,
+      `Pengajuan konfirmasi warna ${comp} ${data.targetColor} round #${nextRoundNo} diajukan ke ${data.projectDev.trim()} (Model ${data.modelName}).`,
+      "info"
+    )
+  } catch {}
+
+  revalidatePath("/conform-history")
+  revalidatePath("/tracking")
+
+  return {
+    success: true,
+    message: `CFM ${comp} (${data.targetColor}) round #${nextRoundNo} berhasil diajukan.`,
+    data: entry
+  }
+}
+
+export async function updateComponentGroupDevAndSupplier(data: {
+  modelName: string
+  component: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR"
+  targetColor: string
+  projectDev: string
+  supplier?: string
+  articles?: string[]
+}) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const dev = data.projectDev.trim() || "-"
+  const supp = data.supplier !== undefined ? (data.supplier.trim() || null) : undefined
+  const modelUpper = data.modelName.trim().toUpperCase()
+  const compUpper = data.component.toUpperCase()
+  const colorUpper = data.targetColor.trim().toUpperCase()
+  const articleList = (data.articles || []).map(a => a.trim().toUpperCase())
+
+  // Update colorConformHistory matching this group
+  await prisma.colorConformHistory.updateMany({
+    where: {
+      OR: [
+        {
+          modelName: { equals: modelUpper, mode: "insensitive" },
+          component: compUpper,
+          targetColor: { equals: colorUpper, mode: "insensitive" }
+        },
+        ...(articleList.length > 0 ? [{
+          article: { in: articleList },
+          component: compUpper
+        }] : [])
+      ]
+    },
+    data: {
+      projectDev: dev,
+      ...(supp !== undefined ? { supplier: supp } : {})
+    }
+  })
+
+  // Update supplier in PurchaseTracking for these articles if supplier provided
+  if (supp && articleList.length > 0) {
+    try {
+      await prisma.purchaseTracking.updateMany({
+        where: { article: { in: articleList } },
+        data: { supplier: supp }
+      })
+    } catch {}
+  }
+
+  revalidatePath("/conform-history")
+  revalidatePath("/tracking")
+  return { success: true, message: "Developer & Vendor berhasil diperbarui untuk komponen ini" }
 }

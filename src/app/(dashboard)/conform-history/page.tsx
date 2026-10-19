@@ -9,7 +9,8 @@ import {
   Palette, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw,
   UserCheck, Layers, ChevronRight, ExternalLink,
-  Calendar, Building2, Send, ArrowRight, ShieldAlert, Sparkles, Filter, X
+  Calendar, Building2, Send, ArrowRight, ShieldAlert, Sparkles, Filter, X,
+  CheckCheck, Info, Users
 } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead,
@@ -43,8 +44,13 @@ import {
   deleteConformEntry,
   getArticlesFromTracking,
   updateArticleDevAndSupplier,
+  getGroupedComponentColorSummaries,
+  getComponentColorGroupDetails,
+  submitSharedComponentColorRound,
+  updateComponentGroupDevAndSupplier,
   ArticleConformSummary,
   ComponentStatusSummary,
+  ComponentColorGroupSummary,
 } from "@/app/actions/conform"
 
 const COMPONENT_CONFIG = {
@@ -146,11 +152,23 @@ interface WindowArticleData {
   trackingBatchId: string | null
   imageUrl: string | null
   components: {
-    MIDSOLE: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; currentStatus: string }
-    OUTSOLE: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; currentStatus: string }
-    WEDGE: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; currentStatus: string }
-    CR: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; currentStatus: string }
+    MIDSOLE: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; sharedArticles?: string[]; currentStatus: string }
+    OUTSOLE: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; sharedArticles?: string[]; currentStatus: string }
+    WEDGE: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; sharedArticles?: string[]; currentStatus: string }
+    CR: { targetColor: string; defaultSupplier: string; rounds: RoundDetail[]; sharedArticles?: string[]; currentStatus: string }
   }
+}
+
+interface ComponentColorGroupData {
+  id: string
+  modelName: string
+  component: ComponentKey
+  targetColor: string
+  defaultSupplier: string
+  projectDev: string
+  articles: { article: string; imageUrl: string | null }[]
+  rounds: RoundDetail[]
+  currentStatus: string
 }
 
 interface TrackingArticleOption {
@@ -174,21 +192,57 @@ function ConformHistoryContent() {
   const permissions = session?.user?.permissions || []
   const canManage = role === "SUPER_ADMIN" || permissions.includes("MANAGE_TRACKING") || role === "ADMIN"
 
-  const [articles, setArticles] = useState<ArticleConformSummary[]>([])
+  // VIEW MODE: "BY_COMPONENT" (Shared Component & Color) or "BY_ARTICLE" (Individual Article Monitoring)
+  const [viewMode, setViewMode] = useState<"BY_COMPONENT" | "BY_ARTICLE">("BY_COMPONENT")
+
+  // Common Search & Filter States
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState(initialArticle)
   const [statusFilter, setStatusFilter] = useState("ALL")
+  const [componentFilter, setComponentFilter] = useState("ALL")
+
+  // Data for View 1: By Component & Color
+  const [componentGroups, setComponentGroups] = useState<ComponentColorGroupSummary[]>([])
+  const [compStats, setCompStats] = useState({ total: 0, submitted: 0, approved: 0, pending: 0, rejected: 0 })
+
+  // Data for View 2: By Article
+  const [articles, setArticles] = useState<ArticleConformSummary[]>([])
   const [stats, setStats] = useState({ total: 0, submitted: 0, approved: 0, pending: 0, rejected: 0 })
   const [trackingArticles, setTrackingArticles] = useState<TrackingArticleOption[]>([])
 
-  // Windowed Modal States (Center Dialog)
+  // ==========================================
+  // MODAL 1: COMPONENT GROUP WINDOW (SHARED CFM)
+  // ==========================================
+  const [isCompGroupWindowOpen, setIsCompGroupWindowOpen] = useState(false)
+  const [compGroupWindowData, setCompGroupWindowData] = useState<ComponentColorGroupData | null>(null)
+  const [compGroupWindowLoading, setCompGroupWindowLoading] = useState(false)
+
+  // Inline Add Round Form State inside Component Group Window
+  const [isCompGroupAddRoundOpen, setIsCompGroupAddRoundOpen] = useState(false)
+  const [compGroupAddRoundForm, setCompGroupAddRoundForm] = useState({
+    confirmDate: format(new Date(), "yyyy-MM-dd"),
+    targetColor: "",
+    supplierColor: "",
+    supplier: "",
+    projectDev: "",
+    notes: "",
+  })
+
+  // Edit Developer & Vendor Modal for Component Group
+  const [isCompGroupEditDevVendorOpen, setIsCompGroupEditDevVendorOpen] = useState(false)
+  const [compGroupEditDev, setCompGroupEditDev] = useState("")
+  const [compGroupEditSupplier, setCompGroupEditSupplier] = useState("")
+
+  // ==========================================
+  // MODAL 2: ARTICLE WINDOW (MONITORING PER ARTIKEL)
+  // ==========================================
   const [isWindowOpen, setIsWindowOpen] = useState(false)
   const [selectedArticle, setSelectedArticle] = useState<string | null>(null)
   const [windowData, setWindowData] = useState<WindowArticleData | null>(null)
   const [windowLoading, setWindowLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<ComponentKey>("MIDSOLE")
 
-  // Inline Add Round Form State inside Window
+  // Inline Add Round Form State inside Article Window
   const [isAddRoundOpen, setIsAddRoundOpen] = useState(false)
   const [addRoundForm, setAddRoundForm] = useState({
     confirmDate: format(new Date(), "yyyy-MM-dd"),
@@ -199,46 +253,55 @@ function ConformHistoryContent() {
     notes: "",
   })
 
-  // Edit Developer & Vendor Modal State
+  // Edit Developer & Vendor Modal State for Article
   const [isEditDevVendorOpen, setIsEditDevVendorOpen] = useState(false)
   const [editProjectDev, setEditProjectDev] = useState("")
   const [editSupplier, setEditSupplier] = useState("")
 
-  // Review Dialog State (PD Review)
+  // ==========================================
+  // COMMON DIALOGS: REVIEW, DELETE, PICKER
+  // ==========================================
   const [isReviewOpen, setIsReviewOpen] = useState(false)
   const [selectedRoundForReview, setSelectedRoundForReview] = useState<RoundDetail | null>(null)
   const [reviewStatus, setReviewStatus] = useState("APPROVED")
   const [reviewFeedback, setReviewFeedback] = useState("")
   const [reviewProjectDev, setReviewProjectDev] = useState("")
 
-  // Delete State
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Article Picker Modal State (for "+ New Color Conform")
   const [isArticlePickerOpen, setIsArticlePickerOpen] = useState(false)
   const [pickerSearchQuery, setPickerSearchQuery] = useState("")
 
   const [isPending, startTransition] = useTransition()
 
-  // Fetch all articles grouped for table
+  // Fetch all data for both views
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await getGroupedConformArticles({
-        search: searchQuery,
-        statusFilter,
-      })
-      setArticles(res.summaries)
-      setStats(res.stats)
+      const [artRes, compRes] = await Promise.all([
+        getGroupedConformArticles({
+          search: searchQuery,
+          statusFilter,
+        }),
+        getGroupedComponentColorSummaries({
+          search: searchQuery,
+          statusFilter,
+          componentFilter,
+        }),
+      ])
+      setArticles(artRes.summaries)
+      setStats(artRes.stats)
+      setComponentGroups(compRes.summaries)
+      setCompStats(compRes.stats)
     } catch (err) {
       console.error(err)
-      toast.error("Gagal memuat daftar conform artikel")
+      toast.error("Gagal memuat data Color Conform")
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, statusFilter])
+  }, [searchQuery, statusFilter, componentFilter])
 
   // Load tracking articles for picker
   useEffect(() => {
@@ -281,11 +344,12 @@ function ConformHistoryContent() {
   // Auto-open window if initialArticle param present
   useEffect(() => {
     if (initialArticle && !selectedArticle) {
+      setViewMode("BY_ARTICLE")
       handleOpenWindow(initialArticle)
     }
   }, [initialArticle, selectedArticle, handleOpenWindow])
 
-  // Reload active window data
+  // Reload active article window data
   const reloadWindowData = async (articleCode: string) => {
     try {
       const data = await getArticleConformDetails(articleCode)
@@ -295,13 +359,122 @@ function ConformHistoryContent() {
     }
   }
 
-  // Handle Switch Component Tab inside Window
+  // Open Component Group Window
+  const handleOpenCompGroupWindow = useCallback(async (groupId: string) => {
+    setIsCompGroupWindowOpen(true)
+    setIsCompGroupAddRoundOpen(false)
+    setCompGroupWindowLoading(true)
+    try {
+      const data = await getComponentColorGroupDetails(groupId)
+      setCompGroupWindowData(data as unknown as ComponentColorGroupData)
+      setReviewProjectDev(data.projectDev && data.projectDev !== "-" ? data.projectDev : "")
+    } catch (err) {
+      console.error(err)
+      toast.error("Gagal memuat detail komponen")
+    } finally {
+      setCompGroupWindowLoading(false)
+    }
+  }, [])
+
+  // Reload active component group window data
+  const reloadCompGroupWindowData = async (groupId: string) => {
+    try {
+      const data = await getComponentColorGroupDetails(groupId)
+      setCompGroupWindowData(data as unknown as ComponentColorGroupData)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  // Component Group: Open Add Round
+  const handleOpenCompGroupAddRound = () => {
+    if (!compGroupWindowData) return
+    setCompGroupAddRoundForm({
+      confirmDate: format(new Date(), "yyyy-MM-dd"),
+      targetColor: compGroupWindowData.targetColor !== "-" ? compGroupWindowData.targetColor : "",
+      supplierColor: "",
+      supplier: compGroupWindowData.defaultSupplier || "",
+      projectDev: compGroupWindowData.projectDev !== "-" ? compGroupWindowData.projectDev : "",
+      notes: "",
+    })
+    setIsCompGroupAddRoundOpen(true)
+  }
+
+  // Component Group: Submit Add Round
+  const handleSubmitCompGroupAddRound = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!compGroupWindowData) return
+    if (!compGroupAddRoundForm.targetColor.trim()) {
+      toast.error("Target Color wajib diisi")
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        const res = await submitSharedComponentColorRound({
+          modelName: compGroupWindowData.modelName,
+          component: compGroupWindowData.component,
+          targetColor: compGroupAddRoundForm.targetColor.trim(),
+          supplierColor: compGroupAddRoundForm.supplierColor.trim() || undefined,
+          supplier: compGroupAddRoundForm.supplier.trim() || undefined,
+          projectDev: compGroupAddRoundForm.projectDev.trim() || (compGroupWindowData.projectDev !== "-" ? compGroupWindowData.projectDev : "-"),
+          confirmDate: new Date(compGroupAddRoundForm.confirmDate),
+          notes: compGroupAddRoundForm.notes.trim() || undefined,
+          articles: compGroupWindowData.articles.map(a => a.article),
+        })
+
+        if (res.success) {
+          toast.success(res.message)
+          setIsCompGroupAddRoundOpen(false)
+          reloadCompGroupWindowData(compGroupWindowData.id)
+          fetchData()
+        }
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Gagal menambahkan round CFM")
+      }
+    })
+  }
+
+  // Component Group: Open Edit Dev & Vendor
+  const handleOpenCompGroupEditDevVendor = () => {
+    if (!compGroupWindowData) return
+    setCompGroupEditDev(compGroupWindowData.projectDev && compGroupWindowData.projectDev !== "-" ? compGroupWindowData.projectDev : "")
+    setCompGroupEditSupplier(compGroupWindowData.defaultSupplier && compGroupWindowData.defaultSupplier !== "-" ? compGroupWindowData.defaultSupplier : "")
+    setIsCompGroupEditDevVendorOpen(true)
+  }
+
+  // Component Group: Save Edit Dev & Vendor
+  const handleSaveCompGroupDevVendor = () => {
+    if (!compGroupWindowData) return
+    startTransition(async () => {
+      try {
+        const res = await updateComponentGroupDevAndSupplier({
+          modelName: compGroupWindowData.modelName,
+          component: compGroupWindowData.component,
+          targetColor: compGroupWindowData.targetColor,
+          projectDev: compGroupEditDev.trim() || "-",
+          supplier: compGroupEditSupplier.trim() || undefined,
+          articles: compGroupWindowData.articles.map(a => a.article),
+        })
+        if (res.success) {
+          toast.success(res.message)
+          setIsCompGroupEditDevVendorOpen(false)
+          reloadCompGroupWindowData(compGroupWindowData.id)
+          fetchData()
+        }
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Gagal memperbarui developer & vendor")
+      }
+    })
+  }
+
+  // Article Window: Switch Component Tab
   const handleSelectTab = (tab: ComponentKey) => {
     setActiveTab(tab)
     setIsAddRoundOpen(false)
   }
 
-  // Open Edit Developer & Vendor Modal
+  // Article Window: Open Edit Dev/Vendor
   const handleOpenEditDevVendor = () => {
     if (!windowData) return
     setEditProjectDev(windowData.projectDev && windowData.projectDev !== "-" ? windowData.projectDev : "")
@@ -309,7 +482,7 @@ function ConformHistoryContent() {
     setIsEditDevVendorOpen(true)
   }
 
-  // Save Developer & Vendor
+  // Article Window: Save Dev/Vendor
   const handleSaveDevVendor = () => {
     if (!windowData) return
     startTransition(async () => {
@@ -331,7 +504,7 @@ function ConformHistoryContent() {
     })
   }
 
-  // Open Add Round Form for active component
+  // Article Window: Open Add Round
   const handleOpenAddRound = () => {
     if (!windowData) return
     const compData = windowData.components[activeTab]
@@ -346,7 +519,7 @@ function ConformHistoryContent() {
     setIsAddRoundOpen(true)
   }
 
-  // Submit New Round for Active Component
+  // Article Window: Submit Add Round
   const handleSubmitAddRound = (e: React.FormEvent) => {
     e.preventDefault()
     if (!windowData) return
@@ -382,7 +555,7 @@ function ConformHistoryContent() {
     })
   }
 
-  // Open PD Review Dialog for a specific round
+  // Open Review Dialog for a specific round (usable from both windows)
   const handleOpenReview = (round: RoundDetail) => {
     setSelectedRoundForReview(round)
     setReviewStatus(round.status === "PENDING" ? "APPROVED" : round.status)
@@ -390,14 +563,16 @@ function ConformHistoryContent() {
     setReviewProjectDev(
       round.projectDev && round.projectDev !== "-"
         ? round.projectDev
-        : (windowData?.projectDev && windowData.projectDev !== "-" ? windowData.projectDev : "")
+        : (compGroupWindowData?.projectDev && compGroupWindowData.projectDev !== "-"
+            ? compGroupWindowData.projectDev
+            : (windowData?.projectDev && windowData.projectDev !== "-" ? windowData.projectDev : ""))
     )
     setIsReviewOpen(true)
   }
 
   // Submit Review Decision
   const handleSubmitReview = () => {
-    if (!selectedRoundForReview || !windowData) return
+    if (!selectedRoundForReview) return
 
     startTransition(async () => {
       try {
@@ -411,7 +586,8 @@ function ConformHistoryContent() {
           toast.success(res.message)
           setIsReviewOpen(false)
           setSelectedRoundForReview(null)
-          reloadWindowData(windowData.article)
+          if (windowData) reloadWindowData(windowData.article)
+          if (compGroupWindowData) reloadCompGroupWindowData(compGroupWindowData.id)
           fetchData()
         }
       } catch (err: unknown) {
@@ -436,6 +612,7 @@ function ConformHistoryContent() {
         setIsDeleteOpen(false)
         setDeletingId(null)
         if (windowData) await reloadWindowData(windowData.article)
+        if (compGroupWindowData) await reloadCompGroupWindowData(compGroupWindowData.id)
         fetchData()
       }
     } catch (err: unknown) {
@@ -467,7 +644,7 @@ function ConformHistoryContent() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Color Conform History</h1>
             <p className="text-sm text-muted-foreground">
-              Konfirmasi warna bertahap per komponen (Midsole, Outsole, Wedge, CR) ke Team Project Developer.
+              Konfirmasi warna efisien per komponen (Midsole, Outsole, Wedge, CR) yang dapat dipakai bersama antar artikel.
             </p>
           </div>
         </div>
@@ -495,247 +672,973 @@ function ConformHistoryContent() {
         </div>
       </div>
 
-      {/* STATS OVERVIEW CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Card className="shadow-xs border bg-card/60">
-          <CardContent className="p-3.5 space-y-1">
-            <div className="text-xs text-muted-foreground font-medium">Total Artikel</div>
-            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
-            <div className="text-[10px] text-muted-foreground">Terdaftar di sistem</div>
-          </CardContent>
-        </Card>
+      {/* DUAL-VIEW SWITCHER TABS */}
+      <div className="flex border-b border-border bg-muted/20 rounded-xl p-1 gap-1">
+        <button
+          type="button"
+          onClick={() => setViewMode("BY_COMPONENT")}
+          className={cn(
+            "flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer",
+            viewMode === "BY_COMPONENT"
+              ? "bg-white dark:bg-card text-indigo-600 dark:text-indigo-400 shadow-xs border border-border/80"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          )}
+        >
+          <Layers className="h-4 w-4 shrink-0 text-indigo-500" />
+          <span>Per Komponen & Warna (Shared)</span>
+          <Badge
+            variant={viewMode === "BY_COMPONENT" ? "default" : "secondary"}
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-4 rounded-full",
+              viewMode === "BY_COMPONENT" ? "bg-indigo-600 text-white" : ""
+            )}
+          >
+            {compStats.total}
+          </Badge>
+        </button>
 
-        <Card className="shadow-xs border bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900">
-          <CardContent className="p-3.5 space-y-1">
-            <div className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">Ada Pengajuan</div>
-            <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{stats.submitted}</div>
-            <div className="text-[10px] text-indigo-600 dark:text-indigo-400">Sedang berjalan / ada CFM</div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-xs border bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
-          <CardContent className="p-3.5 space-y-1">
-            <div className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              Pending Review PD
-            </div>
-            <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{stats.pending}</div>
-            <div className="text-[10px] text-amber-600 dark:text-amber-400">Menunggu keputusan</div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-xs border bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
-          <CardContent className="p-3.5 space-y-1">
-            <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              All 4 Approved
-            </div>
-            <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{stats.approved}</div>
-            <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Semua komponen OK</div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-xs border bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900">
-          <CardContent className="p-3.5 space-y-1">
-            <div className="text-xs text-red-700 dark:text-red-400 font-medium flex items-center gap-1">
-              <XCircle className="h-3.5 w-3.5" />
-              Rejected / Revise
-            </div>
-            <div className="text-2xl font-bold text-red-700 dark:text-red-300">{stats.rejected}</div>
-            <div className="text-[10px] text-red-600 dark:text-red-400">Butuh putaran CFM ulang</div>
-          </CardContent>
-        </Card>
+        <button
+          type="button"
+          onClick={() => setViewMode("BY_ARTICLE")}
+          className={cn(
+            "flex-1 py-2.5 px-4 rounded-lg font-semibold text-xs md:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer",
+            viewMode === "BY_ARTICLE"
+              ? "bg-white dark:bg-card text-indigo-600 dark:text-indigo-400 shadow-xs border border-border/80"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          )}
+        >
+          <Palette className="h-4 w-4 shrink-0 text-indigo-500" />
+          <span>Monitoring Per Artikel</span>
+          <Badge
+            variant={viewMode === "BY_ARTICLE" ? "default" : "secondary"}
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-4 rounded-full",
+              viewMode === "BY_ARTICLE" ? "bg-indigo-600 text-white" : ""
+            )}
+          >
+            {stats.total}
+          </Badge>
+        </button>
       </div>
-
-      {/* FILTER & SEARCH BAR */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari artikel, model, vendor, developer..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-xs"
-          />
-        </div>
-
-        {/* Status Filters */}
-        <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
-          {[
-            { id: "ALL", label: "Semua" },
-            { id: "SUBMITTED", label: "Ada CFM" },
-            { id: "PENDING", label: "Pending PD" },
-            { id: "ALL_APPROVED", label: "All Approved" },
-            { id: "REJECTED", label: "Rejected" },
-          ].map((f) => (
-            <Button
-              key={f.id}
-              variant={statusFilter === f.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter(f.id)}
-              className={cn(
-                "h-8 text-xs px-2.5",
-                statusFilter === f.id && "bg-indigo-600 hover:bg-indigo-700 text-white"
-              )}
-            >
-              {f.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* MAIN TABLE: DAFTAR ARTIKEL (FOTO, ARTIKEL, PROGRESS, EDIT) */}
-      <Card className="shadow-xs overflow-hidden border">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead className="w-[85px] pl-4">Foto</TableHead>
-                <TableHead className="w-[240px]">Artikel & Model</TableHead>
-                <TableHead className="min-w-[300px]">Progress Konfirmasi Warna</TableHead>
-                <TableHead className="w-[120px] text-right pr-4">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-40 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                      <span className="text-xs text-muted-foreground">Memuat data konfirmasi warna...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : articles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-32 text-center text-sm text-muted-foreground">
-                    Tidak ada artikel yang cocok dengan filter.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                articles.map((item) => {
-                  const statusCfg = STATUS_CONFIG[item.overallStatus] || STATUS_CONFIG.NOT_SUBMITTED
-
-                  return (
-                    <TableRow 
-                      key={item.article} 
-                      className="hover:bg-muted/30 transition-colors"
-                    >
-                      {/* 1. FOTO ARTIKEL */}
-                      <TableCell className="align-middle py-3.5 pl-4">
-                        {item.imageUrl ? (
-                          <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-border shadow-2xs group bg-muted/20 shrink-0">
-                            <img
-                              src={item.imageUrl}
-                              alt={item.article}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-14 h-14 rounded-lg border border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center text-muted-foreground/50 shrink-0">
-                            <Palette className="h-5 w-5 stroke-[1.5]" />
-                            <span className="text-[9px] mt-0.5 font-medium">No Foto</span>
-                          </div>
-                        )}
-                      </TableCell>
-
-                      {/* 2. ARTIKEL & MODEL */}
-                      <TableCell className="align-middle py-3.5">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-foreground bg-muted/70 px-2.5 py-0.5 rounded border border-border/70">
-                              {item.article}
-                            </span>
-                            <span className="text-sm font-bold text-foreground">
-                              {item.modelName || "-"}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                            <span>Dev: <strong className="text-foreground">{item.projectDev !== "-" ? item.projectDev : "Belum diset"}</strong></span>
-                            {item.supplier && item.supplier !== "-" && (
-                              <span>• Vendor: <strong className="text-foreground">{item.supplier}</strong></span>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* 3. PROGRESS KONFIRMASI WARNA */}
-                      <TableCell className="align-middle py-3.5">
-                        <div className="space-y-2 max-w-lg">
-                          <div className="flex items-center justify-between gap-2">
-                            <Badge
-                              variant="outline"
-                              className={cn("text-[11px] font-semibold gap-1.5 px-2.5 py-0.5 rounded-full", statusCfg.color, statusCfg.bg)}
-                            >
-                              <statusCfg.icon className="h-3 w-3" />
-                              {item.overallStatus === "ALL_APPROVED" ? "All 4 Approved" : statusCfg.label}
-                            </Badge>
-                            <span className="text-xs font-semibold text-foreground">
-                              {item.approvedCount} / 4 Approved {item.totalRounds > 0 ? `(${item.totalRounds} Putaran)` : ""}
-                            </span>
-                          </div>
-
-                          <Progress value={(item.approvedCount / 4) * 100} className="h-2 rounded-full" />
-
-                          {/* 4 Komponen Mini Status Indicator */}
-                          <div className="grid grid-cols-4 gap-1.5 pt-0.5">
-                            {[
-                              { short: "MID", name: "Midsole", data: item.midsole, dot: null },
-                              { short: "OUT", name: "Outsole", data: item.outsole, dot: null },
-                              { short: "WDG", name: "Wedge", data: item.wedge, dot: "bg-amber-500" },
-                              { short: "CR", name: "CR Device", data: item.cr, dot: "bg-emerald-500" },
-                            ].map((c) => {
-                              const cCfg = STATUS_CONFIG[c.data.status] || STATUS_CONFIG.NOT_SUBMITTED
-                              return (
-                                <div
-                                  key={c.short}
-                                  className={cn(
-                                    "text-[10px] px-1.5 py-0.5 rounded border text-center font-medium truncate flex items-center justify-center gap-1",
-                                    cCfg.color,
-                                    cCfg.bg
-                                  )}
-                                  title={`${c.name}: ${cCfg.label} (${c.data.roundsCount} CFM)`}
-                                >
-                                  {c.dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", c.dot)} />}
-                                  <span className="font-bold">{c.short}:</span>
-                                  <span>{c.data.roundsCount > 0 ? `${c.data.roundsCount} CFM` : "-"}</span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* 4. ACTION: TOMBOL EDIT / BUKA WINDOW */}
-                      <TableCell className="align-middle py-3.5 text-right pr-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenWindow(item.article)}
-                          className="h-9 px-3 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 gap-1.5 shadow-xs font-semibold rounded-lg"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit CFM
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
 
       {/* ========================================================================= */}
-      {/* WINDOWED MODAL (DIALOG): COLOR CONFORM PER-COMPONENT MULTI-ROUND TIMELINE */}
+      {/* VIEW 1: PER KOMPONEN & WARNA (SHARED CFM) */}
+      {/* ========================================================================= */}
+      {viewMode === "BY_COMPONENT" && (
+        <div className="space-y-5 animate-in fade-in duration-200">
+          {/* STATS OVERVIEW CARDS (BY COMPONENT) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <Card className="shadow-xs border bg-card/60">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-muted-foreground font-medium">Total Komponen & Warna</div>
+                <div className="text-2xl font-bold text-foreground">{compStats.total}</div>
+                <div className="text-[10px] text-muted-foreground">Kombinasi model & warna</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">Ada CFM</div>
+                <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{compStats.submitted}</div>
+                <div className="text-[10px] text-indigo-600 dark:text-indigo-400">Sudah diajukan sample</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  Pending Review PD
+                </div>
+                <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{compStats.pending}</div>
+                <div className="text-[10px] text-amber-600 dark:text-amber-400">Menunggu keputusan</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Approved
+                </div>
+                <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{compStats.approved}</div>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Warna disetujui PD</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-red-700 dark:text-red-400 font-medium flex items-center gap-1">
+                  <XCircle className="h-3.5 w-3.5" />
+                  Rejected / Revise
+                </div>
+                <div className="text-2xl font-bold text-red-700 dark:text-red-300">{compStats.rejected}</div>
+                <div className="text-[10px] text-red-600 dark:text-red-400">Perlu sample ulang</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* FILTER & SEARCH BAR (BY COMPONENT) */}
+          <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari warna, model, vendor, developer, artikel..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+              {/* Component Filter Buttons */}
+              <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg border">
+                {[
+                  { id: "ALL", label: "Semua Komp" },
+                  { id: "MIDSOLE", label: "Midsole" },
+                  { id: "OUTSOLE", label: "Outsole" },
+                  { id: "WEDGE", label: "Wedge" },
+                  { id: "CR", label: "CR Device" },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setComponentFilter(c.id)}
+                    className={cn(
+                      "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+                      componentFilter === c.id
+                        ? "bg-white dark:bg-card text-foreground shadow-2xs font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex items-center gap-1">
+                {[
+                  { id: "ALL", label: "Semua Status" },
+                  { id: "SUBMITTED", label: "Ada CFM" },
+                  { id: "PENDING", label: "Pending" },
+                  { id: "ALL_APPROVED", label: "Approved" },
+                  { id: "REJECTED", label: "Rejected" },
+                ].map((f) => (
+                  <Button
+                    key={f.id}
+                    variant={statusFilter === f.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setStatusFilter(f.id)}
+                    className={cn(
+                      "h-8 text-xs px-2.5",
+                      statusFilter === f.id && "bg-indigo-600 hover:bg-indigo-700 text-white"
+                    )}
+                  >
+                    {f.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* TABLE: PER KOMPONEN & WARNA */}
+          <Card className="shadow-xs overflow-hidden border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="w-[280px] pl-4">Komponen & Target Warna</TableHead>
+                    <TableHead className="min-w-[280px]">Digunakan di Artikel (Shared)</TableHead>
+                    <TableHead className="w-[220px]">Status & Putaran CFM</TableHead>
+                    <TableHead className="w-[130px] text-right pr-4">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-40 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                          <span className="text-xs text-muted-foreground">Memuat data komponen dan warna...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : componentGroups.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-32 text-center text-sm text-muted-foreground">
+                        Tidak ada komponen atau warna yang cocok dengan filter.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    componentGroups.map((group) => {
+                      const cfg = COMPONENT_CONFIG[group.component as ComponentKey] || COMPONENT_CONFIG.MIDSOLE
+                      const statusCfg = STATUS_CONFIG[group.status] || STATUS_CONFIG.NOT_SUBMITTED
+
+                      return (
+                        <TableRow
+                          key={group.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          {/* 1. KOMPONEN & TARGET WARNA */}
+                          <TableCell className="align-middle py-3.5 pl-4">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge
+                                  variant="outline"
+                                  className={cn("text-[11px] font-bold px-2 py-0.5 rounded gap-1", cfg.badge)}
+                                >
+                                  {cfg.dotColor && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dotColor)} />}
+                                  {cfg.label}
+                                </Badge>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  Model: <strong className="text-foreground">{group.modelName}</strong>
+                                </span>
+                              </div>
+
+                              <div className="font-extrabold text-sm text-foreground uppercase tracking-wide">
+                                {group.targetColor}
+                              </div>
+
+                              <div className="text-[11px] text-muted-foreground flex items-center gap-2 flex-wrap">
+                                <span>Dev: <strong className="text-foreground">{group.projectDev !== "-" ? group.projectDev : "Belum diset"}</strong></span>
+                                {group.defaultSupplier && (
+                                  <span>• Vendor: <strong className="text-foreground">{group.defaultSupplier}</strong></span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* 2. DIGUNAKAN DI ARTIKEL (SHARED) */}
+                          <TableCell className="align-middle py-3.5">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Users className="h-3.5 w-3.5 text-indigo-600" />
+                                <span className="text-xs font-semibold text-foreground">
+                                  Digunakan di {group.articles.length} Artikel:
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5 items-center">
+                                {group.articles.slice(0, 4).map((art) => (
+                                  <span
+                                    key={art.article}
+                                    title={`Artikel ${art.article} (Model ${group.modelName})`}
+                                    className="font-mono text-[11px] font-bold text-foreground bg-muted/80 hover:bg-muted px-2 py-0.5 rounded border border-border/80 flex items-center gap-1 transition-colors"
+                                  >
+                                    {art.article}
+                                  </span>
+                                ))}
+                                {group.articles.length > 4 && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 font-semibold">
+                                    +{group.articles.length - 4} artikel lagi
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <p className="text-[10px] text-muted-foreground italic">
+                                Cukup 1x CFM untuk seluruh {group.articles.length} artikel di atas.
+                              </p>
+                            </div>
+                          </TableCell>
+
+                          {/* 3. STATUS & PUTARAN CFM */}
+                          <TableCell className="align-middle py-3.5">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className={cn("text-[11px] font-semibold gap-1.5 px-2.5 py-0.5 rounded-full", statusCfg.color, statusCfg.bg)}
+                                >
+                                  <statusCfg.icon className="h-3 w-3" />
+                                  {statusCfg.label}
+                                </Badge>
+                              </div>
+
+                              <div className="text-xs font-medium text-foreground">
+                                {group.roundsCount > 0 ? (
+                                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                                    Round #{group.latestRoundNo} ({group.roundsCount} Putaran)
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground italic">Belum ada pengajuan</span>
+                                )}
+                              </div>
+
+                              {group.latestConfirmDate && (
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(group.latestConfirmDate), "dd MMM yyyy", { locale: localeId })}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          {/* 4. AKSI: KELOLA CFM */}
+                          <TableCell className="align-middle py-3.5 text-right pr-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenCompGroupWindow(group.id)}
+                              className="h-9 px-3 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 gap-1.5 shadow-xs font-semibold rounded-lg"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Kelola CFM
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 2: MONITORING PER ARTIKEL (4 KOMPONEN READINESS) */}
+      {/* ========================================================================= */}
+      {viewMode === "BY_ARTICLE" && (
+        <div className="space-y-5 animate-in fade-in duration-200">
+          {/* STATS OVERVIEW CARDS (BY ARTICLE) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <Card className="shadow-xs border bg-card/60">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-muted-foreground font-medium">Total Artikel</div>
+                <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                <div className="text-[10px] text-muted-foreground">Terdaftar di sistem</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-indigo-700 dark:text-indigo-400 font-medium">Ada Pengajuan</div>
+                <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{stats.submitted}</div>
+                <div className="text-[10px] text-indigo-600 dark:text-indigo-400">Sedang berjalan / ada CFM</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  Pending Review PD
+                </div>
+                <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{stats.pending}</div>
+                <div className="text-[10px] text-amber-600 dark:text-amber-400">Menunggu keputusan</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  All 4 Approved
+                </div>
+                <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{stats.approved}</div>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Semua komponen OK</div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xs border bg-red-50/40 dark:bg-red-950/20 border-red-200 dark:border-red-900">
+              <CardContent className="p-3.5 space-y-1">
+                <div className="text-xs text-red-700 dark:text-red-400 font-medium flex items-center gap-1">
+                  <XCircle className="h-3.5 w-3.5" />
+                  Rejected / Revise
+                </div>
+                <div className="text-2xl font-bold text-red-700 dark:text-red-300">{stats.rejected}</div>
+                <div className="text-[10px] text-red-600 dark:text-red-400">Butuh putaran CFM ulang</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* FILTER & SEARCH BAR (BY ARTICLE) */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari artikel, model, vendor, developer..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+              {[
+                { id: "ALL", label: "Semua" },
+                { id: "SUBMITTED", label: "Ada CFM" },
+                { id: "PENDING", label: "Pending PD" },
+                { id: "ALL_APPROVED", label: "All Approved" },
+                { id: "REJECTED", label: "Rejected" },
+              ].map((f) => (
+                <Button
+                  key={f.id}
+                  variant={statusFilter === f.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter(f.id)}
+                  className={cn(
+                    "h-8 text-xs px-2.5",
+                    statusFilter === f.id && "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  )}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* MAIN TABLE: DAFTAR ARTIKEL (FOTO, ARTIKEL, PROGRESS, EDIT) */}
+          <Card className="shadow-xs overflow-hidden border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="w-[85px] pl-4">Foto</TableHead>
+                    <TableHead className="w-[240px]">Artikel & Model</TableHead>
+                    <TableHead className="min-w-[300px]">Progress Konfirmasi Warna</TableHead>
+                    <TableHead className="w-[120px] text-right pr-4">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-40 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                          <span className="text-xs text-muted-foreground">Memuat data konfirmasi warna artikel...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : articles.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-32 text-center text-sm text-muted-foreground">
+                        Tidak ada artikel yang cocok dengan filter.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    articles.map((item) => {
+                      const statusCfg = STATUS_CONFIG[item.overallStatus] || STATUS_CONFIG.NOT_SUBMITTED
+
+                      return (
+                        <TableRow 
+                          key={item.article} 
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          {/* 1. FOTO ARTIKEL */}
+                          <TableCell className="align-middle py-3.5 pl-4">
+                            {item.imageUrl ? (
+                              <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-border shadow-2xs group bg-muted/20 shrink-0">
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.article}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-14 h-14 rounded-lg border border-dashed border-border/80 bg-muted/20 flex flex-col items-center justify-center text-muted-foreground/50 shrink-0">
+                                <Palette className="h-5 w-5 stroke-[1.5]" />
+                                <span className="text-[9px] mt-0.5 font-medium">No Foto</span>
+                              </div>
+                            )}
+                          </TableCell>
+
+                          {/* 2. ARTIKEL & MODEL */}
+                          <TableCell className="align-middle py-3.5">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-sm text-foreground bg-muted/70 px-2.5 py-0.5 rounded border border-border/70">
+                                  {item.article}
+                                </span>
+                                <span className="text-sm font-bold text-foreground">
+                                  {item.modelName || "-"}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                                <span>Dev: <strong className="text-foreground">{item.projectDev !== "-" ? item.projectDev : "Belum diset"}</strong></span>
+                                {item.supplier && item.supplier !== "-" && (
+                                  <span>• Vendor: <strong className="text-foreground">{item.supplier}</strong></span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* 3. PROGRESS KONFIRMASI WARNA */}
+                          <TableCell className="align-middle py-3.5">
+                            <div className="space-y-2 max-w-lg">
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className={cn("text-[11px] font-semibold gap-1.5 px-2.5 py-0.5 rounded-full", statusCfg.color, statusCfg.bg)}
+                                >
+                                  <statusCfg.icon className="h-3 w-3" />
+                                  {item.overallStatus === "ALL_APPROVED" ? "All 4 Approved" : statusCfg.label}
+                                </Badge>
+                                <span className="text-xs font-semibold text-foreground">
+                                  {item.approvedCount} / 4 Approved {item.totalRounds > 0 ? `(${item.totalRounds} Putaran)` : ""}
+                                </span>
+                              </div>
+
+                              <Progress value={(item.approvedCount / 4) * 100} className="h-2 rounded-full" />
+
+                              {/* 4 Komponen Mini Status Indicator */}
+                              <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                                {[
+                                  { short: "MID", name: "Midsole", data: item.midsole, dot: null },
+                                  { short: "OUT", name: "Outsole", data: item.outsole, dot: null },
+                                  { short: "WDG", name: "Wedge", data: item.wedge, dot: "bg-amber-500" },
+                                  { short: "CR", name: "CR Device", data: item.cr, dot: "bg-emerald-500" },
+                                ].map((c) => {
+                                  const cCfg = STATUS_CONFIG[c.data.status] || STATUS_CONFIG.NOT_SUBMITTED
+                                  return (
+                                    <div
+                                      key={c.short}
+                                      className={cn(
+                                        "text-[10px] px-1.5 py-0.5 rounded border text-center font-medium truncate flex items-center justify-center gap-1",
+                                        cCfg.color,
+                                        cCfg.bg
+                                      )}
+                                      title={`${c.name}: ${cCfg.label} (${c.data.roundsCount} CFM)`}
+                                    >
+                                      {c.dot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", c.dot)} />}
+                                      <span className="font-bold">{c.short}:</span>
+                                      <span>{c.data.roundsCount > 0 ? `${c.data.roundsCount} CFM` : "-"}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          {/* 4. ACTION: TOMBOL EDIT / BUKA WINDOW */}
+                          <TableCell className="align-middle py-3.5 text-right pr-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenWindow(item.article)}
+                              className="h-9 px-3 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 gap-1.5 shadow-xs font-semibold rounded-lg"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit CFM
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* WINDOWED MODAL 1: COMPONENT GROUP WINDOW (SHARED PER-COMPONENT CFM) */}
+      {/* ========================================================================= */}
+      <Dialog open={isCompGroupWindowOpen} onOpenChange={setIsCompGroupWindowOpen}>
+        <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-background border shadow-2xl rounded-xl">
+          {compGroupWindowLoading ? (
+            <div className="flex flex-col items-center justify-center p-16 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              <p className="text-xs text-muted-foreground font-medium">Memuat data komponen bersama...</p>
+            </div>
+          ) : !compGroupWindowData ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Data komponen tidak ditemukan.
+            </div>
+          ) : (
+            <div>
+              {/* COMPONENT GROUP WINDOW HEADER */}
+              <div className="p-5 border-b bg-background space-y-3.5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs font-bold px-2.5 py-1 rounded gap-1", COMPONENT_CONFIG[compGroupWindowData.component].badge)}
+                      >
+                        {COMPONENT_CONFIG[compGroupWindowData.component].label} ({COMPONENT_CONFIG[compGroupWindowData.component].short})
+                      </Badge>
+                      <span className="font-extrabold text-lg text-foreground uppercase tracking-wide">
+                        {compGroupWindowData.targetColor}
+                      </span>
+                      <span className="text-sm font-semibold text-muted-foreground">
+                        Model: <strong className="text-foreground">{compGroupWindowData.modelName}</strong>
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                      <span>Project Developer: <strong className="text-foreground font-semibold">{compGroupWindowData.projectDev !== "-" ? compGroupWindowData.projectDev : "Belum diset"}</strong></span>
+                      <span>• Supplier: <strong className="text-foreground font-semibold">{compGroupWindowData.defaultSupplier || "-"}</strong></span>
+                      {canManage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleOpenCompGroupEditDevVendor}
+                          className="h-5 px-1.5 text-[10px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 gap-1 font-semibold rounded border border-indigo-200 dark:border-indigo-800 ml-1"
+                        >
+                          <Pencil className="h-2.5 w-2.5" />
+                          Ubah
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs font-semibold gap-1.5 px-3 py-1 rounded-full",
+                      STATUS_CONFIG[compGroupWindowData.currentStatus]?.color,
+                      STATUS_CONFIG[compGroupWindowData.currentStatus]?.bg
+                    )}
+                  >
+                    {STATUS_CONFIG[compGroupWindowData.currentStatus]?.label || "Belum Diajukan"}
+                  </Badge>
+                </div>
+
+                {/* BANNER OF CONNECTED / SHARED ARTICLES */}
+                <div className="p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                    <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
+                    <span>1 Kali Konfirmasi Ini Berlaku Otomatis untuk Semua ({compGroupWindowData.articles.length}) Artikel Berikut:</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {compGroupWindowData.articles.map((art) => (
+                      <div
+                        key={art.article}
+                        className="flex items-center gap-2 bg-white dark:bg-card border border-indigo-200 dark:border-indigo-800/80 rounded-lg p-1.5 pr-2.5 shadow-2xs"
+                      >
+                        {art.imageUrl ? (
+                          <img
+                            src={art.imageUrl}
+                            alt={art.article}
+                            className="w-6 h-6 rounded object-cover border"
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded bg-muted/60 flex items-center justify-center text-[9px] font-bold text-muted-foreground">
+                            👟
+                          </div>
+                        )}
+                        <span className="font-mono text-xs font-bold text-foreground">
+                          {art.article}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* COMPONENT GROUP WINDOW BODY: TIMELINE & SUBMIT */}
+              <div className="p-5 space-y-6">
+                {/* ACTION: ADD NEW ROUND BUTTON */}
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    RIWAYAT PUTARAN CFM ({compGroupWindowData.rounds.length})
+                  </h4>
+
+                  {canManage && !isCompGroupAddRoundOpen && (
+                    <Button
+                      size="sm"
+                      onClick={handleOpenCompGroupAddRound}
+                      className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs font-semibold rounded-lg"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {compGroupWindowData.rounds.length === 0 ? `Ajukan 1st CFM ${COMPONENT_CONFIG[compGroupWindowData.component].short}` : `+ Ajukan Round #${compGroupWindowData.rounds.length + 1}`}
+                    </Button>
+                  )}
+                </div>
+
+                {/* INLINE FORM: SUBMIT NEW ROUND FOR COMPONENT GROUP */}
+                {isCompGroupAddRoundOpen && (
+                  <Card className="border-2 border-indigo-500 shadow-md bg-indigo-50/20 dark:bg-indigo-950/20">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm font-bold flex items-center justify-between">
+                        <span className="text-indigo-700 dark:text-indigo-300">
+                          Form Pengajuan CFM Round #{compGroupWindowData.rounds.length + 1} ({COMPONENT_CONFIG[compGroupWindowData.component].label})
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsCompGroupAddRoundOpen(false)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Batal
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2">
+                      <form onSubmit={handleSubmitCompGroupAddRound} className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-semibold">Tanggal Pengajuan</Label>
+                            <Input
+                              type="date"
+                              value={compGroupAddRoundForm.confirmDate}
+                              onChange={(e) => setCompGroupAddRoundForm(prev => ({ ...prev, confirmDate: e.target.value }))}
+                              className="h-8 text-xs"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-semibold">Project Developer (PD)</Label>
+                            <Input
+                              placeholder="Nama Project Developer"
+                              value={compGroupAddRoundForm.projectDev}
+                              onChange={(e) => setCompGroupAddRoundForm(prev => ({ ...prev, projectDev: e.target.value }))}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-semibold">Vendor / Supplier</Label>
+                            <Input
+                              placeholder="Nama vendor komponen ini"
+                              value={compGroupAddRoundForm.supplier}
+                              onChange={(e) => setCompGroupAddRoundForm(prev => ({ ...prev, supplier: e.target.value }))}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-semibold">Target Color (Standar PO)</Label>
+                            <Input
+                              placeholder="e.g. SEA SALT"
+                              value={compGroupAddRoundForm.targetColor}
+                              onChange={(e) => setCompGroupAddRoundForm(prev => ({ ...prev, targetColor: e.target.value }))}
+                              className="h-8 text-xs font-medium"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                              Warna Aktual Sampel (Supplier)
+                            </Label>
+                            <Input
+                              placeholder="Warna dari vendor jika ada deviasi"
+                              value={compGroupAddRoundForm.supplierColor}
+                              onChange={(e) => setCompGroupAddRoundForm(prev => ({ ...prev, supplierColor: e.target.value }))}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold">Catatan Pengajuan</Label>
+                          <Textarea
+                            placeholder="Contoh: Sampel batch lab dip dari vendor, berlaku untuk semua artikel model ini..."
+                            rows={2}
+                            value={compGroupAddRoundForm.notes}
+                            onChange={(e) => setCompGroupAddRoundForm(prev => ({ ...prev, notes: e.target.value }))}
+                            className="text-xs"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsCompGroupAddRoundOpen(false)}
+                            className="h-8 text-xs"
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            type="submit"
+                            size="sm"
+                            disabled={isPending}
+                            className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                          >
+                            {isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                            Kirim Pengajuan Round #{compGroupWindowData.rounds.length + 1}
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* TIMELINE OF ROUNDS */}
+                {compGroupWindowData.rounds.length === 0 ? (
+                  <div className="text-center py-12 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50/20 dark:bg-slate-900/10">
+                    <Clock className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-600 stroke-[1.5]" />
+                    <p className="text-xs text-muted-foreground font-normal">
+                      Belum ada pengajuan CFM untuk komponen {COMPONENT_CONFIG[compGroupWindowData.component].label} ({compGroupWindowData.targetColor}).
+                    </p>
+                    {canManage && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleOpenCompGroupAddRound}
+                        className="text-xs gap-1.5 font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-2xs h-8 hover:bg-slate-50"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Ajukan 1st CFM Sekarang
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-3 before:bottom-3 before:w-0.5 before:bg-indigo-200 dark:before:bg-indigo-900/60">
+                    {[...compGroupWindowData.rounds].reverse().map((round, idx) => {
+                      const roundStatusCfg = STATUS_CONFIG[round.status] || STATUS_CONFIG.PENDING
+                      const RoundStatusIcon = roundStatusCfg.icon
+                      const isLatest = idx === 0
+
+                      return (
+                        <div key={round.id} className="relative">
+                          {/* Dot indicator */}
+                          <div className={cn(
+                            "absolute -left-[29px] top-2 flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-xs",
+                            isLatest ? "border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-900" : "border-slate-400"
+                          )}>
+                            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                              {round.roundNo}
+                            </span>
+                          </div>
+
+                          <Card className={cn(
+                            "shadow-xs transition-all",
+                            isLatest && "border-indigo-300 dark:border-indigo-800"
+                          )}>
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-sm text-foreground">
+                                    {round.roundNo === 1 ? "1st CFM" : round.roundNo === 2 ? "2nd CFM" : round.roundNo === 3 ? "3rd CFM" : `${round.roundNo}th CFM`}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    • <Calendar className="h-3 w-3" />
+                                    {format(new Date(round.confirmDate), "dd MMM yyyy", { locale: localeId })}
+                                  </span>
+                                </div>
+
+                                <Badge
+                                  variant="outline"
+                                  className={cn("text-[11px] font-semibold gap-1 px-2 py-0.5", roundStatusCfg.color, roundStatusCfg.bg)}
+                                >
+                                  <RoundStatusIcon className="h-3 w-3" />
+                                  {roundStatusCfg.label}
+                                </Badge>
+                              </div>
+
+                              {/* COLOR & VENDOR SPECS */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border">
+                                <div>
+                                  <span className="text-muted-foreground font-medium">Standar Target: </span>
+                                  <span className="font-semibold text-foreground">{round.targetColor}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground font-medium">Warna Sampel: </span>
+                                  <span className={cn(
+                                    "font-semibold",
+                                    round.supplierColor && round.supplierColor !== round.targetColor 
+                                      ? "text-amber-700 dark:text-amber-300" 
+                                      : "text-foreground"
+                                  )}>
+                                    {round.supplierColor || <span className="opacity-50 italic">Sama</span>}
+                                  </span>
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <span className="text-muted-foreground font-medium">Vendor / Supplier: </span>
+                                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                                    {round.supplier || "-"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* REQUESTER NOTES */}
+                              {round.notes && (
+                                <div className="text-xs text-muted-foreground bg-slate-50 dark:bg-slate-900/40 p-2 rounded border">
+                                  <span className="font-semibold text-foreground">Catatan Pengaju ({round.requesterName}): </span>
+                                  {round.notes}
+                                </div>
+                              )}
+
+                              {/* PROJECT DEVELOPER FEEDBACK / DECISION */}
+                              {round.devFeedback && (
+                                <div className="text-xs bg-indigo-50/60 dark:bg-indigo-950/40 p-2.5 rounded border border-indigo-200 dark:border-indigo-800 space-y-1">
+                                  <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
+                                    <span>Feedback {round.projectDev}:</span>
+                                    {round.approvalDate && (
+                                      <span className="text-[10px] text-muted-foreground font-normal">
+                                        {format(new Date(round.approvalDate), "dd MMM yyyy", { locale: localeId })}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-indigo-800 dark:text-indigo-300">
+                                    {round.devFeedback}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* ACTIONS FOR THIS ROUND */}
+                              <div className="flex items-center justify-between pt-1 border-t text-xs">
+                                {canManage ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleOpenReview(round)}
+                                    className="h-7 text-xs gap-1.5 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+                                  >
+                                    <UserCheck className="h-3.5 w-3.5" />
+                                    {round.status === "PENDING" ? "⚡ Keputusan PD (Review)" : "Ubah Keputusan PD"}
+                                  </Button>
+                                ) : <div />}
+
+                                {canManage && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteRound(round.id)}
+                                    className="h-7 px-2 text-xs text-muted-foreground hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* COMPONENT GROUP WINDOW FOOTER */}
+              <div className="p-4 border-t bg-muted/20 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCompGroupWindowOpen(false)}
+                  className="h-8 text-xs"
+                >
+                  Tutup Window
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* WINDOWED MODAL 2: ARTICLE WINDOW (PER-ARTICLE MULTI-ROUND TIMELINE) */}
       {/* ========================================================================= */}
       <Dialog open={isWindowOpen} onOpenChange={setIsWindowOpen}>
         <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-background border shadow-2xl rounded-xl">
           {windowLoading ? (
             <div className="flex flex-col items-center justify-center p-16 gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-              <p className="text-xs text-muted-foreground font-medium">Memuat data Color Conform...</p>
+              <p className="text-xs text-muted-foreground font-medium">Memuat data Color Conform artikel...</p>
             </div>
           ) : !windowData ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
@@ -787,7 +1690,7 @@ function ConformHistoryContent() {
                         type="button"
                         onClick={() => handleSelectTab(cKey)}
                         className={cn(
-                          "flex flex-col items-start p-3 rounded-xl border text-left transition-all relative",
+                          "flex flex-col items-start p-3 rounded-xl border text-left transition-all relative cursor-pointer",
                           isSelected
                             ? "border-2 border-indigo-600 bg-white dark:bg-card shadow-sm ring-1 ring-indigo-500/20"
                             : "border-slate-200 dark:border-slate-800 bg-card/60 hover:bg-muted/40"
@@ -853,6 +1756,20 @@ function ConformHistoryContent() {
                             {statusCfg.label}
                           </span>
                         </div>
+
+                        {/* SHARED COMPONENT ALERT NOTICE */}
+                        {compData.sharedArticles && compData.sharedArticles.length > 1 && (
+                          <div className="p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/30 flex items-start gap-2 text-xs text-indigo-900 dark:text-indigo-200">
+                            <Sparkles className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                            <div>
+                              <strong className="font-semibold">Komponen Bersama:</strong> Warna{" "}
+                              <strong className="uppercase">{compData.targetColor}</strong> pada model{" "}
+                              <strong>{windowData.modelName}</strong> digunakan bersama oleh{" "}
+                              <strong>{compData.sharedArticles.length} artikel</strong> ({compData.sharedArticles.join(", ")}).
+                              Setiap input dan hasil review di sini otomatis sinkron untuk semua artikel tersebut.
+                            </div>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 text-xs border-t border-slate-100 dark:border-slate-800">
                           <div>
@@ -1043,7 +1960,7 @@ function ConformHistoryContent() {
                                 <div className={cn(
                                   "absolute -left-[29px] top-2 flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 shadow-xs",
                                   isLatest ? "border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-900" : "border-slate-400"
-                                )}>
+                                Sha)}>
                                   <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                                     {round.roundNo}
                                   </span>
@@ -1189,7 +2106,7 @@ function ConformHistoryContent() {
             </DialogTitle>
             <DialogDescription>
               Tentukan hasil evaluasi warna untuk {selectedRoundForReview?.component} round #{selectedRoundForReview?.roundNo}{" "}
-              artikel <strong className="text-foreground">{windowData?.article}</strong>.
+              {windowData?.article ? `artikel ${windowData.article}` : compGroupWindowData?.modelName ? `(Model ${compGroupWindowData.modelName} - ${compGroupWindowData.targetColor})` : ""}.
             </DialogDescription>
           </DialogHeader>
 
@@ -1325,7 +2242,7 @@ function ConformHistoryContent() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-indigo-600" />
-              Kustomisasi Developer & Vendor
+              Kustomisasi Developer & Vendor Artikel
             </DialogTitle>
             <DialogDescription>
               Atur Project Developer dan Supplier/Vendor default untuk artikel{" "}
@@ -1373,6 +2290,72 @@ function ConformHistoryContent() {
             <Button
               size="sm"
               onClick={handleSaveDevVendor}
+              disabled={isPending}
+              className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+            >
+              {isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* DIALOG: EDIT DEVELOPER & VENDOR KOMPONEN GROUP */}
+      {/* ========================================================================= */}
+      <Dialog open={isCompGroupEditDevVendorOpen} onOpenChange={setIsCompGroupEditDevVendorOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-indigo-600" />
+              Kustomisasi Developer & Vendor Komponen
+            </DialogTitle>
+            <DialogDescription>
+              Atur Project Developer dan Supplier/Vendor untuk komponen{" "}
+              <strong className="text-foreground">{compGroupWindowData?.component} ({compGroupWindowData?.targetColor})</strong> Model <strong>{compGroupWindowData?.modelName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Nama Project Developer (PD)</Label>
+              <Input
+                placeholder="Misal: Budi (PD) / Team PD..."
+                value={compGroupEditDev}
+                onChange={(e) => setCompGroupEditDev(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Nama developer in charge untuk peninjauan swatch/lab dip warna komponen ini.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Supplier / Vendor Komponen</Label>
+              <Input
+                placeholder="Misal: Pou Chen / Feng Tay..."
+                value={compGroupEditSupplier}
+                onChange={(e) => setCompGroupEditSupplier(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Vendor yang menyuplai komponen dan sample warna ini.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCompGroupEditDevVendorOpen(false)}
+              className="h-8 text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveCompGroupDevVendor}
               disabled={isPending}
               className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
             >
