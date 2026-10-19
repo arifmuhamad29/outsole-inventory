@@ -8,9 +8,7 @@ import { id as localeId } from "date-fns/locale"
 import {
   Palette, Search, Plus, Pencil, Trash2, Loader2,
   CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw,
-  UserCheck, Layers, ChevronRight, ExternalLink,
-  Calendar, Building2, Send, ArrowRight, ShieldAlert, Sparkles, Filter, X,
-  CheckCheck, Info, Users
+  UserCheck, Layers, Calendar, Sparkles, Users
 } from "lucide-react"
 import {
   Table, TableBody, TableCell, TableHead,
@@ -49,7 +47,6 @@ import {
   submitSharedComponentColorRound,
   updateComponentGroupDevAndSupplier,
   ArticleConformSummary,
-  ComponentStatusSummary,
   ComponentColorGroupSummary,
 } from "@/app/actions/conform"
 
@@ -669,7 +666,7 @@ function ConformHistoryContent() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchData}
+            onClick={() => fetchData()}
             disabled={loading}
             className="gap-1.5"
           >
