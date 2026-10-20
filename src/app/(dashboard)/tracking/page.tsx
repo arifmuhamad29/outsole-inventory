@@ -540,6 +540,11 @@ export default function TrackingPage() {
 
   const [entries, setEntries] = useState<TrackingEntryGrouped[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingProgress, setLoadingProgress] = useState(15)
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const seasonCacheRef = useRef<Map<string, TrackingEntryGrouped[]>>(new Map())
+  const activeSeasonRef = useRef<string | null>(null)
+
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [modelNames, setModelNames] = useState<string[]>([])
@@ -631,6 +636,7 @@ export default function TrackingPage() {
         if (data.length > 0) {
           const ss27 = data.find(s => s.name === "SS27") || data[0]
           setActiveSeasonId(prev => prev || ss27.id)
+          activeSeasonRef.current = ss27.id
         }
       } catch (error) {
         console.error("Failed to load seasons", error)
@@ -648,26 +654,83 @@ export default function TrackingPage() {
     }
   }, [session, canView, router])
 
-  const fetchData = useCallback(async () => {
-    if (!canView || !activeSeasonId) return
+  const startProgress = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    setLoadingProgress(15)
+    progressTimerRef.current = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev < 40) return prev + 12
+        if (prev < 65) return prev + 8
+        if (prev < 85) return prev + 4
+        if (prev < 95) return prev + 1
+        return prev
+      })
+    }, 110)
+  }, [])
+
+  const stopProgress = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    setLoadingProgress(100)
+    setTimeout(() => {
+      setLoading(false)
+      setLoadingProgress(0)
+    }, 250)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    }
+  }, [])
+
+  const fetchData = useCallback(async (forcedSeasonId?: string, forceRefresh?: boolean) => {
+    const targetSeasonId = forcedSeasonId || activeSeasonRef.current
+    if (!canView || !targetSeasonId) return
+
+    const cached = seasonCacheRef.current.get(targetSeasonId)
+    if (cached && !forceRefresh) {
+      setEntries(cached)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
+    startProgress()
     try {
       const result = await getTrackingEntries({
         search: debouncedSearch,
-        seasonId: activeSeasonId,
+        seasonId: targetSeasonId,
       })
-      setEntries(result.entries as unknown as TrackingEntryGrouped[])
+      const data = result.entries as unknown as TrackingEntryGrouped[]
+      seasonCacheRef.current.set(targetSeasonId, data)
+      setEntries(data)
     } catch (error) {
       console.error("Failed to load tracking data", error)
       toast.error("Failed to load tracking data")
     } finally {
-      setLoading(false)
+      stopProgress()
     }
-  }, [debouncedSearch, canView, activeSeasonId])
+  }, [debouncedSearch, canView, startProgress, stopProgress])
+
+  const handleSelectSeason = (seasonId: string) => {
+    if (seasonId === activeSeasonId) return
+    setActiveSeasonId(seasonId)
+    activeSeasonRef.current = seasonId
+    const cached = seasonCacheRef.current.get(seasonId)
+    if (cached) {
+      setEntries(cached)
+      setLoading(false)
+    } else {
+      setEntries([])
+    }
+  }
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (activeSeasonId) {
+      activeSeasonRef.current = activeSeasonId
+      fetchData(activeSeasonId)
+    }
+  }, [debouncedSearch, activeSeasonId, fetchData])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -839,7 +902,8 @@ export default function TrackingPage() {
       if (result.success) {
         toast.success(result.message)
         setIsFormOpen(false)
-        fetchData()
+        seasonCacheRef.current.clear()
+        fetchData(activeSeasonId || undefined, true)
       } else {
         toast.error(result.message)
       }
@@ -855,7 +919,8 @@ export default function TrackingPage() {
         toast.success(result.message)
         setIsDeleteOpen(false)
         setDeletingId(null)
-        fetchData()
+        seasonCacheRef.current.clear()
+        fetchData(activeSeasonId || undefined, true)
       } else {
         toast.error(result.message)
       }
@@ -880,7 +945,13 @@ export default function TrackingPage() {
 
         {canManage && (
           <div className="flex items-center gap-2">
-            <BulkTracking onImportSuccess={fetchData} activeSeasonId={activeSeasonId} />
+            <BulkTracking
+              onImportSuccess={() => {
+                seasonCacheRef.current.clear()
+                fetchData(activeSeasonId || undefined, true)
+              }}
+              activeSeasonId={activeSeasonId}
+            />
             <Button
               onClick={handleAdd}
               className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25 transition-all duration-300"
@@ -900,7 +971,7 @@ export default function TrackingPage() {
               key={season.id}
               variant={activeSeasonId === season.id ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveSeasonId(season.id)}
+              onClick={() => handleSelectSeason(season.id)}
               className={cn(
                 "rounded-full whitespace-nowrap",
                 activeSeasonId === season.id ? "bg-violet-600 hover:bg-violet-700 text-white border-violet-600 shadow-md" : ""
@@ -947,7 +1018,11 @@ export default function TrackingPage() {
             />
             {searchQuery && (
               <button
-                onClick={() => { setSearchQuery(""); setDebouncedSearch(""); }}
+                onClick={() => {
+                  setSearchQuery("")
+                  seasonCacheRef.current.clear()
+                  setDebouncedSearch("")
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -955,7 +1030,10 @@ export default function TrackingPage() {
             )}
           </div>
           <Button 
-            onClick={() => setDebouncedSearch(searchQuery)}
+            onClick={() => {
+              seasonCacheRef.current.clear()
+              setDebouncedSearch(searchQuery)
+            }}
             className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
           >
             Search
@@ -985,25 +1063,43 @@ export default function TrackingPage() {
             </TableHeader>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <TableBody>
-              {loading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`}>
-                    <TableCell className="text-center"><Skeleton className="h-4 w-6 mx-auto" /></TableCell>
-                    <TableCell><Skeleton className="h-12 w-12 rounded-md mx-auto" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><div className="space-y-1"><Skeleton className="h-3 w-32" /><Skeleton className="h-3 w-28" /></div></TableCell>
-                    <TableCell><Skeleton className="h-4 w-14" /></TableCell>
-                    <TableCell><div className="flex gap-1"><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /><Skeleton className="h-7 w-7" /></div></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 mx-auto rounded-full" /></TableCell>
-                    <TableCell><div className="space-y-1"><Skeleton className="h-3 w-20" /><Skeleton className="h-3 w-16" /></div></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    {canManage && <TableCell><div className="flex gap-1 justify-center"><Skeleton className="h-7 w-7 rounded" /><Skeleton className="h-7 w-7 rounded" /></div></TableCell>}
-                  </TableRow>
-                ))
+              {loading && entries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={canManage ? 12 : 11} className="h-56 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3.5 max-w-sm mx-auto py-8">
+                      <div className="relative flex items-center justify-center">
+                        <div className="h-14 w-14 rounded-full border-4 border-violet-100 dark:border-violet-950 flex items-center justify-center bg-violet-50/50 dark:bg-violet-950/30">
+                          <Loader2 className="h-7 w-7 animate-spin text-violet-600" />
+                        </div>
+                        <span className="absolute text-xs font-extrabold text-violet-700 dark:text-violet-300 font-mono">
+                          {loadingProgress}%
+                        </span>
+                      </div>
+                      <div className="w-full space-y-2 text-center">
+                        <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-1">
+                          <span>Memuat Purchase Orders...</span>
+                          <span className="text-violet-600 dark:text-violet-400 font-mono font-bold">{loadingProgress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border">
+                          <div
+                            className="h-full bg-gradient-to-r from-violet-500 via-purple-500 to-violet-600 transition-all duration-200 ease-out rounded-full"
+                            style={{ width: `${loadingProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {loadingProgress < 40
+                            ? "Menghubungkan ke database..."
+                            : loadingProgress < 80
+                            ? "Mengambil data pesanan & matriks ukuran..."
+                            : "Menyiapkan tabel tracking..."}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-32 text-center">
+                  <TableCell colSpan={canManage ? 12 : 11} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Package className="h-10 w-10 opacity-30" />
                       <span className="text-sm">
