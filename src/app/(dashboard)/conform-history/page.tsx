@@ -758,33 +758,6 @@ function ConformHistoryContent() {
         </div>
       </div>
 
-      {/* GLOBAL SLIM PROGRESS BAR (Top Bar with Percentage) */}
-      {(loading || isRefreshing) && (
-        <div className="space-y-1.5 animate-in fade-in duration-200 bg-indigo-50/60 dark:bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-200/70 dark:border-indigo-900/50 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-indigo-700 dark:text-indigo-300">
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
-              <span>
-                {loadingProgress < 40
-                  ? "Menghubungkan ke server..."
-                  : loadingProgress < 80
-                  ? "Mengambil data konfirmasi warna..."
-                  : "Menyiapkan tampilan data..."}
-              </span>
-            </span>
-            <span className="font-mono font-bold text-xs bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-200/50">
-              {loadingProgress}%
-            </span>
-          </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 transition-all duration-200 ease-out rounded-full"
-              style={{ width: `${loadingProgress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* DUAL-VIEW SWITCHER TABS */}
       <div className="flex border-b border-border bg-muted/20 rounded-xl p-1 gap-1">
         <button
