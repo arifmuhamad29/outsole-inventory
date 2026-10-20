@@ -971,18 +971,13 @@ function ConformHistoryContent() {
                   {loading && componentGroups.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="h-56 text-center">
-                        <div className="flex flex-col items-center justify-center gap-3.5 max-w-sm mx-auto py-8">
-                          <div className="relative flex items-center justify-center">
-                            <div className="h-14 w-14 rounded-full border-4 border-indigo-100 dark:border-indigo-950 flex items-center justify-center bg-indigo-50/50 dark:bg-indigo-950/30">
-                              <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
-                            </div>
-                            <span className="absolute text-xs font-extrabold text-indigo-700 dark:text-indigo-300 font-mono">
-                              {loadingProgress}%
-                            </span>
-                          </div>
-                          <div className="w-full space-y-2 text-center">
-                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-1">
-                              <span>Memuat Komponen & Warna...</span>
+                        <div className="flex flex-col items-center justify-center max-w-md mx-auto py-12 px-4">
+                          <div className="w-full space-y-2.5">
+                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-0.5">
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+                                <span>Memuat Komponen & Warna...</span>
+                              </span>
                               <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{loadingProgress}%</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border">
@@ -991,7 +986,7 @@ function ConformHistoryContent() {
                                 style={{ width: `${loadingProgress}%` }}
                               />
                             </div>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-[11px] text-muted-foreground text-center">
                               {loadingProgress < 40
                                 ? "Menghubungkan ke database..."
                                 : loadingProgress < 80
@@ -1271,18 +1266,13 @@ function ConformHistoryContent() {
                   {loading && articles.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="h-56 text-center">
-                        <div className="flex flex-col items-center justify-center gap-3.5 max-w-sm mx-auto py-8">
-                          <div className="relative flex items-center justify-center">
-                            <div className="h-14 w-14 rounded-full border-4 border-indigo-100 dark:border-indigo-950 flex items-center justify-center bg-indigo-50/50 dark:bg-indigo-950/30">
-                              <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
-                            </div>
-                            <span className="absolute text-xs font-extrabold text-indigo-700 dark:text-indigo-300 font-mono">
-                              {loadingProgress}%
-                            </span>
-                          </div>
-                          <div className="w-full space-y-2 text-center">
-                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-1">
-                              <span>Memuat Monitoring Artikel...</span>
+                        <div className="flex flex-col items-center justify-center max-w-md mx-auto py-12 px-4">
+                          <div className="w-full space-y-2.5">
+                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-0.5">
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+                                <span>Memuat Monitoring Artikel...</span>
+                              </span>
                               <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{loadingProgress}%</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border">
@@ -1291,7 +1281,7 @@ function ConformHistoryContent() {
                                 style={{ width: `${loadingProgress}%` }}
                               />
                             </div>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-[11px] text-muted-foreground text-center">
                               {loadingProgress < 40
                                 ? "Menghubungkan ke database..."
                                 : loadingProgress < 80
