@@ -328,6 +328,11 @@ function ConformHistoryContent() {
     }, 250)
   }, [])
 
+  const invalidateAllCache = useCallback(() => {
+    componentGroupsRef.current = []
+    articlesRef.current = []
+  }, [])
+
   useEffect(() => {
     return () => {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current)
@@ -358,6 +363,7 @@ function ConformHistoryContent() {
           componentFilter,
         })
         setComponentGroups(compRes.summaries)
+        componentGroupsRef.current = compRes.summaries
         setCompStats(compRes.stats)
         if (compRes.totalArticles && stats.total === 0) {
           setStats(prev => ({ ...prev, total: compRes.totalArticles }))
@@ -368,6 +374,7 @@ function ConformHistoryContent() {
           statusFilter,
         })
         setArticles(artRes.summaries)
+        articlesRef.current = artRes.summaries
         setStats(artRes.stats)
       }
     } catch (err) {
@@ -513,7 +520,8 @@ function ConformHistoryContent() {
           toast.success(res.message)
           setIsCompGroupAddRoundOpen(false)
           reloadCompGroupWindowData(compGroupWindowData.id)
-          fetchData()
+          invalidateAllCache()
+          fetchData(undefined, true)
         }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Gagal menambahkan round CFM")
@@ -546,7 +554,8 @@ function ConformHistoryContent() {
           toast.success(res.message)
           setIsCompGroupEditDevVendorOpen(false)
           reloadCompGroupWindowData(compGroupWindowData.id)
-          fetchData()
+          invalidateAllCache()
+          fetchData(undefined, true)
         }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Gagal memperbarui developer & vendor")
@@ -582,7 +591,8 @@ function ConformHistoryContent() {
           toast.success(res.message)
           setIsEditDevVendorOpen(false)
           reloadWindowData(windowData.article)
-          fetchData()
+          invalidateAllCache()
+          fetchData(undefined, true)
         }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Gagal memperbarui developer & vendor")
@@ -633,7 +643,8 @@ function ConformHistoryContent() {
           toast.success(res.message)
           setIsAddRoundOpen(false)
           reloadWindowData(windowData.article)
-          fetchData()
+          invalidateAllCache()
+          fetchData(undefined, true)
         }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Gagal menambahkan round CFM")
@@ -674,7 +685,8 @@ function ConformHistoryContent() {
           setSelectedRoundForReview(null)
           if (windowData) reloadWindowData(windowData.article)
           if (compGroupWindowData) reloadCompGroupWindowData(compGroupWindowData.id)
-          fetchData()
+          invalidateAllCache()
+          fetchData(undefined, true)
         }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Gagal menyimpan keputusan")
@@ -699,7 +711,8 @@ function ConformHistoryContent() {
         setDeletingId(null)
         if (windowData) await reloadWindowData(windowData.article)
         if (compGroupWindowData) await reloadCompGroupWindowData(compGroupWindowData.id)
-        fetchData()
+        invalidateAllCache()
+        fetchData(undefined, true)
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Gagal menghapus data")

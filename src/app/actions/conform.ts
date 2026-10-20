@@ -774,12 +774,26 @@ export async function getArticleConformDetails(article: string) {
 
   const modelUpper = (tracking?.modelName || "").trim().toUpperCase()
 
+  // All tracking articles for shared component lookup (cached)
+  const allTracking = await getCachedTrackingRows()
+  const trackingMap = new Map<string, typeof allTracking[0]>()
+  for (const t of allTracking) {
+    trackingMap.set(t.article.toUpperCase(), t)
+  }
+
+  const modelArticles = modelUpper && modelUpper !== "-"
+    ? allTracking.filter(t => (t.modelName || "").trim().toUpperCase() === modelUpper).map(t => t.article)
+    : []
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orConditions: any[] = [
     { article: { equals: cleanArticle, mode: "insensitive" } }
   ]
   if (modelUpper && modelUpper !== "-") {
     orConditions.push({ modelName: { equals: modelUpper, mode: "insensitive" } })
+    if (modelArticles.length > 0) {
+      orConditions.push({ article: { in: modelArticles, mode: "insensitive" } })
+    }
   }
 
   const rawEntries = await prisma.colorConformHistory.findMany({
@@ -793,9 +807,6 @@ export async function getArticleConformDetails(article: string) {
     ]
   })
 
-  // All tracking articles for shared component lookup (cached)
-  const allTracking = await getCachedTrackingRows()
-
   // Build rounds for each of the 4 components
   const buildRoundsFor = (compKey: "MIDSOLE" | "OUTSOLE" | "WEDGE" | "CR", defaultTargetColor: string | null) => {
     const targetColorUpper = defaultTargetColor?.trim().toUpperCase()
@@ -804,19 +815,19 @@ export async function getArticleConformDetails(article: string) {
 
     for (const item of rawEntries) {
       let eComp = item.component?.toUpperCase()
-      let eColor = item.targetColor?.trim().toUpperCase()
+      let eColor = (item.targetColor || item.supplierColor || "").trim().toUpperCase()
 
       if (!eComp) {
-        if (compKey === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (item.midsoleTargetColor || item.midsoleSupplierColor)?.trim().toUpperCase() }
-        else if (compKey === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (item.outsoleTargetColor || item.outsoleSupplierColor)?.trim().toUpperCase() }
-        else if (compKey === "WEDGE") { eComp = "WEDGE"; eColor = (item.wedgeTargetColor || item.wedgeSupplierColor)?.trim().toUpperCase() }
-        else if (compKey === "CR") { eComp = "CR"; eColor = (item.crTargetColor || item.crSupplierColor)?.trim().toUpperCase() }
+        if (compKey === "MIDSOLE") { eComp = "MIDSOLE"; eColor = (item.midsoleTargetColor || item.midsoleSupplierColor || eColor).trim().toUpperCase() }
+        else if (compKey === "OUTSOLE") { eComp = "OUTSOLE"; eColor = (item.outsoleTargetColor || item.outsoleSupplierColor || eColor).trim().toUpperCase() }
+        else if (compKey === "WEDGE") { eComp = "WEDGE"; eColor = (item.wedgeTargetColor || item.wedgeSupplierColor || eColor).trim().toUpperCase() }
+        else if (compKey === "CR") { eComp = "CR"; eColor = (item.crTargetColor || item.crSupplierColor || eColor).trim().toUpperCase() }
       }
 
       if (eComp !== compKey) continue
 
       const isThisArticle = item.article.toUpperCase() === cleanArticle
-      const eModel = (item.modelName || "-").trim().toUpperCase()
+      const eModel = (item.modelName || trackingMap.get(item.article.toUpperCase())?.modelName || "-").trim().toUpperCase()
 
       if (isThisArticle) {
         listMap.set(item.id, item)
