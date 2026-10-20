@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition, useCallback, Suspense } from "react"
+import { useEffect, useState, useTransition, useCallback, Suspense, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
 import { format } from "date-fns"
@@ -194,18 +194,31 @@ function ConformHistoryContent() {
 
   // Common Search & Filter States
   const [loading, setLoading] = useState(true)
+  const [loadingProgress, setLoadingProgress] = useState(15)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   const [searchInput, setSearchInput] = useState(initialArticle)
   const [appliedSearch, setAppliedSearch] = useState(initialArticle)
   const [statusFilter, setStatusFilter] = useState("ALL")
   const [componentFilter, setComponentFilter] = useState("ALL")
 
   const handleSearch = () => {
-    setAppliedSearch(searchInput.trim())
+    const trimmed = searchInput.trim()
+    if (trimmed !== appliedSearch) {
+      if (viewMode === "BY_COMPONENT") setArticles([])
+      else setComponentGroups([])
+      setAppliedSearch(trimmed)
+    }
   }
 
   const handleClearSearch = () => {
     setSearchInput("")
-    setAppliedSearch("")
+    if (appliedSearch !== "") {
+      if (viewMode === "BY_COMPONENT") setArticles([])
+      else setComponentGroups([])
+      setAppliedSearch("")
+    }
   }
 
   // Data for View 1: By Component & Color
@@ -283,10 +296,60 @@ function ConformHistoryContent() {
 
   const [isPending, startTransition] = useTransition()
 
-  // Active Tab Driven Fetching for maximum performance
-  const fetchData = useCallback(async (forcedView?: "BY_COMPONENT" | "BY_ARTICLE") => {
-    const currentView = forcedView || viewMode
-    setLoading(true)
+  // Stable refs for instant caching
+  const viewModeRef = useRef(viewMode)
+  viewModeRef.current = viewMode
+  const componentGroupsRef = useRef(componentGroups)
+  componentGroupsRef.current = componentGroups
+  const articlesRef = useRef(articles)
+  articlesRef.current = articles
+
+  const startProgress = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    setLoadingProgress(15)
+    progressTimerRef.current = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev < 40) return prev + 12
+        if (prev < 65) return prev + 8
+        if (prev < 85) return prev + 4
+        if (prev < 95) return prev + 1
+        return prev
+      })
+    }, 110)
+  }, [])
+
+  const stopProgress = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    setLoadingProgress(100)
+    setTimeout(() => {
+      setLoading(false)
+      setIsRefreshing(false)
+      setLoadingProgress(0)
+    }, 250)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+    }
+  }, [])
+
+  // Active Tab Driven Fetching with smart caching & progress animation
+  const fetchData = useCallback(async (forcedView?: "BY_COMPONENT" | "BY_ARTICLE", forceRefresh?: boolean) => {
+    const currentView = forcedView || viewModeRef.current
+    const hasData = currentView === "BY_COMPONENT"
+      ? componentGroupsRef.current.length > 0
+      : articlesRef.current.length > 0
+
+    if (!hasData || forceRefresh) {
+      if (!hasData) {
+        setLoading(true)
+      } else {
+        setIsRefreshing(true)
+      }
+      startProgress()
+    }
+
     try {
       if (currentView === "BY_COMPONENT") {
         const compRes = await getGroupedComponentColorSummaries({
@@ -311,9 +374,9 @@ function ConformHistoryContent() {
       console.error(err)
       toast.error("Gagal memuat data Color Conform")
     } finally {
-      setLoading(false)
+      stopProgress()
     }
-  }, [viewMode, appliedSearch, statusFilter, componentFilter, stats.total])
+  }, [appliedSearch, statusFilter, componentFilter, stats.total, startProgress, stopProgress])
 
   // Lazy-load article picker options only when opened
   const handleOpenArticlePicker = async () => {
@@ -328,19 +391,22 @@ function ConformHistoryContent() {
     }
   }
 
-  // Switch tab with instant responsiveness
+  // Switch tab with instant responsiveness & zero reload if data is cached
   const handleSwitchView = (newMode: "BY_COMPONENT" | "BY_ARTICLE") => {
     if (newMode === viewMode) return
     setViewMode(newMode)
-    if (newMode === "BY_ARTICLE" && articles.length === 0) {
+    viewModeRef.current = newMode
+
+    if (newMode === "BY_ARTICLE" && articlesRef.current.length === 0) {
       fetchData("BY_ARTICLE")
-    } else if (newMode === "BY_COMPONENT" && componentGroups.length === 0) {
+    } else if (newMode === "BY_COMPONENT" && componentGroupsRef.current.length === 0) {
       fetchData("BY_COMPONENT")
     }
+    // If the target tab ALREADY has data, it switches instantly with 0ms delay!
   }
 
   useEffect(() => {
-    fetchData()
+    fetchData(viewModeRef.current)
   }, [fetchData])
 
   // Open Window Modal for an Article
@@ -673,12 +739,12 @@ function ConformHistoryContent() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchData()}
-            disabled={loading}
+            onClick={() => fetchData(undefined, true)}
+            disabled={loading || isRefreshing}
             className="gap-1.5"
           >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            Refresh
+            <RefreshCw className={cn("h-4 w-4", (loading || isRefreshing) && "animate-spin text-indigo-600")} />
+            {isRefreshing ? `Memperbarui (${loadingProgress}%)` : "Refresh"}
           </Button>
           {canManage && (
             <Button
@@ -691,6 +757,33 @@ function ConformHistoryContent() {
           )}
         </div>
       </div>
+
+      {/* GLOBAL SLIM PROGRESS BAR (Top Bar with Percentage) */}
+      {(loading || isRefreshing) && (
+        <div className="space-y-1.5 animate-in fade-in duration-200 bg-indigo-50/60 dark:bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-200/70 dark:border-indigo-900/50 shadow-xs">
+          <div className="flex items-center justify-between text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+              <span>
+                {loadingProgress < 40
+                  ? "Menghubungkan ke server..."
+                  : loadingProgress < 80
+                  ? "Mengambil data konfirmasi warna..."
+                  : "Menyiapkan tampilan data..."}
+              </span>
+            </span>
+            <span className="font-mono font-bold text-xs bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-200/50">
+              {loadingProgress}%
+            </span>
+          </div>
+          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 transition-all duration-200 ease-out rounded-full"
+              style={{ width: `${loadingProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* DUAL-VIEW SWITCHER TABS */}
       <div className="flex border-b border-border bg-muted/20 rounded-xl p-1 gap-1">
@@ -902,12 +995,37 @@ function ConformHistoryContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading && componentGroups.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-40 text-center">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                          <span className="text-xs text-muted-foreground">Memuat data komponen dan warna...</span>
+                      <TableCell colSpan={4} className="h-56 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3.5 max-w-sm mx-auto py-8">
+                          <div className="relative flex items-center justify-center">
+                            <div className="h-14 w-14 rounded-full border-4 border-indigo-100 dark:border-indigo-950 flex items-center justify-center bg-indigo-50/50 dark:bg-indigo-950/30">
+                              <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+                            </div>
+                            <span className="absolute text-xs font-extrabold text-indigo-700 dark:text-indigo-300 font-mono">
+                              {loadingProgress}%
+                            </span>
+                          </div>
+                          <div className="w-full space-y-2 text-center">
+                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-1">
+                              <span>Memuat Komponen & Warna...</span>
+                              <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{loadingProgress}%</span>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border">
+                              <div
+                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 transition-all duration-200 ease-out rounded-full"
+                                style={{ width: `${loadingProgress}%` }}
+                              />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              {loadingProgress < 40
+                                ? "Menghubungkan ke database..."
+                                : loadingProgress < 80
+                                ? "Mengambil kombinasi komponen & warna..."
+                                : "Menyiapkan tabel komponen..."}
+                            </p>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1177,12 +1295,37 @@ function ConformHistoryContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading && articles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-40 text-center">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                          <span className="text-xs text-muted-foreground">Memuat data konfirmasi warna artikel...</span>
+                      <TableCell colSpan={4} className="h-56 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3.5 max-w-sm mx-auto py-8">
+                          <div className="relative flex items-center justify-center">
+                            <div className="h-14 w-14 rounded-full border-4 border-indigo-100 dark:border-indigo-950 flex items-center justify-center bg-indigo-50/50 dark:bg-indigo-950/30">
+                              <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+                            </div>
+                            <span className="absolute text-xs font-extrabold text-indigo-700 dark:text-indigo-300 font-mono">
+                              {loadingProgress}%
+                            </span>
+                          </div>
+                          <div className="w-full space-y-2 text-center">
+                            <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-200 px-1">
+                              <span>Memuat Monitoring Artikel...</span>
+                              <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{loadingProgress}%</span>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border">
+                              <div
+                                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 transition-all duration-200 ease-out rounded-full"
+                                style={{ width: `${loadingProgress}%` }}
+                              />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              {loadingProgress < 40
+                                ? "Menghubungkan ke database..."
+                                : loadingProgress < 80
+                                ? "Mengambil status per artikel..."
+                                : "Menyiapkan tabel artikel..."}
+                            </p>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>
