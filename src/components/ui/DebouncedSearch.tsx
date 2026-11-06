@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Search, QrCode } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { CameraScanner } from "@/components/features/camera-scanner"
 
-export function DebouncedSearch() {
+export function DebouncedSearch({ placeholder }: { placeholder?: string }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -16,6 +16,11 @@ export function DebouncedSearch() {
 
   const [term, setTerm] = useState(searchParams.get("search")?.toString() || "")
   const [isScannerOpen, setIsScannerOpen] = useState(false)
+
+  // Sync term when search param changes externally (e.g. from active filter chips)
+  useEffect(() => {
+    setTerm(searchParams.get("search")?.toString() || "")
+  }, [searchParams])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +61,7 @@ export function DebouncedSearch() {
           <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             type="search"
-            placeholder="Search model, article, color, size, PO..."
+            placeholder={placeholder || "Cari model, artikel, warna, size... (misal: 9dj white 5T)"}
             className="pl-9 pr-10 w-full bg-white dark:bg-gray-800"
             value={term}
             onChange={handleChange}

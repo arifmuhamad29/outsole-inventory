@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { DebouncedSearch } from "@/components/ui/DebouncedSearch"
@@ -7,10 +6,19 @@ import { RowsPerPageFilter } from "@/components/ui/RowsPerPageFilter"
 import { PaginationControls } from "@/components/ui/PaginationControls"
 import { Suspense } from "react"
 import { InventoryTable } from "@/components/features/inventory-table"
+import { InventoryFilters, ActiveFilterChips } from "@/components/features/inventory-filters"
+import { buildInventoryWhereClause } from "@/lib/inventory-search"
 
 export default async function InventoryPage(props: { 
   searchParams?: Promise<{ 
     search?: string | string[]
+    model?: string | string[]
+    article?: string | string[]
+    color?: string | string[]
+    size?: string | string[]
+    poNumber?: string | string[]
+    soleType?: string | string[]
+    bottomTreatment?: string | string[]
     page?: string | string[]
     limit?: string | string[]
     status?: string | string[] 
@@ -22,6 +30,14 @@ export default async function InventoryPage(props: {
   const resolvedParams = props.searchParams ? await props.searchParams : {}
   const rawSearch = resolvedParams.search
   const search = typeof rawSearch === 'string' ? rawSearch : ""
+
+  const model = typeof resolvedParams.model === 'string' ? resolvedParams.model : ""
+  const article = typeof resolvedParams.article === 'string' ? resolvedParams.article : ""
+  const color = typeof resolvedParams.color === 'string' ? resolvedParams.color : ""
+  const size = typeof resolvedParams.size === 'string' ? resolvedParams.size : ""
+  const poNumber = typeof resolvedParams.poNumber === 'string' ? resolvedParams.poNumber : ""
+  const soleType = typeof resolvedParams.soleType === 'string' ? resolvedParams.soleType : ""
+  const bottomTreatment = typeof resolvedParams.bottomTreatment === 'string' ? resolvedParams.bottomTreatment : ""
   
   const rawPage = resolvedParams.page
   const currentPage = typeof rawPage === 'string' ? Math.max(1, parseInt(rawPage) || 1) : 1
@@ -29,26 +45,17 @@ export default async function InventoryPage(props: {
   const rawStatus = resolvedParams.status
   const statusFilter = typeof rawStatus === 'string' ? rawStatus : "all"
 
-  const whereClause: Prisma.OutsoleWhereInput = {
-    isActive: true,
-  }
-
-  if (search) {
-    whereClause.OR = [
-      { model: { contains: search, mode: "insensitive" } },
-      { article: { contains: search, mode: "insensitive" } },
-      { qrCode: { contains: search, mode: "insensitive" } },
-      { color: { contains: search, mode: "insensitive" } },
-      { poNumber: { contains: search, mode: "insensitive" } },
-      { size: { contains: search, mode: "insensitive" } }
-    ]
-  }
-
-  if (statusFilter === "lowstock") {
-    whereClause.stock = { lte: prisma.outsole.fields.minimumStock }
-  } else if (statusFilter === "instock") {
-    whereClause.stock = { gt: prisma.outsole.fields.minimumStock }
-  }
+  const whereClause = buildInventoryWhereClause({
+    search,
+    model,
+    article,
+    color,
+    size,
+    poNumber,
+    soleType,
+    bottomTreatment,
+    status: statusFilter,
+  })
 
   const rawLimit = resolvedParams.limit
   const limit = typeof rawLimit === 'string' ? Math.max(1, parseInt(rawLimit) || 48) : 48
@@ -77,7 +84,7 @@ export default async function InventoryPage(props: {
   ])
   const realTotalStock = stockAgg._sum.stock || 0
 
-  // 3. Fetch transaction details only for the 25 outsoles currently visible
+  // 3. Fetch transaction details only for the outsoles currently visible
   const outsoleIds = outsolesRaw.map(o => o.id)
 
   const [lastOutbounds, lastInbounds] = await Promise.all([
@@ -102,18 +109,28 @@ export default async function InventoryPage(props: {
     return { ...o, transactions }
   })
 
+  const isFiltered = totalCount !== totalSku
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
           <p className="text-muted-foreground mt-2">
             Manage all outsole inventory. Total SKUs: {totalSku} | Total Stock: {realTotalStock}
+            {isFiltered && (
+              <span className="font-semibold text-primary ml-1.5">
+                (Ditemukan {totalCount} SKU)
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
+        <div className="flex flex-wrap sm:flex-nowrap gap-2.5 w-full sm:w-auto items-stretch sm:items-center">
           <Suspense fallback={<div className="animate-pulse h-9 w-full sm:w-64 bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
             <DebouncedSearch />
+          </Suspense>
+          <Suspense fallback={<div className="animate-pulse h-9 w-20 bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
+            <InventoryFilters />
           </Suspense>
           <Suspense fallback={<div className="animate-pulse h-9 w-full sm:w-36 bg-gray-200 dark:bg-gray-700 rounded-md"></div>}>
             <StatusFilter />
@@ -123,6 +140,10 @@ export default async function InventoryPage(props: {
           </Suspense>
         </div>
       </div>
+
+      <Suspense fallback={null}>
+        <ActiveFilterChips />
+      </Suspense>
 
       <div className="space-y-4">
         <InventoryTable outsoles={outsoles} isAdmin={isAdmin} readOnly={!isAdmin} />

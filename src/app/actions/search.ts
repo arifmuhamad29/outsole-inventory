@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { buildInventoryWhereClause } from "@/lib/inventory-search";
 
 export async function globalSearchAll(query: string) {
   if (!query || query.trim() === "") return [];
@@ -20,14 +21,7 @@ export async function globalSearchAll(query: string) {
       include: { season: true }
     }),
     prisma.outsole.findMany({
-      where: {
-        OR: [
-          { article: { contains: query, mode: "insensitive" } },
-          { model: { contains: query, mode: "insensitive" } },
-          { poNumber: { contains: query, mode: "insensitive" } },
-          { qrCode: { contains: query, mode: "insensitive" } },
-        ],
-      },
+      where: buildInventoryWhereClause({ search: query }),
       distinct: ["article", "model", "poNumber"],
       take: 5,
     }),
@@ -72,11 +66,11 @@ export async function globalSearchAll(query: string) {
     results.push({
       id: `inv-${item.id}`,
       originalId: item.id,
-      title: `${item.article !== "-" ? item.article : "No Article"} - ${item.model}`,
-      subtitle: `Inventory | Stock: ${item.stock} | PO: ${item.poNumber || "N/A"}`,
+      title: `${item.article !== "-" ? item.article : "No Article"} - ${item.model} (${item.color})`,
+      subtitle: `Inventory | Stock: ${item.stock} | Size: ${item.size} | PO: ${item.poNumber || "N/A"}`,
       module: "Inventory",
       badgeColor: "bg-purple-100 text-purple-800",
-      url: `/inventory?search=${item.article !== "-" ? item.article : item.model}`,
+      url: `/inventory?search=${encodeURIComponent(item.article !== "-" ? `${item.article} ${item.color}` : item.model)}`,
     });
   });
 

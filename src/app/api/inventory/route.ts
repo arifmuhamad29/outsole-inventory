@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { buildInventoryWhereClause } from "@/lib/inventory-search"
 
 export async function GET(req: Request) {
   try {
@@ -10,19 +11,19 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const query = searchParams.get("query") || ""
+    const query = searchParams.get("query") || searchParams.get("search") || ""
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "10")
     const skip = (page - 1) * limit
 
-    const where = {
-      isActive: true,
-      OR: query ? [
-        { model: { contains: query, mode: "insensitive" as const } },
-        { color: { contains: query, mode: "insensitive" as const } },
-        { qrCode: { contains: query, mode: "insensitive" as const } }
-      ] : undefined
-    }
+    const where = buildInventoryWhereClause({
+      search: query,
+      model: searchParams.get("model") || undefined,
+      article: searchParams.get("article") || undefined,
+      color: searchParams.get("color") || undefined,
+      size: searchParams.get("size") || undefined,
+      status: searchParams.get("status") || undefined,
+    })
 
     const [outsoles, total] = await Promise.all([
       prisma.outsole.findMany({
