@@ -12,6 +12,16 @@ export async function POST(req: Request) {
       )
     }
 
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Akses ditolak: Hanya SUPER_ADMIN yang memiliki izin untuk mengatur API Key dan model AI.",
+        },
+        { status: 403 }
+      )
+    }
+
     const body = await req.json().catch(() => ({}))
     const apiKey = typeof body.apiKey === "string" && body.apiKey.trim() ? body.apiKey.trim() : undefined
 

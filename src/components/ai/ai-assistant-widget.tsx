@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -43,7 +44,13 @@ interface GeminiModelItem {
   description?: string
 }
 
-export function AiAssistantWidget() {
+export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperAdmin?: boolean }) {
+  const { data: session } = useSession()
+  const isSuperAdmin =
+    typeof propIsSuperAdmin === "boolean"
+      ? propIsSuperAdmin
+      : session?.user?.role === "SUPER_ADMIN"
+
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
@@ -224,15 +231,22 @@ export function AiAssistantWidget() {
       const data = await res.json()
 
       if (!res.ok || !data.success) {
-        // If error indicates missing or invalid key, open settings automatically
+        // If error indicates missing or invalid key, open settings automatically for SUPER_ADMIN
         if (data.message && (data.message.includes("GEMINI_API_KEY") || data.message.includes("API key"))) {
-          setShowSettings(true)
+          if (isSuperAdmin) {
+            setShowSettings(true)
+          }
         }
+
+        const errorContent =
+          !isSuperAdmin && data.message?.includes("GEMINI_API_KEY")
+            ? "⚠️ **Layanan AI Belum Dikonfigurasi:** Silakan hubungi Super Administrator untuk mengonfigurasi Kunci API AI."
+            : `⚠️ **Gagal:** ${data.message || "Terjadi kesalahan saat memproses pertanyaan."}`
 
         const errorMessage: Message = {
           id: `assistant-err-${Date.now()}`,
           role: "assistant",
-          content: `⚠️ **Gagal:** ${data.message || "Terjadi kesalahan saat memproses pertanyaan."}`,
+          content: errorContent,
           timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
         }
         setMessages((prev) => [...prev, errorMessage])
@@ -363,17 +377,19 @@ export function AiAssistantWidget() {
             </div>
 
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSettings(!showSettings)}
-                className={`h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10 ${
-                  showSettings ? "bg-white/15 text-white" : ""
-                }`}
-                title="Konfigurasi API Key & Model"
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-              </Button>
+              {isSuperAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10 ${
+                    showSettings ? "bg-white/15 text-white" : ""
+                  }`}
+                  title="Konfigurasi API Key & Model (Super Admin)"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -395,14 +411,17 @@ export function AiAssistantWidget() {
             </div>
           </div>
 
-          {/* Settings Drawer (Step 1: Input Key -> Step 2: Tarik Model -> Step 3: Pilih Model) */}
-          {showSettings && (
+          {/* Settings Drawer (Step 1: Input Key -> Step 2: Tarik Model -> Step 3: Pilih Model) - SUPER ADMIN ONLY */}
+          {showSettings && isSuperAdmin && (
             <div className="p-3.5 bg-slate-50 dark:bg-gray-800/90 border-b border-slate-200 dark:border-gray-700 text-xs space-y-3 animate-in slide-in-from-top-2">
               <div className="flex items-center justify-between font-semibold text-foreground">
-                <span className="flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-xs">
                   <KeyRound className="w-4 h-4 text-primary" />
-                  Konfigurasi Kunci API & Pemilihan Model
-                </span>
+                  <span>Konfigurasi Kunci API & Model</span>
+                  <Badge variant="destructive" className="text-[8px] px-1.5 py-0 h-3.5 font-bold">
+                    SUPER ADMIN
+                  </Badge>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowSettings(false)}

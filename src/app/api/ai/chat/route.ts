@@ -24,10 +24,17 @@ export async function POST(req: Request) {
 
     const chatHistory: ChatMessage[] = Array.isArray(history) ? history : []
 
+    // Only SUPER_ADMIN can supply a custom API key override
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN"
+    const apiKeyToUse =
+      isSuperAdmin && typeof customApiKey === "string" && customApiKey.trim()
+        ? customApiKey.trim()
+        : undefined
+
     const result = await processAiInventoryChat(
       message.trim(),
       chatHistory,
-      typeof customApiKey === "string" && customApiKey.trim() ? customApiKey.trim() : undefined,
+      apiKeyToUse,
       typeof selectedModel === "string" && selectedModel.trim() ? selectedModel.trim() : undefined
     )
 
