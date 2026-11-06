@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
 import { NotificationBell } from "@/components/NotificationBell"
+import { AiAssistantWidget } from "@/components/ai/ai-assistant-widget"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession({
@@ -113,7 +114,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   by : Arif Setiawan
                 </span>
                 <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                  v2.2.18
+                  v2.2.19
                 </span>
               </div>
             </div>
@@ -183,7 +184,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.2.18
+                v2.2.19
               </span>
             </div>
           </div>
@@ -257,6 +258,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+      <AiAssistantWidget />
     </div>
   )
 }
