@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, FunctionDeclaration, SchemaType } from "@google/generative-ai"
+import { FunctionDeclaration, SchemaType } from "@google/generative-ai"
 import prisma from "@/lib/prisma"
 import { buildInventoryWhereClause } from "@/lib/inventory-search"
 
@@ -135,13 +135,22 @@ async function executeTool(name: string, args: Record<string, unknown>) {
   try {
     switch (name) {
       case "searchOutsoles": {
-        const query = typeof args.query === "string" ? args.query : undefined
+        let query = typeof args.query === "string" ? args.query : undefined
+        if (query) {
+          query = query
+            .replace(
+              /\b(stok|stock|sol|outsole|midsole|sepatu|warna|color|ukuran|size|berapa|ada|cari|cek)\b/gi,
+              " "
+            )
+            .replace(/\s+/g, " ")
+            .trim()
+        }
         const model = typeof args.model === "string" ? args.model : undefined
         const article = typeof args.article === "string" ? args.article : undefined
         const color = typeof args.color === "string" ? args.color : undefined
         const size = typeof args.size === "string" ? args.size : undefined
         const status = typeof args.status === "string" ? args.status : undefined
-        const limit = typeof args.limit === "number" ? Math.min(Math.max(1, args.limit), 25) : 10
+        const limit = typeof args.limit === "number" ? Math.min(Math.max(1, args.limit), 25) : 15
 
         const where = buildInventoryWhereClause({
           search: query,
@@ -405,8 +414,29 @@ export async function fetchAvailableGeminiModels(
   return validModels
 }
 
+interface GeminiContentPart {
+  text?: string
+  functionCall?: {
+    name: string
+    args: Record<string, unknown>
+  }
+  functionResponse?: {
+    name: string
+    response: {
+      result: unknown
+    }
+  }
+}
+
+interface GeminiContent {
+  role: "user" | "model"
+  parts: GeminiContentPart[]
+}
+
 /**
  * Process a chat message with Google Gemini, resolving any Function Calling tools automatically.
+ * Uses direct REST API call so functionResponse uses role: "user", avoiding the SDK bug
+ * "[400 Bad Request] Role 'function' is not supported".
  */
 export async function processAiInventoryChat(
   message: string,
@@ -414,9 +444,9 @@ export async function processAiInventoryChat(
   apiKeyOverride?: string,
   modelNameOverride?: string
 ): Promise<{ reply: string; toolsUsed: string[]; modelUsed: string }> {
-  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY
+  const apiKey = (apiKeyOverride || process.env.GEMINI_API_KEY || "").trim()
 
-  if (!apiKey || apiKey.trim() === "") {
+  if (!apiKey) {
     throw new Error(
       "GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan Kunci API Anda terlebih dahulu di pengaturan asisten AI."
     )
@@ -428,46 +458,113 @@ export async function processAiInventoryChat(
     ""
   )
 
-  const genAI = new GoogleGenerativeAI(apiKey.trim())
-  const model = genAI.getGenerativeModel({
-    model: chosenModel,
-    systemInstruction: SYSTEM_INSTRUCTION,
-    tools: [
-      {
-        functionDeclarations: [
-          searchOutsolesDeclaration,
-          getInventoryOverviewDeclaration,
-          getRecentTransactionsDeclaration,
-          searchHandoversDeclaration,
-          searchToolingDeclaration,
-        ],
-      },
-    ],
-  })
+  const toolsPayload = [
+    {
+      functionDeclarations: [
+        searchOutsolesDeclaration,
+        getInventoryOverviewDeclaration,
+        getRecentTransactionsDeclaration,
+        searchHandoversDeclaration,
+        searchToolingDeclaration,
+      ],
+    },
+  ]
 
-  // Start chat session with past history
-  const chat = model.startChat({
-    history: history.slice(-8), // Keep last 8 turns for context window efficiency
+  // Construct conversation contents
+  const contents: GeminiContent[] = []
+
+  // Add history (last 6 messages)
+  for (const h of history.slice(-6)) {
+    if (h.parts && Array.isArray(h.parts) && h.parts.length > 0) {
+      contents.push({
+        role: h.role === "user" ? "user" : "model",
+        parts: h.parts.map((p) => ({ text: p.text })),
+      })
+    }
+  }
+
+  // Add new user prompt
+  contents.push({
+    role: "user",
+    parts: [{ text: message }],
   })
 
   const toolsUsed: string[] = []
-
-  // Send initial message
-  let response = await chat.sendMessage(message)
-
-  // Loop through function calls if Gemini requests them (supports multi-turn tool calling)
-  let functionCalls = response.response.functionCalls()
-  let iterations = 0
   const maxIterations = 5
+  let iterations = 0
+  let finalReply = ""
 
-  while (functionCalls && functionCalls.length > 0 && iterations < maxIterations) {
+  while (iterations < maxIterations) {
     iterations++
-    const functionResponses = []
 
-    for (const call of functionCalls) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${chosenModel}:generateContent?key=${apiKey}`
+
+    const requestBody = {
+      contents,
+      systemInstruction: {
+        parts: [{ text: SYSTEM_INSTRUCTION }],
+      },
+      tools: toolsPayload,
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 1024,
+      },
+    }
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    })
+
+    const data = await res.json()
+
+    if (!res.ok || data.error) {
+      const errorMsg = data.error?.message || `Google API error (Status: ${res.status})`
+      throw new Error(errorMsg)
+    }
+
+    const candidate = data.candidates?.[0]
+    if (!candidate || !candidate.content) {
+      finalReply = "Maaf, tidak ada tanggapan dari model AI."
+      break
+    }
+
+    const candidateParts: GeminiContentPart[] =
+      (candidate.content.parts as GeminiContentPart[]) || []
+
+    // Check if the model requested function calls
+    const functionCalls = candidateParts.filter(
+      (
+        p
+      ): p is GeminiContentPart & {
+        functionCall: { name: string; args: Record<string, unknown> }
+      } => Boolean(p.functionCall && p.functionCall.name)
+    )
+
+    if (functionCalls.length === 0) {
+      // Model responded with text directly
+      const textParts = candidateParts
+        .map((p) => p.text)
+        .filter((t): t is string => typeof t === "string" && t.length > 0)
+        .join("\n")
+
+      finalReply = textParts || "Maaf, respon kosong dari model."
+      break
+    }
+
+    // Function calls were requested:
+    // 1. Add model's functionCall turn to contents
+    contents.push(candidate.content)
+
+    // 2. Execute all function calls
+    const responseParts: GeminiContentPart[] = []
+
+    for (const callPart of functionCalls) {
+      const call = callPart.functionCall
       toolsUsed.push(call.name)
-      const result = await executeTool(call.name, call.args as Record<string, unknown>)
-      functionResponses.push({
+      const result = await executeTool(call.name, (call.args as Record<string, unknown>) || {})
+      responseParts.push({
         functionResponse: {
           name: call.name,
           response: { result },
@@ -475,15 +572,17 @@ export async function processAiInventoryChat(
       })
     }
 
-    // Send tool execution results back to Gemini
-    response = await chat.sendMessage(functionResponses)
-    functionCalls = response.response.functionCalls()
+    // 3. Add function responses to contents with role "user" (NOT "function"!)
+    contents.push({
+      role: "user",
+      parts: responseParts,
+    })
+
+    // Loop continues to let Gemini read the result and answer or call another tool
   }
 
-  const replyText = response.response.text() || "Maaf, saya tidak dapat merespons saat ini."
-
   return {
-    reply: replyText,
+    reply: finalReply || "Maaf, saya tidak dapat merespons saat ini.",
     toolsUsed: Array.from(new Set(toolsUsed)),
     modelUsed: chosenModel,
   }
