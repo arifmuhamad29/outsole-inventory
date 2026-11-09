@@ -406,3 +406,14 @@ model ColorConformHistory {
   @@index([confirmDate])
   @@index([projectDev])
 }
+
+// ============================================================
+// System Settings (Global Configuration)
+// Used for centralized system configurations such as Gemini AI API Key & Model
+// ============================================================
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+

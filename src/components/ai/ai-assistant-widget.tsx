@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,15 +56,20 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // API Key & Model Configuration
+  // Central System AI Configuration State
+  const [isAiConfigured, setIsAiConfigured] = useState(false)
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true)
+  const [maskedKey, setMaskedKey] = useState<string | null>(null)
+  const [savedModel, setSavedModel] = useState<string>("gemini-2.0-flash")
+
+  // Settings Drawer (Super Admin only)
   const [showSettings, setShowSettings] = useState(false)
   const [customKey, setCustomKey] = useState("")
-  const [savedKey, setSavedKey] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Model pulling state
   const [modelsList, setModelsList] = useState<GeminiModelItem[]>([])
   const [selectedModel, setSelectedModel] = useState<string>("gemini-2.0-flash")
-  const [savedModel, setSavedModel] = useState<string>("gemini-2.0-flash")
   const [isPullingModels, setIsPullingModels] = useState(false)
   const [pullStatus, setPullStatus] = useState<{
     type: "success" | "error"
@@ -74,23 +79,42 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Load configuration from localStorage on mount
-  useEffect(() => {
+  // Load AI configuration from central server
+  const loadAiSettings = useCallback(async () => {
     try {
-      const storedKey = localStorage.getItem("GEMINI_USER_API_KEY")
-      const storedModel = localStorage.getItem("GEMINI_SELECTED_MODEL")
-      if (storedKey) {
-        setSavedKey(storedKey)
-        setCustomKey(storedKey)
+      setIsLoadingStatus(true)
+      const res = await fetch("/api/ai/settings")
+      const data = await res.json()
+      if (data.success) {
+        setIsAiConfigured(Boolean(data.isConfigured))
+        if (data.activeModel) {
+          setSavedModel(data.activeModel)
+          setSelectedModel(data.activeModel)
+        }
+        if (data.maskedKey) {
+          setMaskedKey(data.maskedKey)
+        }
       }
-      if (storedModel) {
-        setSavedModel(storedModel)
-        setSelectedModel(storedModel)
-      }
-    } catch {
-      // Ignore localStorage errors
+    } catch (err) {
+      console.error("Failed to fetch AI settings status:", err)
+    } finally {
+      setIsLoadingStatus(false)
     }
   }, [])
+
+  useEffect(() => {
+    loadAiSettings()
+
+    // If Super Admin previously typed a key in localStorage, pre-fill it for seamless migration
+    try {
+      const storedKey = localStorage.getItem("GEMINI_USER_API_KEY")
+      if (storedKey) {
+        setCustomKey(storedKey)
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+  }, [loadAiSettings])
 
   // Auto-scroll to bottom of messages
   const scrollToBottom = () => {
@@ -112,10 +136,10 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
     "Cari artikel 9DJ",
   ]
 
-  // Step 1: Pull Models from Google using the entered API key
+  // Step 1: Pull Models from Google using the entered API key or existing saved key
   const handlePullModels = async () => {
-    const keyToTest = customKey.trim() || savedKey?.trim()
-    if (!keyToTest) {
+    const keyToTest = customKey.trim()
+    if (!keyToTest && !isAiConfigured) {
       setPullStatus({
         type: "error",
         message: "Silakan masukkan Kunci API Gemini Anda terlebih dahulu.",
@@ -130,7 +154,7 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
       const res = await fetch("/api/ai/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: keyToTest }),
+        body: JSON.stringify({ apiKey: keyToTest || undefined }),
       })
 
       const data = await res.json()
@@ -147,8 +171,9 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
       setModelsList(models)
 
       if (models.length > 0) {
-        // Automatically default to gemini-2.0-flash or gemini-1.5-flash if available
+        // Automatically select the active model or preferred modern flash model
         const preferred =
+          models.find((m) => m.id === savedModel) ||
           models.find((m) => m.id.includes("2.0-flash")) ||
           models.find((m) => m.id.includes("1.5-flash")) ||
           models[0]
@@ -174,25 +199,71 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
     }
   }
 
-  // Step 2: Save the verified key and selected model
-  const handleSaveConfiguration = (e: React.FormEvent) => {
+  // Step 2: Save verified key & model centrally into the database for all users
+  const handleSaveConfiguration = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!customKey.trim() && !savedKey) {
+    if (!customKey.trim() && !isAiConfigured) {
       setPullStatus({
         type: "error",
-        message: "API Key belum diisi.",
+        message: "API Key belum diisi. Masukkan API Key terlebih dahulu.",
       })
       return
     }
 
-    const keyToSave = customKey.trim() || savedKey || ""
-    localStorage.setItem("GEMINI_USER_API_KEY", keyToSave)
-    localStorage.setItem("GEMINI_SELECTED_MODEL", selectedModel)
-
-    setSavedKey(keyToSave)
-    setSavedModel(selectedModel)
-    setShowSettings(false)
+    setIsSaving(true)
     setPullStatus(null)
+
+    try {
+      const res = await fetch("/api/ai/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: customKey.trim() || undefined,
+          model: selectedModel,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        setPullStatus({
+          type: "error",
+          message: data.message || "Gagal menyimpan konfigurasi AI ke database.",
+        })
+        return
+      }
+
+      setIsAiConfigured(true)
+      setSavedModel(data.model || selectedModel)
+      setCustomKey("") // Clear raw key input after saving to DB
+      await loadAiSettings()
+
+      // Clean legacy localStorage
+      try {
+        localStorage.removeItem("GEMINI_USER_API_KEY")
+        localStorage.removeItem("GEMINI_SELECTED_MODEL")
+      } catch {
+        // Ignore
+      }
+
+      setPullStatus({
+        type: "success",
+        message:
+          "Berhasil disimpan di sistem! Sekarang seluruh akun pengguna dapat menggunakan Asisten AI.",
+      })
+
+      setTimeout(() => {
+        setShowSettings(false)
+        setPullStatus(null)
+      }, 1500)
+    } catch {
+      setPullStatus({
+        type: "error",
+        message: "Terjadi kesalahan saat menyimpan konfigurasi ke server.",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -217,36 +288,35 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
     }))
 
     try {
+      // Chat endpoint utilizes the centralized key saved by Administrator on the server
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
           history: historyPayload,
-          customApiKey: savedKey || undefined,
-          selectedModel: savedModel || undefined,
         }),
       })
 
       const data = await res.json()
 
       if (!res.ok || !data.success) {
-        // If error indicates missing or invalid key, open settings automatically for SUPER_ADMIN
-        if (data.message && (data.message.includes("GEMINI_API_KEY") || data.message.includes("API key"))) {
+        // If error indicates unconfigured key, prompt Super Admin to open settings
+        if (
+          data.message &&
+          (data.message.includes("GEMINI_API_KEY") ||
+            data.message.includes("dikonfigurasi oleh Administrator") ||
+            data.message.includes("Kunci API"))
+        ) {
           if (isSuperAdmin) {
             setShowSettings(true)
           }
         }
 
-        const errorContent =
-          !isSuperAdmin && data.message?.includes("GEMINI_API_KEY")
-            ? "⚠️ **Layanan AI Belum Dikonfigurasi:** Silakan hubungi Super Administrator untuk mengonfigurasi Kunci API AI."
-            : `⚠️ **Gagal:** ${data.message || "Terjadi kesalahan saat memproses pertanyaan."}`
-
         const errorMessage: Message = {
           id: `assistant-err-${Date.now()}`,
           role: "assistant",
-          content: errorContent,
+          content: `⚠️ **Pemberitahuan:** ${data.message || "Terjadi kesalahan saat memproses pertanyaan."}`,
           timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
         }
         setMessages((prev) => [...prev, errorMessage])
@@ -338,12 +408,14 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
         >
           <Sparkles className="w-5 h-5 animate-pulse text-amber-300" />
           <span className="text-sm font-semibold tracking-wide">Tanya AI</span>
-          <Badge
-            variant="secondary"
-            className="ml-1 text-[10px] h-4.5 px-1.5 py-0 bg-white/20 text-white border-0 font-mono font-bold"
-          >
-            {savedModel.replace("gemini-", "").replace("-preview", "")}
-          </Badge>
+          {isAiConfigured && (
+            <Badge
+              variant="secondary"
+              className="ml-1 text-[10px] h-4.5 px-1.5 py-0 bg-white/20 text-white border-0 font-mono font-bold"
+            >
+              {savedModel.replace("gemini-", "").replace("-preview", "")}
+            </Badge>
+          )}
         </Button>
       )}
 
@@ -359,24 +431,37 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm leading-none">Asisten Gudang AI</span>
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
+                  {isAiConfigured ? (
+                    <span className="flex h-2 w-2 relative" title="Terhubung ke Database">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                  ) : (
+                    <span className="flex h-2 w-2 relative" title="Belum Dikonfigurasi">
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Badge
                     variant="outline"
-                    className="text-[9px] px-1.5 py-0 h-4 border-indigo-400/40 text-indigo-300 font-mono"
+                    className={`text-[9px] px-1.5 py-0 h-4 font-mono ${
+                      isAiConfigured
+                        ? "border-indigo-400/40 text-indigo-300"
+                        : "border-amber-400/40 text-amber-300"
+                    }`}
                   >
-                    {savedModel}
+                    {isAiConfigured ? savedModel : "Belum Aktif"}
                   </Badge>
-                  <span className="text-[10px] text-slate-400">• Database Connected</span>
+                  <span className="text-[10px] text-slate-400">
+                    {isAiConfigured ? "• Database Connected" : "• Menunggu Super Admin"}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
+              {/* Settings button is exclusively shown to SUPER_ADMIN */}
               {isSuperAdmin && (
                 <Button
                   variant="ghost"
@@ -385,7 +470,7 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
                   className={`h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10 ${
                     showSettings ? "bg-white/15 text-white" : ""
                   }`}
-                  title="Konfigurasi API Key & Model (Super Admin)"
+                  title="Pengaturan API Key & Model Terpusat (Super Admin)"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                 </Button>
@@ -411,13 +496,13 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
             </div>
           </div>
 
-          {/* Settings Drawer (Step 1: Input Key -> Step 2: Tarik Model -> Step 3: Pilih Model) - SUPER ADMIN ONLY */}
+          {/* Settings Drawer (Super Admin only - saves centrally to DB for all users) */}
           {showSettings && isSuperAdmin && (
             <div className="p-3.5 bg-slate-50 dark:bg-gray-800/90 border-b border-slate-200 dark:border-gray-700 text-xs space-y-3 animate-in slide-in-from-top-2">
               <div className="flex items-center justify-between font-semibold text-foreground">
                 <div className="flex items-center gap-1.5 text-xs">
                   <KeyRound className="w-4 h-4 text-primary" />
-                  <span>Konfigurasi Kunci API & Model</span>
+                  <span>Pengaturan API Key Terpusat</span>
                   <Badge variant="destructive" className="text-[8px] px-1.5 py-0 h-3.5 font-bold">
                     SUPER ADMIN
                   </Badge>
@@ -431,10 +516,24 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
                 </button>
               </div>
 
+              <div className="p-2 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/50 rounded text-[11px] text-blue-900 dark:text-blue-300 leading-relaxed">
+                💡 <strong>Kunci Sistem Terpusat:</strong> Kunci API yang Anda simpan di sini akan tersimpan di database dan otomatis digunakan oleh <strong>semua akun pengguna (Admin & Operator)</strong> tanpa perlu mereka memasukkan API key masing-masing.
+              </div>
+
+              {maskedKey && (
+                <div className="flex items-center justify-between px-2 py-1.5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/50 rounded text-[11px] text-emerald-800 dark:text-emerald-300">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Kunci Aktif Saat Ini:
+                  </span>
+                  <span className="font-mono font-medium">{maskedKey}</span>
+                </div>
+              )}
+
               {/* Step 1: Input API Key & Tarik Model */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground flex items-center justify-between">
-                  <span>1. Masukkan API Key Gemini:</span>
+                  <span>{maskedKey ? "Ganti / Masukkan API Key Gemini:" : "1. Masukkan API Key Gemini:"}</span>
                   <a
                     href="https://aistudio.google.com/app/apikey"
                     target="_blank"
@@ -447,7 +546,7 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
                 <div className="flex gap-2">
                   <Input
                     type="password"
-                    placeholder="AIzaSy..."
+                    placeholder={maskedKey ? "Kosongkan jika tetap memakai kunci aktif..." : "AIzaSy..."}
                     value={customKey}
                     onChange={(e) => setCustomKey(e.target.value)}
                     className="h-8 text-xs bg-white dark:bg-gray-900 font-mono"
@@ -456,7 +555,7 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
                     type="button"
                     size="sm"
                     onClick={handlePullModels}
-                    disabled={isPullingModels || (!customKey.trim() && !savedKey)}
+                    disabled={isPullingModels || (!customKey.trim() && !isAiConfigured)}
                     className="h-8 text-xs px-3 shrink-0 whitespace-nowrap bg-primary"
                   >
                     {isPullingModels ? (
@@ -524,9 +623,17 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
                       type="button"
                       size="sm"
                       onClick={handleSaveConfiguration}
+                      disabled={isSaving}
                       className="h-8 text-xs px-4"
                     >
-                      Simpan & Terapkan Model
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                          Menyimpan ke Server...
+                        </>
+                      ) : (
+                        "Simpan Konfigurasi untuk Semua Pengguna"
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -536,43 +643,73 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
 
           {/* Messages Container */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-gray-950/40">
-            {/* Initial Welcome message if empty */}
+            {/* Initial Welcome or Unconfigured notice if empty */}
             {messages.length === 0 && (
               <div className="space-y-4 pt-2">
-                <div className="flex items-start gap-2.5 bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
-                  <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="space-y-1 text-xs sm:text-sm">
-                    <p className="font-semibold text-foreground">
-                      Halo! Saya Asisten Inventaris Anda. 👋
+                {!isAiConfigured && !isLoadingStatus ? (
+                  <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 space-y-2">
+                    <div className="flex items-center gap-2 font-semibold text-xs sm:text-sm">
+                      <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>Layanan AI Belum Dikonfigurasi</span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+                      {isSuperAdmin
+                        ? "Sebagai Super Administrator, silakan masukkan Kunci API Gemini pada pengaturan sistem (klik ikon kunci di atas). Setelah disimpan, seluruh akun (Admin & Operator) dapat langsung menggunakan Asisten AI ini."
+                        : "Asisten AI saat ini sedang menunggu konfigurasi Kunci API dari Super Administrator. Anda tidak perlu memasukkan API key sendiri; begitu Administrator mengaktifkannya, Anda bisa langsung bertanya di sini."}
                     </p>
-                    <p className="text-muted-foreground text-xs leading-relaxed">
-                      Saya terhubung langsung ke database untuk menjawab kueri stok outsole,
-                      artikel, warna, ukuran, dan mutasi secara akurat.
-                    </p>
+                    {isSuperAdmin && (
+                      <div className="pt-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setShowSettings(true)}
+                          className="text-xs h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          <KeyRound className="w-3 h-3 mr-1" />
+                          Atur Kunci API Sekarang
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-2.5 bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-slate-200 dark:border-gray-700 shadow-sm">
+                      <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-1 text-xs sm:text-sm">
+                        <p className="font-semibold text-foreground">
+                          Halo! Saya Asisten Inventaris Anda. 👋
+                        </p>
+                        <p className="text-muted-foreground text-xs leading-relaxed">
+                          Saya terhubung langsung ke database untuk menjawab kueri stok outsole,
+                          artikel, warna, ukuran, dan mutasi secara akurat.
+                        </p>
+                      </div>
+                    </div>
 
-                {/* Suggested prompt chips */}
-                <div className="space-y-1.5">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                    Coba tanyakan:
-                  </span>
-                  <div className="flex flex-col gap-1.5">
-                    {samplePrompts.map((prompt, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSendMessage(prompt)}
-                        className="text-left text-xs px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary transition-all flex items-center justify-between group shadow-2xs"
-                      >
-                        <span>{prompt}</span>
-                        <ChevronDown className="w-3.5 h-3.5 -rotate-90 opacity-40 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    {/* Suggested prompt chips */}
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                        Coba tanyakan:
+                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        {samplePrompts.map((prompt, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleSendMessage(prompt)}
+                            disabled={!isAiConfigured && !isSuperAdmin}
+                            className="text-left text-xs px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary transition-all flex items-center justify-between group shadow-2xs disabled:opacity-50"
+                          >
+                            <span>{prompt}</span>
+                            <ChevronDown className="w-3.5 h-3.5 -rotate-90 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -665,16 +802,20 @@ export function AiAssistantWidget({ isSuperAdmin: propIsSuperAdmin }: { isSuperA
             >
               <Input
                 ref={inputRef}
-                placeholder="Tanyakan stok, artikel, atau mutasi..."
+                placeholder={
+                  !isAiConfigured && !isSuperAdmin
+                    ? "Menunggu konfigurasi Kunci API oleh Super Admin..."
+                    : "Tanyakan stok, artikel, atau mutasi..."
+                }
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || (!isAiConfigured && !isSuperAdmin)}
                 className="h-10 text-xs sm:text-sm bg-slate-50 dark:bg-gray-950 border-slate-200 dark:border-gray-800"
               />
               <Button
                 type="submit"
                 size="icon"
-                disabled={isLoading || !inputValue.trim()}
+                disabled={isLoading || !inputValue.trim() || (!isAiConfigured && !isSuperAdmin)}
                 className="h-10 w-10 shrink-0 bg-primary hover:bg-primary/90"
               >
                 <Send className="w-4 h-4" />

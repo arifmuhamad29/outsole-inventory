@@ -351,15 +351,105 @@ export interface AvailableGeminiModel {
 }
 
 /**
+ * Reads the centralized AI configuration from the database SystemSetting table.
+ * Falls back to process.env.GEMINI_API_KEY if not configured in DB.
+ */
+export async function getAiSystemConfig(): Promise<{ apiKey: string; model: string }> {
+  try {
+    const settings = await prisma.systemSetting.findMany({
+      where: {
+        key: { in: ["GEMINI_API_KEY", "GEMINI_MODEL"] },
+      },
+    })
+    const map = new Map(settings.map((s) => [s.key, s.value]))
+    const dbKey = (map.get("GEMINI_API_KEY") || "").trim()
+    const dbModel = (map.get("GEMINI_MODEL") || "").trim()
+
+    const apiKey = dbKey || (process.env.GEMINI_API_KEY || "").trim()
+    const model = dbModel || "gemini-2.0-flash"
+
+    return { apiKey, model }
+  } catch (err) {
+    console.error("Error reading AI system config from DB:", err)
+    return {
+      apiKey: (process.env.GEMINI_API_KEY || "").trim(),
+      model: "gemini-2.0-flash",
+    }
+  }
+}
+
+/**
+ * Returns public/safe status of the AI configuration for users.
+ */
+export async function getAiSystemConfigStatus(): Promise<{
+  isConfigured: boolean
+  activeModel: string
+  maskedKey: string | null
+}> {
+  const { apiKey, model } = await getAiSystemConfig()
+  const isConfigured = Boolean(apiKey && apiKey.length > 5)
+  let maskedKey: string | null = null
+  if (apiKey && apiKey.length > 8) {
+    maskedKey = `${apiKey.substring(0, 6)}••••••••${apiKey.substring(apiKey.length - 4)}`
+  } else if (apiKey) {
+    maskedKey = "••••••••"
+  }
+  return {
+    isConfigured,
+    activeModel: model,
+    maskedKey,
+  }
+}
+
+/**
+ * Saves the AI API key and selected model into the central database.
+ * Only SUPER_ADMIN can invoke this via the API route.
+ */
+export async function saveAiSystemConfig(
+  apiKey?: string,
+  model?: string
+): Promise<{ success: boolean; model: string; hasKey: boolean }> {
+  if (apiKey && apiKey.trim()) {
+    await prisma.systemSetting.upsert({
+      where: { key: "GEMINI_API_KEY" },
+      update: { value: apiKey.trim() },
+      create: { key: "GEMINI_API_KEY", value: apiKey.trim() },
+    })
+  }
+
+  if (model && model.trim()) {
+    const cleanModel = model.trim().replace(/^models\//, "")
+    await prisma.systemSetting.upsert({
+      where: { key: "GEMINI_MODEL" },
+      update: { value: cleanModel },
+      create: { key: "GEMINI_MODEL", value: cleanModel },
+    })
+  }
+
+  const current = await getAiSystemConfig()
+  return {
+    success: true,
+    model: current.model,
+    hasKey: Boolean(current.apiKey),
+  }
+}
+
+/**
  * Fetches all available generative models for a given Google Gemini API Key.
  * Validates the key and filters for models supporting text/content generation.
+ * If apiKeyOverride is not provided, uses the saved key from the database.
  */
 export async function fetchAvailableGeminiModels(
   apiKeyOverride?: string
 ): Promise<AvailableGeminiModel[]> {
-  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY
+  let apiKey = (apiKeyOverride || "").trim()
 
-  if (!apiKey || apiKey.trim() === "") {
+  if (!apiKey) {
+    const sysConfig = await getAiSystemConfig()
+    apiKey = sysConfig.apiKey
+  }
+
+  if (!apiKey) {
     throw new Error(
       "API Key tidak boleh kosong. Silakan masukkan Kunci API Gemini Anda."
     )
@@ -437,6 +527,7 @@ interface GeminiContent {
  * Process a chat message with Google Gemini, resolving any Function Calling tools automatically.
  * Uses direct REST API call so functionResponse uses role: "user", avoiding the SDK bug
  * "[400 Bad Request] Role 'function' is not supported".
+ * Automatically falls back to centralized database settings configured by the Super Administrator.
  */
 export async function processAiInventoryChat(
   message: string,
@@ -444,16 +535,28 @@ export async function processAiInventoryChat(
   apiKeyOverride?: string,
   modelNameOverride?: string
 ): Promise<{ reply: string; toolsUsed: string[]; modelUsed: string }> {
-  const apiKey = (apiKeyOverride || process.env.GEMINI_API_KEY || "").trim()
+  let apiKey = (apiKeyOverride || "").trim()
+  let chosenModel = (modelNameOverride || "").trim()
+
+  // Retrieve central configuration from database if not explicitly overridden
+  if (!apiKey || !chosenModel) {
+    const sysConfig = await getAiSystemConfig()
+    if (!apiKey) {
+      apiKey = sysConfig.apiKey
+    }
+    if (!chosenModel) {
+      chosenModel = sysConfig.model
+    }
+  }
 
   if (!apiKey) {
     throw new Error(
-      "GEMINI_API_KEY belum dikonfigurasi. Silakan masukkan Kunci API Anda terlebih dahulu di pengaturan asisten AI."
+      "Layanan AI belum dikonfigurasi oleh Administrator. Silakan hubungi Super Administrator untuk memasukkan Kunci API AI pada sistem."
     )
   }
 
   // Sanitize model name (remove any "models/" prefix)
-  const chosenModel = (modelNameOverride?.trim() || "gemini-2.0-flash").replace(
+  chosenModel = (chosenModel || "gemini-2.0-flash").replace(
     /^models\//,
     ""
   )

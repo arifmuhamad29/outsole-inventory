@@ -114,7 +114,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   by : Arif Setiawan
                 </span>
                 <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                  v2.2.21
+                  v2.2.22
                 </span>
               </div>
             </div>
@@ -184,7 +184,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 by : Arif Setiawan
               </span>
               <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-mono font-semibold border border-primary/20 shadow-sm leading-none">
-                v2.2.21
+                v2.2.22
               </span>
             </div>
           </div>
