@@ -36,6 +36,7 @@ type Phase = {
   targetETA: Date | null
   actualETA: Date | null
   status: string
+  remark: string | null
 }
 
 type Item = {
@@ -137,8 +138,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   const [isPending, startTransition] = useTransition()
   
   // Form State
-  const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }>>({})
-  const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({})
+  const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string, remark: string }>>({})
   const [itemNames, setItemNames] = useState<Record<string, string>>({})
   const [localItems, setLocalItems] = useState<Item[]>([])
   const [newItemsList, setNewItemsList] = useState<Item[]>([])
@@ -181,13 +181,11 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   useEffect(() => {
     if (model) {
       const newPhaseData: typeof phaseData = {}
-      const newItemRemarks: typeof itemRemarks = {}
       const newItemNames: typeof itemNames = {}
       
       const newLocalItems: Item[] = []
 
       model.toolingItems.forEach(item => {
-        newItemRemarks[item.id] = item.remark || ""
         newItemNames[item.id] = item.name || ""
         
         const phasesCopy = [...item.phases]
@@ -199,7 +197,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             phase = {
               id: `virtual-phase-${item.id}-${pt}`,
               phaseType: pt,
-              qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
+              qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS", remark: null
             }
             phasesCopy.push(phase)
           }
@@ -210,6 +208,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             targetETA: formatDateForInput(phase.targetETA),
             actualETA: formatDateForInput(phase.actualETA),
             status: phase.status,
+            remark: phase.remark ?? item.remark ?? "",
           }
         })
         
@@ -218,7 +217,6 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
       
       setLocalItems(newLocalItems)
       setPhaseData(newPhaseData)
-      setItemRemarks(newItemRemarks)
       setItemNames(newItemNames)
       setNewItemsList([]) // reset new items
       setDeletedItemsList([]) // reset deleted items
@@ -240,7 +238,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     const newPhases = ["MST", "EXTREME", "FSR"].map(pt => ({
       id: `new-phase-${pt}-${timestamp}`,
       phaseType: pt,
-      qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS"
+      qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS", remark: null
     }))
     
     const newItem: Item = {
@@ -259,12 +257,11 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     }))
     
     setItemNames(prev => ({ ...prev, [newItemId]: "" }))
-    setItemRemarks(prev => ({ ...prev, [newItemId]: "" }))
     
-    const newPhaseState: Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string }> = {}
+    const newPhaseState: Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string, remark: string }> = {}
     newPhases.forEach(p => {
       newPhaseState[p.id] = {
-        qty: "", orderDate: "", targetETA: "", actualETA: "", status: "ON PROCESS"
+        qty: "", orderDate: "", targetETA: "", actualETA: "", status: "ON PROCESS", remark: ""
       }
     })
     
@@ -278,13 +275,6 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
         ...prev[phaseId],
         [field]: value
       }
-    }))
-  }
-
-  const handleRemarkChange = (itemId: string, value: string) => {
-    setItemRemarks(prev => ({
-      ...prev,
-      [itemId]: value
     }))
   }
 
@@ -375,6 +365,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           targetETA: data.targetETA || null,
           actualETA: data.actualETA || null,
           status: data.status,
+          remark: data.remark?.trim() || null,
         })),
       items: activeLocalItems.map((item) => {
         let sortOrder = 0;
@@ -386,7 +377,6 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           id: item.id,
           category: item.category,
           name: (itemNames[item.id] ?? item.name).trim(),
-          remark: itemRemarks[item.id]?.trim() || null,
           sortOrder,
           phases: item.phases.map(p => ({
             phaseType: p.phaseType,
@@ -395,6 +385,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             targetETA: phaseData[p.id]?.targetETA || null,
             actualETA: phaseData[p.id]?.actualETA || null,
             status: phaseData[p.id]?.status || "ON PROCESS",
+            remark: phaseData[p.id]?.remark?.trim() || null,
           }))
         }
       }),
@@ -407,7 +398,6 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
         return {
           category: ni.category,
           name: (itemNames[ni.id] || "").trim(),
-          remark: itemRemarks[ni.id]?.trim() || null,
           sortOrder,
           phases: ni.phases.map(p => ({
             phaseType: p.phaseType,
@@ -416,6 +406,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             targetETA: phaseData[p.id]?.targetETA || null,
             actualETA: phaseData[p.id]?.actualETA || null,
             status: phaseData[p.id]?.status || "ON PROCESS",
+            remark: phaseData[p.id]?.remark?.trim() || null,
           }))
         }
       }),
@@ -493,7 +484,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                 const currentPhase = phaseData[phase.id]
                 if (!currentPhase) return null // still initializing
 
-                const currentRemark = itemRemarks[item.id] ?? ""
+                const currentRemark = currentPhase.remark ?? ""
                 const currentName = itemNames[item.id] ?? item.name
 
                 const isOverdue =
@@ -598,7 +589,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                       ) : (
                         <Input 
                           value={currentRemark}
-                          onChange={(e) => handleRemarkChange(item.id, e.target.value)}
+                          onChange={(e) => handlePhaseChange(phase.id, "remark", e.target.value)}
                           className="w-[150px] h-8"
                           placeholder="Remark..."
                         />

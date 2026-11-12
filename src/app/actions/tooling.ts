@@ -40,21 +40,21 @@ export async function updateToolingPhaseStatus(phaseId: string, newStatus: strin
 }
 
 export async function updateModelToolingAction(modelId: string, payload: { 
-  phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[],
+  phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[],
   items: { 
     id: string, 
     category?: string,
     name: string, 
-    remark: string | null, 
+    remark?: string | null, 
     sortOrder: number,
-    phases?: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[]
+    phases?: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[]
   }[],
   newItems?: {
     category: string,
     name: string,
-    remark: string | null,
+    remark?: string | null,
     sortOrder: number,
-    phases: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string }[]
+    phases: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[]
   }[],
   deletedItemIds?: string[]
 }) {
@@ -139,13 +139,12 @@ export async function updateModelToolingAction(modelId: string, payload: {
         })
       }
 
-      // PASS 2: Apply the final actual names, remarks, sortOrder, and upsert phases
+      // PASS 2: Apply the final actual names, sortOrder, and upsert phases (with independent remarks per phase)
       for (const item of activeExistingItems) {
         await tx.toolingItem.update({
           where: { id: item.id },
           data: {
             name: item.name.trim(),
-            remark: item.remark?.trim() || null,
             sortOrder: item.sortOrder
           }
         })
@@ -158,6 +157,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
             if (p.status === "VERIFIED" && !pActualETA) {
               pActualETA = new Date()
             }
+            const pRemark = p.remark?.trim() || null
 
             await tx.toolingPhase.upsert({
               where: { itemId_phaseType: { itemId: item.id, phaseType: p.phaseType } },
@@ -167,6 +167,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
                 targetETA: pTargetETA,
                 actualETA: pActualETA,
                 status: p.status,
+                remark: pRemark,
               },
               create: {
                 itemId: item.id,
@@ -176,6 +177,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
                 targetETA: pTargetETA,
                 actualETA: pActualETA,
                 status: p.status,
+                remark: pRemark,
               }
             })
           }
@@ -191,7 +193,6 @@ export async function updateModelToolingAction(modelId: string, payload: {
               modelId,
               category: newItem.category,
               name: trimmedName,
-              remark: newItem.remark?.trim() || null,
               sortOrder: newItem.sortOrder,
               phases: {
                 create: newItem.phases.map(p => {
@@ -208,7 +209,8 @@ export async function updateModelToolingAction(modelId: string, payload: {
                     orderDate: pOrderDate,
                     targetETA: pTargetETA,
                     actualETA: pActualETA,
-                    status: p.status
+                    status: p.status,
+                    remark: p.remark?.trim() || null,
                   }
                 })
               }
@@ -227,6 +229,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
     })
 
     revalidatePath("/tooling")
+    revalidatePath("/public/inventory")
     return { success: true, message: "Perubahan berhasil disimpan!" }
   } catch (error: unknown) {
     console.error("Batch update Tooling Error:", error)
@@ -394,16 +397,15 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
             name: toolingName
           }
         },
-        update: { category, remark },
+        update: { category },
         create: {
           modelId: shoeModel.id,
           category,
-          name: toolingName,
-          remark
+          name: toolingName
         }
       })
 
-      // Upsert ToolingPhase
+      // Upsert ToolingPhase with phase-specific remark
       await prisma.toolingPhase.upsert({
         where: {
           itemId_phaseType: {
@@ -416,7 +418,8 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
           orderDate: pOrderDate,
           targetETA: pTargetETA,
           actualETA: pActualETA,
-          status
+          status,
+          remark
         },
         create: {
           itemId: toolingItem.id,
@@ -425,12 +428,14 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
           orderDate: pOrderDate,
           targetETA: pTargetETA,
           actualETA: pActualETA,
-          status
+          status,
+          remark
         }
       })
     }
 
     revalidatePath("/tooling")
+    revalidatePath("/public/inventory")
     return { success: true, message: `Model ${modelName} berhasil diimpor` }
   } catch (error) {
     console.error(`CSV Import Error for ${modelName}:`, error)

@@ -72,7 +72,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
         const errors: string[] = []
         
         const allowedCategories = ['BOTTOM TOOLING', 'ASSEMBLY TOOLING']
-        const allowedPhases = ['EXTREME', 'FSR']
+        const allowedPhases = ['MST', 'EXTREME', 'FSR']
         const allowedStatuses = ['VERIFIED', 'EXISTING', 'ON PROCESS', 'NOT USE', '']
 
         rows.forEach((row, index) => {
@@ -86,7 +86,7 @@ LITE RACER NEXT,BOTTOM TOOLING,ScribeLine,EXTREME,1 SET,2026-05-01,2026-05-10,20
             errors.push(`Row ${index + 1}: Invalid Category '${row["Category"]}'. Must be BOTTOM TOOLING or ASSEMBLY TOOLING.`)
           }
           if (phase && !allowedPhases.includes(phase)) {
-            errors.push(`Row ${index + 1}: Invalid Phase '${row["Phase"]}'. Must be EXTREME or FSR.`)
+            errors.push(`Row ${index + 1}: Invalid Phase '${row["Phase"]}'. Must be MST, EXTREME, or FSR.`)
           }
           if (status && !allowedStatuses.includes(status)) {
             errors.push(`Row ${index + 1}: Invalid Status '${row["Status"]}'. Must be VERIFIED, EXISTING, ON PROCESS, or NOT USE.`)

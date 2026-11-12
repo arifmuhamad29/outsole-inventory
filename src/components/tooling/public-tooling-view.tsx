@@ -26,6 +26,7 @@ type Phase = {
   targetETA: Date | null
   actualETA: Date | null
   status: string
+  remark: string | null
 }
 
 type Item = {
@@ -119,8 +120,8 @@ function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithT
                     <TableCell>
                       <StatusBadge status={phase.status} />
                     </TableCell>
-                    <TableCell className="text-slate-600 max-w-[200px] truncate" title={item.remark || ""}>
-                      {item.remark || "-"}
+                    <TableCell className="text-slate-600 max-w-[200px] truncate" title={(phase.remark ?? item.remark) || ""}>
+                      {(phase.remark ?? item.remark) || "-"}
                     </TableCell>
                   </TableRow>
                 )

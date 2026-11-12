@@ -318,6 +318,14 @@ async function executeTool(name: string, args: Record<string, unknown>) {
             model: {
               select: { name: true },
             },
+            phases: {
+              select: {
+                phaseType: true,
+                status: true,
+                qty: true,
+                remark: true,
+              },
+            },
           },
         })
 
@@ -325,7 +333,12 @@ async function executeTool(name: string, args: Record<string, unknown>) {
           model: t.model?.name,
           kategori: t.category,
           nama: t.name,
-          catatan: t.remark || "-",
+          fase: t.phases.map((p) => ({
+            tipe: p.phaseType,
+            status: p.status,
+            qty: p.qty || "-",
+            remark: p.remark || t.remark || "-",
+          })),
         }))
       }
 

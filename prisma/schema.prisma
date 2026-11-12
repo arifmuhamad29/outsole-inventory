@@ -207,6 +207,7 @@ model ToolingPhase {
   targetETA   DateTime?
   actualETA   DateTime?
   status      String        // "VERIFIED", "EXISTING", "ON PROCESS", "NOT USE"
+  remark      String?       // Independent remark per phase ("MST", "EXTREME", "FSR")
 
   @@index([itemId])
   @@unique([itemId, phaseType])
