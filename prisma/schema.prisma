@@ -203,6 +203,7 @@ model ToolingPhase {
   item        ToolingItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   phaseType   String        // "SAMPLE", "EXTREME", or "FSR"
   qty         String?       // e.g., "1 SET", "3 PRS"
+  size        String?       // e.g., "7, 8, 9" or "ALL SIZE"
   orderDate   DateTime?
   targetETA   DateTime?
   actualETA   DateTime?

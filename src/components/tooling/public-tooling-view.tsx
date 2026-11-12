@@ -22,6 +22,7 @@ type Phase = {
   id: string
   phaseType: string
   qty: string | null
+  size: string | null
   orderDate: Date | null
   targetETA: Date | null
   actualETA: Date | null
@@ -83,6 +84,7 @@ function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithT
               <TableRow>
                 <TableHead className="w-[200px]">Tooling Name</TableHead>
                 <TableHead>Qty</TableHead>
+                <TableHead>Size</TableHead>
                 <TableHead>Order Date</TableHead>
                 <TableHead>Target ETA</TableHead>
                 <TableHead>Actual ETA</TableHead>
@@ -93,7 +95,7 @@ function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithT
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-slate-500 py-6">
+                  <TableCell colSpan={8} className="text-center text-slate-500 py-6">
                     Belum ada data untuk kategori ini.
                   </TableCell>
                 </TableRow>
@@ -112,6 +114,7 @@ function PublicToolingDrawer({ model, isOpen, onClose }: { model: ShoeModelWithT
                       {item.name}
                     </TableCell>
                     <TableCell className="text-slate-600">{phase.qty || "-"}</TableCell>
+                    <TableCell className="text-slate-600">{phase.size || "-"}</TableCell>
                     <TableCell className="text-slate-600">{formatDateForDisplay(phase.orderDate)}</TableCell>
                     <TableCell className={`text-slate-600 font-medium ${isOverdue ? "text-red-600" : ""}`}>
                       {formatDateForDisplay(phase.targetETA)}

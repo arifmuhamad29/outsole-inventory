@@ -323,6 +323,7 @@ async function executeTool(name: string, args: Record<string, unknown>) {
                 phaseType: true,
                 status: true,
                 qty: true,
+                size: true,
                 remark: true,
               },
             },
@@ -337,6 +338,7 @@ async function executeTool(name: string, args: Record<string, unknown>) {
             tipe: p.phaseType,
             status: p.status,
             qty: p.qty || "-",
+            size: p.size || "-",
             remark: p.remark || t.remark || "-",
           })),
         }))

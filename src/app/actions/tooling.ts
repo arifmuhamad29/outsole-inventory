@@ -40,21 +40,21 @@ export async function updateToolingPhaseStatus(phaseId: string, newStatus: strin
 }
 
 export async function updateModelToolingAction(modelId: string, payload: { 
-  phases: { id: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[],
+  phases: { id: string, qty: string | null, size?: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[],
   items: { 
     id: string, 
     category?: string,
     name: string, 
     remark?: string | null, 
     sortOrder: number,
-    phases?: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[]
+    phases?: { phaseType: string, qty: string | null, size?: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[]
   }[],
   newItems?: {
     category: string,
     name: string,
     remark?: string | null,
     sortOrder: number,
-    phases: { phaseType: string, qty: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[]
+    phases: { phaseType: string, qty: string | null, size?: string | null, orderDate: string | null, targetETA: string | null, actualETA: string | null, status: string, remark?: string | null }[]
   }[],
   deletedItemIds?: string[]
 }) {
@@ -158,11 +158,13 @@ export async function updateModelToolingAction(modelId: string, payload: {
               pActualETA = new Date()
             }
             const pRemark = p.remark?.trim() || null
+            const pSize = p.size?.trim() || null
 
             await tx.toolingPhase.upsert({
               where: { itemId_phaseType: { itemId: item.id, phaseType: p.phaseType } },
               update: {
                 qty: p.qty?.trim() || null,
+                size: pSize,
                 orderDate: pOrderDate,
                 targetETA: pTargetETA,
                 actualETA: pActualETA,
@@ -173,6 +175,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
                 itemId: item.id,
                 phaseType: p.phaseType,
                 qty: p.qty?.trim() || null,
+                size: pSize,
                 orderDate: pOrderDate,
                 targetETA: pTargetETA,
                 actualETA: pActualETA,
@@ -206,6 +209,7 @@ export async function updateModelToolingAction(modelId: string, payload: {
                   return {
                     phaseType: p.phaseType,
                     qty: p.qty?.trim() || null,
+                    size: p.size?.trim() || null,
                     orderDate: pOrderDate,
                     targetETA: pTargetETA,
                     actualETA: pActualETA,
@@ -364,6 +368,7 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
       const toolingName = row["Tooling Name"]?.trim()
       const phaseType = row["Phase"]?.trim()?.toUpperCase()
       const qty = row["Qty"]?.trim() || null
+      const size = row["Size"]?.trim() || null
       const orderDateStr = row["Order Date"]?.trim()
       const targetETAStr = row["Target ETA"]?.trim()
       const actualETAStr = row["Actual ETA"]?.trim()
@@ -415,6 +420,7 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
         },
         update: {
           qty,
+          size,
           orderDate: pOrderDate,
           targetETA: pTargetETA,
           actualETA: pActualETA,
@@ -425,6 +431,7 @@ export async function importSingleModelAction(modelName: string, rows: Record<st
           itemId: toolingItem.id,
           phaseType: phaseType,
           qty,
+          size,
           orderDate: pOrderDate,
           targetETA: pTargetETA,
           actualETA: pActualETA,

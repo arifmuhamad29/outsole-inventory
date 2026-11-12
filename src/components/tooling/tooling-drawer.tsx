@@ -32,6 +32,7 @@ type Phase = {
   id: string
   phaseType: string
   qty: string | null
+  size: string | null
   orderDate: Date | null
   targetETA: Date | null
   actualETA: Date | null
@@ -138,7 +139,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
   const [isPending, startTransition] = useTransition()
   
   // Form State
-  const [phaseData, setPhaseData] = useState<Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string, remark: string }>>({})
+  const [phaseData, setPhaseData] = useState<Record<string, { qty: string, size: string, orderDate: string, targetETA: string, actualETA: string, status: string, remark: string }>>({})
   const [itemNames, setItemNames] = useState<Record<string, string>>({})
   const [localItems, setLocalItems] = useState<Item[]>([])
   const [newItemsList, setNewItemsList] = useState<Item[]>([])
@@ -197,13 +198,14 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
             phase = {
               id: `virtual-phase-${item.id}-${pt}`,
               phaseType: pt,
-              qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS", remark: null
+              qty: null, size: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS", remark: null
             }
             phasesCopy.push(phase)
           }
           
           newPhaseData[phase.id] = {
             qty: phase.qty || "",
+            size: phase.size || "",
             orderDate: formatDateForInput(phase.orderDate),
             targetETA: formatDateForInput(phase.targetETA),
             actualETA: formatDateForInput(phase.actualETA),
@@ -238,7 +240,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     const newPhases = ["MST", "EXTREME", "FSR"].map(pt => ({
       id: `new-phase-${pt}-${timestamp}`,
       phaseType: pt,
-      qty: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS", remark: null
+      qty: null, size: null, orderDate: null, targetETA: null, actualETA: null, status: "ON PROCESS", remark: null
     }))
     
     const newItem: Item = {
@@ -258,10 +260,10 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
     
     setItemNames(prev => ({ ...prev, [newItemId]: "" }))
     
-    const newPhaseState: Record<string, { qty: string, orderDate: string, targetETA: string, actualETA: string, status: string, remark: string }> = {}
+    const newPhaseState: Record<string, { qty: string, size: string, orderDate: string, targetETA: string, actualETA: string, status: string, remark: string }> = {}
     newPhases.forEach(p => {
       newPhaseState[p.id] = {
-        qty: "", orderDate: "", targetETA: "", actualETA: "", status: "ON PROCESS", remark: ""
+        qty: "", size: "", orderDate: "", targetETA: "", actualETA: "", status: "ON PROCESS", remark: ""
       }
     })
     
@@ -361,6 +363,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
         .map(([id, data]) => ({
           id,
           qty: data.qty?.trim() || null,
+          size: data.size?.trim() || null,
           orderDate: data.orderDate || null,
           targetETA: data.targetETA || null,
           actualETA: data.actualETA || null,
@@ -381,6 +384,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           phases: item.phases.map(p => ({
             phaseType: p.phaseType,
             qty: phaseData[p.id]?.qty?.trim() || null,
+            size: phaseData[p.id]?.size?.trim() || null,
             orderDate: phaseData[p.id]?.orderDate || null,
             targetETA: phaseData[p.id]?.targetETA || null,
             actualETA: phaseData[p.id]?.actualETA || null,
@@ -402,6 +406,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
           phases: ni.phases.map(p => ({
             phaseType: p.phaseType,
             qty: phaseData[p.id]?.qty?.trim() || null,
+            size: phaseData[p.id]?.size?.trim() || null,
             orderDate: phaseData[p.id]?.orderDate || null,
             targetETA: phaseData[p.id]?.targetETA || null,
             actualETA: phaseData[p.id]?.actualETA || null,
@@ -461,6 +466,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                 {!isReadOnly && <TableHead className="w-[30px]"></TableHead>}
                 <TableHead className="w-[200px]">Tooling Name</TableHead>
                 <TableHead>Qty</TableHead>
+                <TableHead>Size</TableHead>
                 <TableHead>Order Date</TableHead>
                 <TableHead>Target ETA</TableHead>
                 <TableHead>Actual ETA</TableHead>
@@ -473,7 +479,7 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
               <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                 {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isReadOnly ? 7 : 8} className="text-center text-slate-500 py-6">
+                  <TableCell colSpan={isReadOnly ? 8 : 10} className="text-center text-slate-500 py-6">
                     Belum ada data untuk kategori ini.
                   </TableCell>
                 </TableRow>
@@ -520,6 +526,18 @@ export function ToolingDrawer({ model, isOpen, onClose, isReadOnly = false }: To
                           onChange={(e) => handlePhaseChange(phase.id, "qty", e.target.value)}
                           className="w-20 h-8" 
                           placeholder="e.g. 1 SET"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isReadOnly ? (
+                        <span className="text-slate-600">{currentPhase.size || "-"}</span>
+                      ) : (
+                        <Input 
+                          value={currentPhase.size} 
+                          onChange={(e) => handlePhaseChange(phase.id, "size", e.target.value)}
+                          className="w-24 h-8" 
+                          placeholder="Size..."
                         />
                       )}
                     </TableCell>
